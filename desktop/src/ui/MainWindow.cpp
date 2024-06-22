@@ -50,10 +50,10 @@ bool MainWindow::PerformStartupChecks(QObject *viewLoader, QObject *window) {
         QMetaObject::invokeMethod(window, "showFatalErrorMessage", Q_ARG(QVariant, QString::fromUtf8(I18n::Get("error_unix_missing_dep", "Shadow file"))));
         return false;
     }
-    /*if(!PlatformHelper::HasNativeLibrary("libcrypt.so.1")) {
+    if(!PlatformHelper::HasNativeLibrary("libcrypt.so.1")) {
         QMetaObject::invokeMethod(window, "showFatalErrorMessage", Q_ARG(QVariant, QString::fromUtf8(I18n::Get("error_unix_missing_dep", "libcrypt.so.1 (libxcrypt-compat)"))));
         return false;
-    }*/
+    }
     if(!PlatformHelper::HasNativeLibrary("libcrypto.so.3") || !PlatformHelper::HasNativeLibrary("libssl.so.3")) {
         QMetaObject::invokeMethod(window, "showFatalErrorMessage", Q_ARG(QVariant, QString::fromUtf8(I18n::Get("error_unix_missing_dep", "OpenSSL 3"))));
         return false;

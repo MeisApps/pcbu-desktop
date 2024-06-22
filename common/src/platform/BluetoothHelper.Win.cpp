@@ -1,5 +1,7 @@
 #include "BluetoothHelper.h"
 
+#include <spdlog/spdlog.h>
+
 #include "utils/StringUtils.h"
 
 bool BluetoothHelper::IsAvailable() {
@@ -64,8 +66,10 @@ bool BluetoothHelper::PairDevice(const BluetoothDevice &device) {
             TRUE, TRUE, TRUE, 5, nullptr
     };
     HANDLE searchHandle = BluetoothFindFirstDevice(&searchParams, &deviceInfo);
-    if (!searchHandle)
+    if (!searchHandle) {
+        spdlog::error("Error getting bluetooth search handle.");
         return false;
+    }
     bool deviceFound = false;
     do {
         if (memcmp(&deviceInfo.Address, &deviceAddress, sizeof(deviceAddress)) == 0) {
@@ -74,11 +78,14 @@ bool BluetoothHelper::PairDevice(const BluetoothDevice &device) {
         }
     } while (BluetoothFindNextDevice(searchHandle, &deviceInfo));
     BluetoothFindDeviceClose(searchHandle);
-    if (!deviceFound)
+    if (!deviceFound) {
+        spdlog::error("Bluetooth device not found.");
         return false;
+    }
 
     HWND hwnd = FindWindowA(nullptr, "PC Bio Unlock");
     DWORD result = BluetoothAuthenticateDevice(hwnd, nullptr, &deviceInfo, nullptr, 0);
+    spdlog::info("Bluetooth pair result: {}", result);
     if (result != ERROR_SUCCESS && result != ERROR_NO_MORE_ITEMS)
         return false;
     return true;
