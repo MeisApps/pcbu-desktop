@@ -12,6 +12,7 @@ Q_GADGET
 public:
     AppSettingsModel() = default;
     explicit AppSettingsModel(const PCBUAppStorage& settings) {
+        installedVersion = QString::fromUtf8(settings.installedVersion);
         language = QString::fromUtf8(settings.language);
         serverIP = QString::fromUtf8(settings.serverIP);
         serverMAC = QString::fromUtf8(settings.serverMAC);
@@ -20,6 +21,7 @@ public:
     }
     [[nodiscard]] PCBUAppStorage ToStorage() const {
         auto settings = PCBUAppStorage();
+        settings.installedVersion = installedVersion.toStdString();
         settings.language = language.toStdString();
         settings.serverIP = serverIP.toStdString();
         settings.serverMAC = serverMAC.toStdString();
@@ -28,11 +30,13 @@ public:
         return settings;
     }
 
+    QString installedVersion{};
     QString language{};
     QString serverIP{};
     QString serverMAC{};
     uint16_t serverPort{};
     bool waitForKeyPress{};
+    Q_PROPERTY(QString installedVersion MEMBER installedVersion)
     Q_PROPERTY(QString language MEMBER language)
     Q_PROPERTY(QString serverIP MEMBER serverIP)
     Q_PROPERTY(QString serverMAC MEMBER serverMAC)

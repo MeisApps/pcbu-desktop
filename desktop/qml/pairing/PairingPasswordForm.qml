@@ -31,7 +31,7 @@ StepForm {
 
                         RowLayout {
                             Label {
-                                Layout.fillWidth: true
+                                Layout.minimumWidth: 100
                                 text: '%1:'.arg(QI18n.Get('user'))
                                 verticalAlignment: Text.AlignVCenter
                             }
@@ -59,7 +59,7 @@ StepForm {
 
                         RowLayout {
                             Label {
-                                Layout.fillWidth: true
+                                Layout.minimumWidth: 100
                                 text: '%1:'.arg(QI18n.Get('password'))
                                 verticalAlignment: Text.AlignVCenter
                             }

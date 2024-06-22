@@ -25,7 +25,7 @@ ApplicationWindow {
         }
         Label {
             text: "<a href=\"https://meis-apps.com\">https://meis-apps.com</a>"
-            onLinkActivated: Qt.openUrlExternally(link)
+            onLinkActivated: function(link) { Qt.openUrlExternally(link); }
         }
         Label {
             Layout.topMargin: 15
