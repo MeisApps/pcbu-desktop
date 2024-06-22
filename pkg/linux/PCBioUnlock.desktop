@@ -1,6 +1,6 @@
 [Desktop Entry]
 Type=Application
-Version=2.0
+Version=1.0
 Name=PC Bio Unlock
 Exec=run-app.sh
 Icon=PCBioUnlock
