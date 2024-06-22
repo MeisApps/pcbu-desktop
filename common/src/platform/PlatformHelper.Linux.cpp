@@ -5,6 +5,7 @@
 #include <unistd.h>
 #include <pwd.h>
 #include <shadow.h>
+#include <crypt.h>
 
 #include "shell/Shell.h"
 #include "utils/StringUtils.h"

@@ -43,7 +43,7 @@ elseif(UNIX)
     find_package(PkgConfig REQUIRED)
     pkg_check_modules(libxcrypt IMPORTED_TARGET REQUIRED libxcrypt)
 
-    add_compile_definitions(LINUX)
+    add_compile_definitions(LINUX HAVE_CRYPT_H)
     set(PLATFORM_LIBS
             PkgConfig::libxcrypt
             bluetooth
