@@ -48,10 +48,10 @@ void ServiceInstaller::Install() {
         throw std::runtime_error(I18n::Get("error_file_write", libPath.string()));
 
     m_Logger("Creating registry entries...");
-    result = Shell::RunCommand(fmt::format(R"(reg add "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Authentication\Credential Providers\{0}" /t REG_SZ /d {1} /f)", CRED_PROVIDER_GUID, CRED_PROVIDER_NAME)).exitCode == 0 &&
-            Shell::RunCommand(fmt::format(R"(reg add "HKEY_CLASSES_ROOT\CLSID\{0}" /t REG_SZ /d {1} /f)", CRED_PROVIDER_GUID, CRED_PROVIDER_NAME)).exitCode == 0 &&
-            Shell::RunCommand(fmt::format(R"(reg add "HKEY_CLASSES_ROOT\CLSID\{0}\InprocServer32" /t REG_SZ /d {1} /f)", CRED_PROVIDER_GUID, CRED_PROVIDER_NAME)).exitCode == 0 &&
-            Shell::RunCommand(fmt::format(R"(reg add "HKEY_CLASSES_ROOT\CLSID\{0}\InprocServer32" /t REG_SZ /v ThreadingModel /d Apartment /f)", CRED_PROVIDER_GUID)).exitCode == 0;
+    result = Shell::RunCommand(fmt::format(R"(reg add "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Authentication\Credential Providers\{{0}}" /t REG_SZ /d {1} /f)", CRED_PROVIDER_GUID, CRED_PROVIDER_NAME)).exitCode == 0 &&
+            Shell::RunCommand(fmt::format(R"(reg add "HKEY_CLASSES_ROOT\CLSID\{{0}}" /t REG_SZ /d {1} /f)", CRED_PROVIDER_GUID, CRED_PROVIDER_NAME)).exitCode == 0 &&
+            Shell::RunCommand(fmt::format(R"(reg add "HKEY_CLASSES_ROOT\CLSID\{{0}}\InprocServer32" /t REG_SZ /d {1} /f)", CRED_PROVIDER_GUID, CRED_PROVIDER_NAME)).exitCode == 0 &&
+            Shell::RunCommand(fmt::format(R"(reg add "HKEY_CLASSES_ROOT\CLSID\{{0}}\InprocServer32" /t REG_SZ /v ThreadingModel /d Apartment /f)", CRED_PROVIDER_GUID)).exitCode == 0;
     if(!result)
         throw std::runtime_error(I18n::Get("error_registry_add"));
 
@@ -78,8 +78,8 @@ void ServiceInstaller::Uninstall() {
         throw std::runtime_error(I18n::Get("error_file_remove", libPath.string()));
 
     m_Logger("Removing registry entries...");
-    result = Shell::RunCommand(fmt::format(R"(reg delete "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Authentication\Credential Providers\{0}" /f)", CRED_PROVIDER_GUID)).exitCode == 0 &&
-             Shell::RunCommand(fmt::format(R"(reg delete "HKEY_CLASSES_ROOT\CLSID\{0}" /f)", CRED_PROVIDER_GUID)).exitCode == 0;
+    result = Shell::RunCommand(fmt::format(R"(reg delete "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Authentication\Credential Providers\{{0}}" /f)", CRED_PROVIDER_GUID)).exitCode == 0 &&
+             Shell::RunCommand(fmt::format(R"(reg delete "HKEY_CLASSES_ROOT\CLSID\{{0}}" /f)", CRED_PROVIDER_GUID)).exitCode == 0;
     if(!result)
         throw std::runtime_error(I18n::Get("error_registry_remove"));
 
