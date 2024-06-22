@@ -98,8 +98,8 @@ ApplicationWindow {
         }
         viewLoader.item.selectBTList.currentIndex = selIdx;
     }
-    function finishBluetoothPairing(hasError) {
-        if(hasError) {
+    function finishBluetoothPairing(isSuccess) {
+        if(!isSuccess) {
             showErrorMessage(QI18n.Get('error_bluetooth_pairing'));
             PairingForm.OnBackClicked(viewLoader, window);
             return;
