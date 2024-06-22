@@ -1,0 +1,5 @@
+LIBRARY win-pcbiounlock.dll
+
+EXPORTS
+    DllCanUnloadNow                                 PRIVATE
+    DllGetClassObject                               PRIVATE

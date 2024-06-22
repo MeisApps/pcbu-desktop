@@ -1,0 +1,6 @@
+**/.DS_Store
+.idea
+cmake-build-debug
+cmake-build-release
+pkg/build
+desktop/res/natives

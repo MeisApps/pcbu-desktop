@@ -1,0 +1,23 @@
+<!DOCTYPE RCC>
+<RCC version="1.0">
+    <qresource prefix="/ui/">
+        <file>MainWindow.qml</file>
+        <file>AboutWindow.qml</file>
+        <file>LogsWindow.qml</file>
+        <file>UpdaterWindow.qml</file>
+
+        <file>base/Form.qml</file>
+        <file>base/StepForm.qml</file>
+        <file>base/StepButtons.qml</file>
+
+        <file>forms/MainForm.qml</file>
+        <file>forms/SettingsForm.qml</file>
+        <file>forms/LoadingForm.qml</file>
+
+        <file>pairing/PairingPasswordForm.qml</file>
+        <file>pairing/PairingMethodForm.qml</file>
+        <file>pairing/PairingBTSelectForm.qml</file>
+        <file>pairing/PairingBTPairForm.qml</file>
+        <file>pairing/PairingQRForm.qml</file>
+    </qresource>
+</RCC>

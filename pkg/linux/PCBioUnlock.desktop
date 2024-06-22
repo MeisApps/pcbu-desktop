@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Version=2.0
+Name=PC Bio Unlock
+Exec=run-app.sh
+Icon=PCBioUnlock
+Terminal=false
+Categories=Settings;Security;

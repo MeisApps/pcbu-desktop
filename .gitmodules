@@ -1,0 +1,6 @@
+[submodule "deps/boost"]
+	path = deps/boost
+	url = https://github.com/boostorg/boost
+[submodule "deps/spdlog"]
+	path = deps/spdlog
+	url = https://github.com/gabime/spdlog

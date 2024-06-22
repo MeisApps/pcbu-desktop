@@ -1,0 +1,10 @@
+<!DOCTYPE RCC>
+<RCC version="1.0">
+    <qresource prefix="/res/natives/">
+        <file alias="pam_pcbiounlock.so">natives/linux/x64/pam_pcbiounlock.so</file>
+        <file alias="pcbu_auth">natives/linux/x64/pcbu_auth</file>
+    </qresource>
+    <qresource prefix="/res/selinux/">
+        <file alias="pcbu_auth_policy.pp">selinux/pcbu_auth_policy.pp</file>
+    </qresource>
+</RCC>

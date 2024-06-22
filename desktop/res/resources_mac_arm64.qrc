@@ -1,0 +1,7 @@
+<!DOCTYPE RCC>
+<RCC version="1.0">
+    <qresource prefix="/res/natives/">
+        <file alias="pam_pcbiounlock.dylib">natives/mac/arm64/pam_pcbiounlock.dylib</file>
+        <file alias="pcbu_auth">natives/mac/arm64/pcbu_auth</file>
+    </qresource>
+</RCC>

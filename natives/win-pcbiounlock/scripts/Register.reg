@@ -1,0 +1,12 @@
+Windows Registry Editor Version 5.00
+
+[HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Authentication\Credential Providers\{74A23DE2-B81D-46EC-E129-CD32507ED716}]
+@="win-pcbiounlock"
+
+[HKEY_CLASSES_ROOT\CLSID\{74A23DE2-B81D-46EC-E129-CD32507ED716}]
+@="win-pcbiounlock"
+
+[HKEY_CLASSES_ROOT\CLSID\{74A23DE2-B81D-46EC-E129-CD32507ED716}\InprocServer32]
+@="win-pcbiounlock.dll"
+"ThreadingModel"="Apartment"
+

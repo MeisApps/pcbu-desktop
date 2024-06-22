@@ -1,0 +1,11 @@
+module pcbu_auth_policy 1.0;
+
+require {
+	type xdm_t;
+	type etc_t;
+	type shadow_t;
+	class file { read open append };
+}
+
+allow xdm_t etc_t:file append;
+allow xdm_t shadow_t:file { read open };

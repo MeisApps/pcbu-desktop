@@ -1,0 +1,4 @@
+// Microsoft Visual C++ generated resource script.
+//
+#include "resource.h"
+IDB_TILE_IMAGE BITMAP "../res/pcbu.bmp"

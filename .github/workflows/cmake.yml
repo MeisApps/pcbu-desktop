@@ -1,0 +1,147 @@
+name: CMake
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: write
+
+jobs:
+  build-windows-x64:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: vcpkg build
+        uses: johnwason/vcpkg-action@v6
+        with:
+          pkgs: openssl
+          triplet: x64-windows-static
+          revision: master
+          token: ${{ github.token }}
+          github-binarycache: true
+
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v3
+        with:
+          dir: 'C:/'
+          version: '6.7.2'
+          host: 'windows'
+          target: 'desktop'
+          arch: 'win64_msvc2019_64'
+          cache: 'true'
+
+      - name: Build x64
+        run: bash -c "cd pkg && chmod +x build-desktop.sh && ARCH=x64 QT_BASE_DIR=C:/Qt/6.7.2 ./build-desktop.sh"
+        env:
+          VCPKG_ROOT: ${{github.workspace}}/vcpkg
+
+      - name: Upload x64
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            pkg/build/PCBioUnlock-Setup-x64.exe
+
+  build-windows-arm64:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: vcpkg build
+        uses: johnwason/vcpkg-action@v6
+        with:
+          pkgs: openssl
+          triplet: arm64-windows-static
+          revision: master
+          token: ${{ github.token }}
+          github-binarycache: true
+
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v3
+        with:
+          dir: 'C:/'
+          version: '6.7.2'
+          host: 'windows'
+          target: 'desktop'
+          arch: 'win64_msvc2019_arm64'
+          cache: 'true'
+
+      - name: Build
+        run: bash -c "cd pkg && rm -Rf ./build/ && ARCH=arm64 QT_BASE_DIR=C:/Qt/6.7.2 ./build-desktop.sh"
+        env:
+          VCPKG_ROOT: ${{github.workspace}}/vcpkg
+
+      - name: Upload
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            pkg/build/PCBioUnlock-Setup-arm64.exe
+
+  build-linux-x64:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Build docker
+        run: bash -c "cd ${{github.workspace}}/pkg/linux && chmod +x docker-build.sh && ARCH=x64 ./docker-build.sh"
+
+      - name: Upload
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            pkg/build/PCBioUnlock-x64.AppImage
+
+  build-linux-arm64:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install QEMU + binfmt
+        run: sudo apt-get update && sudo apt-get install -y binfmt-support qemu-user-static
+
+      - name: Build docker
+        run: bash -c "cd ${{github.workspace}}/pkg/linux && chmod +x docker-build.sh && ARCH=arm64 ./docker-build.sh"
+
+      - name: Upload
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            pkg/build/PCBioUnlock-arm64.AppImage
+
+  build-mac-arm64:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Prepare Qt
+        run: sudo chmod -R 777 /opt
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v3
+        with:
+          dir: '/opt'
+          version: '6.7.2'
+          host: 'mac'
+          target: 'desktop'
+          arch: 'clang_64'
+          cache: 'true'
+
+      - name: Build
+        run: bash -c "cd pkg && rm -Rf ./build/ && ARCH=arm64 QT_BASE_DIR=/opt/Qt/6.7.2 ./build-desktop.sh"
+
+      - name: Upload
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            pkg/build/PCBioUnlock-arm64.dmg
