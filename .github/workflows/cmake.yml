@@ -135,7 +135,7 @@ jobs:
           cache: 'true'
 
       - name: Build
-        run: bash -c "cd pkg && rm -Rf ./build/ && ARCH=arm64 QT_BASE_DIR=/opt/Qt/6.7.2 ./build-desktop.sh"
+        run: bash -c "cd pkg && rm -Rf ./build/ && ARCH=arm64 QT_BASE_DIR=/opt/Qt/6.7.2 CI_BUILD=1 ./build-desktop.sh"
 
       - name: Upload
         uses: softprops/action-gh-release@v2
