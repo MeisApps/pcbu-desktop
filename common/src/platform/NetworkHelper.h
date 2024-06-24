@@ -14,6 +14,7 @@ class NetworkHelper {
 public:
     static std::vector<NetworkInterface> GetLocalNetInterfaces();
     static std::string GetHostName();
+    static bool HasLANConnection();
 
 private:
     NetworkHelper() = default;

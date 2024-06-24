@@ -13,6 +13,8 @@
 #include <ws2ipdef.h>
 #include <WS2tcpip.h>
 #include <iphlpapi.h>
+#include <SensAPI.h>
+#include <Netlistmgr.h>
 #elif defined(LINUX) || defined(APPLE)
 #include <unistd.h>
 #include <ifaddrs.h>
@@ -155,4 +157,37 @@ std::string NetworkHelper::GetHostName() {
     spdlog::error("Failed to get computer name.");
     return {};
 #endif
+}
+
+bool NetworkHelper::HasLANConnection() {
+#ifdef WINDOWS
+    DWORD flags{};
+    auto hasLAN = IsNetworkAlive(&flags) && GetLastError() == 0 && (flags & NETWORK_ALIVE_LAN) == NETWORK_ALIVE_LAN;
+
+    HRESULT hr;
+    INetworkListManager *pNetworkListManager = nullptr;
+    NLM_CONNECTIVITY nlmConnectivity = NLM_CONNECTIVITY_DISCONNECTED;
+    hr = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
+    if (FAILED(hr)) {
+        spdlog::error("Failed to initialize COM. (Code={})", hr);
+        return hasLAN;
+    }
+    hr = CoCreateInstance(CLSID_NetworkListManager, nullptr, CLSCTX_ALL, IID_INetworkListManager, (void **)&pNetworkListManager);
+    if (FAILED(hr)) {
+        spdlog::error("Failed to create INetworkListManager. (Code={})", hr);
+    } else {
+        hr = pNetworkListManager->GetConnectivity(&nlmConnectivity);
+        if (FAILED(hr)) {
+            spdlog::error("Failed to get network connectivity. (Code={})", hr);
+        } else {
+            hasLAN = nlmConnectivity & NLM_CONNECTIVITY_IPV4_SUBNET
+                    || nlmConnectivity & NLM_CONNECTIVITY_IPV4_LOCALNETWORK
+                    || nlmConnectivity & NLM_CONNECTIVITY_IPV4_INTERNET;
+        }
+        pNetworkListManager->Release();
+    }
+    CoUninitialize();
+    return hasLAN;
+#endif
+    return false;
 }

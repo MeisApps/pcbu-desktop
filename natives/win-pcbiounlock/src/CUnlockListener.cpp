@@ -1,9 +1,8 @@
 #include "CUnlockListener.h"
 
-#include <SensAPI.h>
-
 #include "CSampleProvider.h"
 #include "handler/UnlockHandler.h"
+#include "platform/NetworkHelper.h"
 #include "storage/AppSettings.h"
 
 void CUnlockListener::Initialize(CREDENTIAL_PROVIDER_USAGE_SCENARIO cpus,  CSampleProvider *pCredentialProvider, CUnlockCredential *pCredential, const std::wstring& userDomain)
@@ -77,9 +76,15 @@ void CUnlockListener::ListenThread()
         if (waitForNetwork) {
             m_Credential->UpdateMessage(I18n::Get("wait_network"));
             while (m_IsRunning) {
-                DWORD flags{};
-                if (IsNetworkAlive(&flags) && GetLastError() == 0 || GetAsyncKeyState(VK_LCONTROL) < 0 && GetAsyncKeyState(VK_LMENU) < 0)
+                auto isAbort = false;
+                if (NetworkHelper::HasLANConnection() || (isAbort = GetAsyncKeyState(VK_LCONTROL) < 0 && GetAsyncKeyState(VK_LMENU) < 0)) {
+                    if(isAbort) {
+                        m_HasResponse = true;
+                        m_Credential->UpdateMessage(I18n::Get("unlock_canceled"));
+                        return;
+                    }
                     break;
+                }
                 Sleep(10);
             }
         }

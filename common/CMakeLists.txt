@@ -18,6 +18,7 @@ if(WIN32)
             Netapi32
             Wtsapi32
             Bthprops
+            ole32
     )
     set(PLATFORM_SRC
             src/platform/PlatformHelper.Win.cpp
