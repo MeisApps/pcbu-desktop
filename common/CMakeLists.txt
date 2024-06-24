@@ -106,6 +106,5 @@ target_link_libraries(pcbu_common PUBLIC
         OpenSSL::SSL
         Boost::system
         Boost::filesystem
-        Boost::thread
         ${PLATFORM_LIBS}
 )
