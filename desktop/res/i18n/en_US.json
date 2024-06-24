@@ -54,7 +54,7 @@
     "error_incorrect_password": "The password is incorrect.",
     "error_invalid_ip": "Invalid server IP. (Must be v4)",
     "error_invalid_port": "Invalid server port. (Must be 0-65535)",
-    "error_bluetooth_pairing": "Bluetooth pairing failed. Please try again.",
+    "error_bluetooth_pairing": "Bluetooth pairing failed. Please remove your phone if it's already paired and try again.",
     "error_pairing_not_installed": "Please install the service module first.",
     "error_user_no_password": "Your user does not have a password set. Please set one in Windows settings.",
     "notice_ms_account": "Note: You are using a Microsoft account, so you need to enter your account password.",

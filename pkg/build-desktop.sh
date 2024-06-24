@@ -106,5 +106,10 @@ elif [[ "$PLATFORM" == "mac" ]]; then
   mkdir -p dmg_dir/ || true
   cp -R desktop/pcbu_desktop.app dmg_dir/PCBioUnlock.app
   ln -s /Applications dmg_dir/Applications
+
+  if [[ "$CI_BUILD" == "1" ]]; then
+    echo "Killing XProtect..."; sudo pkill -9 XProtect >/dev/null || true;
+    echo "Waiting for XProtect..."; while pgrep XProtect; do sleep 3; done;
+  fi
   hdiutil create -volname "PC Bio Unlock" -srcfolder dmg_dir/ -ov -format UDZO ./PCBioUnlock-$ARCH.dmg
 fi

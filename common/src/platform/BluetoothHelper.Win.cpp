@@ -1,5 +1,7 @@
 #include "BluetoothHelper.h"
 
+#include <spdlog/spdlog.h>
+
 #include "utils/StringUtils.h"
 
 bool BluetoothHelper::IsAvailable() {
@@ -64,24 +66,33 @@ bool BluetoothHelper::PairDevice(const BluetoothDevice &device) {
             TRUE, TRUE, TRUE, 5, nullptr
     };
     HANDLE searchHandle = BluetoothFindFirstDevice(&searchParams, &deviceInfo);
-    if (!searchHandle)
+    if (!searchHandle) {
+        spdlog::error("Error getting bluetooth search handle.");
         return false;
+    }
     bool deviceFound = false;
     do {
-        if (memcmp(&deviceInfo.Address, &deviceAddress, sizeof(deviceAddress)) == 0) {
+        char devAddr[18]{};
+        char targetAddr[18]{};
+        ba2str(deviceInfo.Address.ullLong, devAddr);
+        ba2str(deviceAddress.ullLong, targetAddr);
+        if(strcmp(devAddr, targetAddr) == 0) {
             deviceFound = true;
             break;
         }
     } while (BluetoothFindNextDevice(searchHandle, &deviceInfo));
     BluetoothFindDeviceClose(searchHandle);
-    if (!deviceFound)
+    if (!deviceFound) {
+        spdlog::error("Bluetooth device not found.");
         return false;
+    }
 
     HWND hwnd = FindWindowA(nullptr, "PC Bio Unlock");
     DWORD result = BluetoothAuthenticateDevice(hwnd, nullptr, &deviceInfo, nullptr, 0);
-    if (result != ERROR_SUCCESS && result != ERROR_NO_MORE_ITEMS)
-        return false;
-    return true;
+    if (result == ERROR_SUCCESS || result == ERROR_NO_MORE_ITEMS)
+        return true;
+    spdlog::error("Error while bluetooth pairing. (1Code={})", result);
+    return false;
 }
 
 int BluetoothHelper::str2ba(const char *straddr, BTH_ADDR *btaddr) {
