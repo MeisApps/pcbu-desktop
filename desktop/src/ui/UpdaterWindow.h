@@ -23,6 +23,8 @@ private:
     static std::string GetDownloadURL();
 
     QString m_LatestVersion{};
+    std::mutex m_VersionMutex{};
+    std::thread m_CheckThread{};
     std::thread m_DownloadThread{};
 };
 

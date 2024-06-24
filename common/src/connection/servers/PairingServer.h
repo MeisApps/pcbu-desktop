@@ -18,8 +18,7 @@ public:
     void Stop();
 
 private:
-    void OnAccept();
-
+    void Accept();
     std::vector<uint8_t> ReadPacket();
     void WritePacket(const std::string& dataStr);
     void WritePacket(const std::vector<uint8_t>& data);
@@ -32,6 +31,5 @@ private:
     std::thread m_AcceptThread{};
     std::atomic<bool> m_IsRunning{};
 };
-
 
 #endif //PCBU_DESKTOP_PAIRINGSERVER_H

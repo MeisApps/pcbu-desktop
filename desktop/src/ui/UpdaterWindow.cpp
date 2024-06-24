@@ -14,6 +14,8 @@
 #endif
 
 UpdaterWindow::~UpdaterWindow() {
+    if(m_CheckThread.joinable())
+        m_CheckThread.join();
     if(m_DownloadThread.joinable())
         m_DownloadThread.join();
 }
@@ -23,26 +25,37 @@ QString UpdaterWindow::GetAppVersion() {
 }
 
 QString UpdaterWindow::GetLatestVersion() {
+    std::lock_guard<std::mutex> lock(m_VersionMutex);
     return m_LatestVersion;
 }
 
 void UpdaterWindow::CheckForUpdates(QObject *window) {
-    try {
-        httplib::Client client("https://api.meis-apps.com");
-        auto result = client.Get("/rest/appUpdater/checkUpdates?product=PCBioUnlock&platform=Desktop");
-        if(!result)
-            return;
+    m_CheckThread = std::thread([this, window]() {
+        try {
+            httplib::Client client("https://api.meis-apps.com");
+            client.set_connection_timeout(5, 0);
+            client.set_read_timeout(5, 0);
+            client.set_write_timeout(5, 0);
+            auto result = client.Get("/rest/appUpdater/checkUpdates?product=PCBioUnlock&platform=Desktop");
+            if(!result)
+                throw std::runtime_error(to_string(result.error()));
 
-        auto resultJson = nlohmann::json::parse(result->body);
-        std::string latestVersion = resultJson["version"];
-        m_LatestVersion = QString::fromUtf8(latestVersion);
+            auto resultJson = nlohmann::json::parse(result->body);
+            std::string latestVersion = resultJson["version"];
+            m_VersionMutex.lock();
+            m_LatestVersion = QString::fromUtf8(latestVersion);
+            m_VersionMutex.unlock();
+            spdlog::info("Latest version: {}", latestVersion);
 
-        if(AppInfo::CompareVersion(AppInfo::GetVersion(), latestVersion) == 1)
-            QMetaObject::invokeMethod(window, "showUpdaterWindow");
-    } catch(const std::exception& ex) {
-        spdlog::error("Failed checking for updates: {}", ex.what());
-        m_LatestVersion = {};
-    }
+            if(AppInfo::CompareVersion(AppInfo::GetVersion(), latestVersion) == 1)
+                QMetaObject::invokeMethod(window, "showUpdaterWindow");
+        } catch(const std::exception& ex) {
+            spdlog::error("Failed checking for updates: {}", ex.what());
+            m_VersionMutex.lock();
+            m_LatestVersion = {};
+            m_VersionMutex.unlock();
+        }
+    });
 }
 
 void UpdaterWindow::OnDownloadClicked(QObject *window) {
