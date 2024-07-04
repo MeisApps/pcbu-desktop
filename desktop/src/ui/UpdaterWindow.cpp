@@ -77,6 +77,8 @@ void UpdaterWindow::OnDownloadClicked(QObject *window) {
         };
 
         httplib::Client client("https://meis-apps.com");
+        client.set_connection_timeout(5, 0);
+        client.set_follow_location(true);
         auto result = client.Get(GetDownloadURL(), contentCallback, progressCallback);
         if(!result || fileData.empty()) {
             auto errText = "Error downloading update.";
@@ -100,7 +102,7 @@ void UpdaterWindow::OnDownloadClicked(QObject *window) {
 
         auto dlPath = GetDownloadDirectory() / downloadFileName;
         spdlog::info("Saving update to '{}'...", dlPath.string());
-        if(Shell::WriteBytes(dlPath.string(), fileData)) {
+        if(!Shell::WriteBytes(dlPath.string(), fileData)) {
             auto errText = "Error saving update.";
             spdlog::error(errText);
             QMetaObject::invokeMethod(window, "closeUpdaterWindow", Q_ARG(QVariant, QString::fromUtf8(errText)));
