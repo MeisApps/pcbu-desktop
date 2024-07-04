@@ -1,5 +1,6 @@
 #include "BaseUnlockServer.h"
 
+#include "SocketDefs.h"
 #include "utils/StringUtils.h"
 
 BaseUnlockServer::BaseUnlockServer(const PairedDevice& device) {
@@ -34,8 +35,86 @@ UnlockState BaseUnlockServer::PollResult() {
     return m_UnlockState;
 }
 
+bool BaseUnlockServer::SetSocketBlocking(SOCKET socket, bool isBlocking) {
+#ifdef WINDOWS
+    if(isBlocking) {
+        u_long mode = 0;
+        return ioctlsocket(socket, FIONBIO, &mode) == 0;
+    }
+    u_long mode = 1;
+    return ioctlsocket(socket, FIONBIO, &mode) == 0;
+#else
+    if(isBlocking) {
+        int flags = fcntl(socket, F_GETFL, 0);
+        if (flags == -1)
+            return false;
+        return fcntl(socket, F_SETFL, flags & ~O_NONBLOCK) != -1;
+    }
+    int flags = fcntl(socket, F_GETFL, 0);
+    if (flags == -1)
+        return false;
+    return fcntl(socket, F_SETFL, flags | O_NONBLOCK) != -1;
+#endif
+}
+
+std::vector<uint8_t> BaseUnlockServer::ReadPacket(SOCKET socket) {
+    std::vector<uint8_t> lenBuffer{};
+    lenBuffer.resize(sizeof(uint16_t));
+    uint16_t lenBytesRead = 0;
+    while (lenBytesRead < sizeof(uint16_t)) {
+        int result = (int)read(socket, lenBuffer.data() + lenBytesRead, sizeof(uint16_t) - lenBytesRead);
+        if (result <= 0) {
+            spdlog::error("Reading length failed.");
+            return {};
+        }
+        lenBytesRead += result;
+    }
+
+    uint16_t packetSize{};
+    std::memcpy(&packetSize, lenBuffer.data(), sizeof(uint16_t));
+    packetSize = ntohs(packetSize);
+    if(packetSize == 0) {
+        spdlog::error("Empty packet received.");
+        return {};
+    }
+
+    std::vector<uint8_t> buffer{};
+    buffer.resize(packetSize);
+    uint16_t bytesRead = 0;
+    while (bytesRead < packetSize) {
+        int result = (int)read(socket, buffer.data() + bytesRead, packetSize - bytesRead);
+        if (result <= 0) {
+            spdlog::error("Reading data failed. (Len={})", packetSize);
+            return {};
+        }
+        bytesRead += result;
+    }
+    return buffer;
+}
+
+void BaseUnlockServer::WritePacket(SOCKET socket, const std::vector<uint8_t>& data) {
+    uint16_t packetSize = htons(static_cast<uint16_t>(data.size()));
+    int bytesWritten = 0;
+    while (bytesWritten < sizeof(uint16_t)) {
+        int result = (int)write(socket, reinterpret_cast<const char*>(&packetSize) + bytesWritten, sizeof(uint16_t) - bytesWritten);
+        if (result <= 0) {
+            spdlog::error("Writing data len failed.");
+            return;
+        }
+        bytesWritten += result;
+    }
+    bytesWritten = 0;
+    while (bytesWritten < data.size()) {
+        int result = (int)write(socket, reinterpret_cast<const char*>(data.data()) + bytesWritten, (int)data.size() - bytesWritten);
+        if (result <= 0) {
+            spdlog::error("Writing data failed. (Len={})", packetSize);
+            return;
+        }
+        bytesWritten += result;
+    }
+}
+
 std::string BaseUnlockServer::GetUnlockInfoPacket() {
-    // Unlock info
     nlohmann::json encServerData = {
             {"authUser", m_AuthUser},
             {"authProgram", m_AuthProgram},

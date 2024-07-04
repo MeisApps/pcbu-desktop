@@ -12,6 +12,12 @@
 #include "utils/Utils.h"
 #include "utils/CryptUtils.h"
 
+#ifdef WINDOWS
+typedef unsigned long long SOCKET;
+#else
+#define SOCKET int
+#endif
+
 struct UnlockResponseData {
     std::string unlockToken;
     std::string password;
@@ -33,6 +39,10 @@ public:
     UnlockState PollResult();
 
 protected:
+    static bool SetSocketBlocking(SOCKET socket, bool isBlocking);
+    static std::vector<uint8_t> ReadPacket(SOCKET socket);
+    static void WritePacket(SOCKET socket, const std::vector<uint8_t>& data);
+
     std::string GetUnlockInfoPacket();
     void OnResponseReceived(uint8_t *buffer, size_t buffer_size);
 

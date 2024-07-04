@@ -21,6 +21,7 @@ if(WIN32)
             ole32
     )
     set(PLATFORM_SRC
+            src/connection/clients/BTUnlockClient.cpp
             src/platform/PlatformHelper.Win.cpp
             src/platform/BluetoothHelper.Win.cpp
             src/utils/RegistryUtils.cpp
@@ -37,6 +38,7 @@ elseif(APPLE)
             "-framework IOBluetooth"
     )
     set(PLATFORM_SRC
+            src/connection/clients/BTUnlockClient.mm
             src/platform/PlatformHelper.Mac.cpp
             src/platform/BluetoothHelper.Mac.mm
     )
@@ -50,18 +52,19 @@ elseif(UNIX)
             bluetooth
     )
     set(PLATFORM_SRC
+            src/connection/clients/BTUnlockClient.cpp
             src/platform/PlatformHelper.Linux.cpp
             src/platform/BluetoothHelper.Linux.cpp
     )
 endif()
 
 add_library(pcbu_common
+        src/connection/SocketDefs.h
         src/connection/BaseUnlockServer.h
         src/connection/BaseUnlockServer.cpp
         src/connection/clients/TCPUnlockClient.h
         src/connection/clients/TCPUnlockClient.cpp
         src/connection/clients/BTUnlockClient.h
-        src/connection/clients/BTUnlockClient.cpp
         src/connection/servers/PairingServer.cpp
         src/connection/servers/PairingServer.h
         src/connection/servers/PairingStructs.h
@@ -90,9 +93,9 @@ add_library(pcbu_common
         src/utils/StringUtils.h
         src/utils/Utils.cpp
         src/utils/Utils.h
-        ${PLATFORM_SRC}
         src/utils/AppInfo.cpp
         src/utils/AppInfo.h
+        ${PLATFORM_SRC}
 )
 target_include_directories(pcbu_common PUBLIC
         src
