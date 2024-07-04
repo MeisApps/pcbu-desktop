@@ -9,6 +9,7 @@
 
 #ifdef WINDOWS
 #include <boost/process/windows.hpp>
+
 #define SHELL_NAME "cmd.exe"
 #define SHELL_CMD_ARG "/c"
 #elif LINUX
@@ -21,9 +22,23 @@
 
 bool Shell::IsRunningAsAdmin() {
 #ifdef WINDOWS
-    return RunUserCommand("net session").exitCode == 0;
+    BOOL isAdmin = FALSE;
+    PSID adminGroup = nullptr;
+    SID_IDENTIFIER_AUTHORITY ntAuthority = SECURITY_NT_AUTHORITY;
+    if (!AllocateAndInitializeSid(&ntAuthority, 2, SECURITY_BUILTIN_DOMAIN_RID, DOMAIN_ALIAS_RID_ADMINS,
+                                  0, 0, 0, 0, 0, 0, &adminGroup)) {
+        spdlog::error("AllocateAndInitializeSid failed. (Code={})", GetLastError());
+        return false;
+    }
+    if (!CheckTokenMembership(nullptr, adminGroup, &isAdmin)) {
+        spdlog::error("CheckTokenMembership failed. (Code={})", GetLastError());
+        isAdmin = FALSE;
+    }
+    if (adminGroup)
+        FreeSid(adminGroup);
+    return isAdmin;
 #else
-    return StringUtils::Trim(RunUserCommand("id -u").output) == "0";
+    return geteuid() == 0;
 #endif
 }
 
