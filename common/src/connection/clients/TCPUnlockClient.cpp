@@ -50,7 +50,7 @@ void TCPUnlockClient::Stop() {
 
 void TCPUnlockClient::ConnectThread() {
     std::string serverDataStr{};
-    std::vector<uint8_t> responseData{};
+    Packet responsePacket{};
 
     struct sockaddr_in serv_addr{};
     serv_addr.sin_family = AF_INET;
@@ -99,7 +99,7 @@ void TCPUnlockClient::ConnectThread() {
 
     if(connect(m_ClientSocket, reinterpret_cast<struct sockaddr *>(&serv_addr), sizeof(serv_addr)) < 0) {
         auto error = SOCKET_LAST_ERROR;
-        if(error != SOCKET_IN_PROGRESS) {
+        if(error != SOCKET_ERROR_IN_PROGRESS && error != SOCKET_ERROR_WOULD_BLOCK) {
             spdlog::error("connect() failed. (Code={})", error);
             m_UnlockState = UnlockState::CONNECT_ERROR;
             goto threadEnd;
@@ -124,8 +124,8 @@ void TCPUnlockClient::ConnectThread() {
         goto threadEnd;
     }
     WritePacket(m_ClientSocket, {serverDataStr.begin(), serverDataStr.end()});
-    responseData = ReadPacket(m_ClientSocket);
-    OnResponseReceived(responseData.data(), responseData.size());
+    responsePacket = ReadPacket(m_ClientSocket);
+    OnResponseReceived(responsePacket);
 
     threadEnd:
     m_IsRunning = false;

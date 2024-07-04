@@ -18,6 +18,18 @@ typedef unsigned long long SOCKET;
 #define SOCKET int
 #endif
 
+enum class PacketError {
+    UNKNOWN,
+    NONE,
+    CLOSED_CONNECTION,
+    TIMEOUT
+};
+
+struct Packet {
+    PacketError error{};
+    std::vector<uint8_t> data{};
+};
+
 struct UnlockResponseData {
     std::string unlockToken;
     std::string password;
@@ -40,12 +52,16 @@ public:
 
 protected:
     static bool SetSocketBlocking(SOCKET socket, bool isBlocking);
-    static std::vector<uint8_t> ReadPacket(SOCKET socket);
-    static void WritePacket(SOCKET socket, const std::vector<uint8_t>& data);
+    static Packet ReadPacket(SOCKET socket);
+    static PacketError WritePacket(SOCKET socket, const std::vector<uint8_t>& data);
 
     std::string GetUnlockInfoPacket();
-    void OnResponseReceived(uint8_t *buffer, size_t buffer_size);
+    void OnResponseReceived(const Packet& packet);
 
+private:
+    static PacketError GetPacketError(int result, int error);
+
+protected:
     bool m_IsRunning{};
     std::thread m_AcceptThread{};
     bool m_HasConnection{};

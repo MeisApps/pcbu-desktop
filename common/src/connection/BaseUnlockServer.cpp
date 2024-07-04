@@ -57,17 +57,20 @@ bool BaseUnlockServer::SetSocketBlocking(SOCKET socket, bool isBlocking) {
 #endif
 }
 
-std::vector<uint8_t> BaseUnlockServer::ReadPacket(SOCKET socket) {
+Packet BaseUnlockServer::ReadPacket(SOCKET socket) {
     std::vector<uint8_t> lenBuffer{};
     lenBuffer.resize(sizeof(uint16_t));
     uint16_t lenBytesRead = 0;
     while (lenBytesRead < sizeof(uint16_t)) {
         int result = (int)read(socket, lenBuffer.data() + lenBytesRead, sizeof(uint16_t) - lenBytesRead);
         if (result <= 0) {
-            spdlog::error("Reading length failed.");
-            return {};
+            spdlog::error("Reading packet length failed.");
+            auto error = GetPacketError(result, SOCKET_LAST_ERROR);
+            if(error != PacketError::NONE)
+                return {GetPacketError(result, SOCKET_LAST_ERROR)};
+        } else {
+            lenBytesRead += result;
         }
-        lenBytesRead += result;
     }
 
     uint16_t packetSize{};
@@ -75,7 +78,7 @@ std::vector<uint8_t> BaseUnlockServer::ReadPacket(SOCKET socket) {
     packetSize = ntohs(packetSize);
     if(packetSize == 0) {
         spdlog::error("Empty packet received.");
-        return {};
+        return {PacketError::UNKNOWN};
     }
 
     std::vector<uint8_t> buffer{};
@@ -84,34 +87,57 @@ std::vector<uint8_t> BaseUnlockServer::ReadPacket(SOCKET socket) {
     while (bytesRead < packetSize) {
         int result = (int)read(socket, buffer.data() + bytesRead, packetSize - bytesRead);
         if (result <= 0) {
-            spdlog::error("Reading data failed. (Len={})", packetSize);
-            return {};
+            spdlog::error("Reading packet data failed. (Len={})", packetSize);
+            auto error = GetPacketError(result, SOCKET_LAST_ERROR);
+            if(error != PacketError::NONE)
+                return {GetPacketError(result, SOCKET_LAST_ERROR)};
+        } else {
+            bytesRead += result;
         }
-        bytesRead += result;
     }
-    return buffer;
+    return {PacketError::NONE, buffer};
 }
 
-void BaseUnlockServer::WritePacket(SOCKET socket, const std::vector<uint8_t>& data) {
+PacketError BaseUnlockServer::WritePacket(SOCKET socket, const std::vector<uint8_t>& data) {
     uint16_t packetSize = htons(static_cast<uint16_t>(data.size()));
     int bytesWritten = 0;
     while (bytesWritten < sizeof(uint16_t)) {
         int result = (int)write(socket, reinterpret_cast<const char*>(&packetSize) + bytesWritten, sizeof(uint16_t) - bytesWritten);
         if (result <= 0) {
-            spdlog::error("Writing data len failed.");
-            return;
+            spdlog::error("Writing packet data length failed.");
+            auto error = GetPacketError(result, SOCKET_LAST_ERROR);
+            if(error != PacketError::NONE)
+                return error;
+        } else {
+            bytesWritten += result;
         }
-        bytesWritten += result;
     }
     bytesWritten = 0;
     while (bytesWritten < data.size()) {
         int result = (int)write(socket, reinterpret_cast<const char*>(data.data()) + bytesWritten, (int)data.size() - bytesWritten);
         if (result <= 0) {
-            spdlog::error("Writing data failed. (Len={})", packetSize);
-            return;
+            spdlog::error("Writing packet data failed. (Len={})", packetSize);
+            auto error = GetPacketError(result, SOCKET_LAST_ERROR);
+            if(error != PacketError::NONE)
+                return error;
+        } else {
+            bytesWritten += result;
         }
-        bytesWritten += result;
     }
+    return PacketError::NONE;
+}
+
+PacketError BaseUnlockServer::GetPacketError(int result, int error) {
+    if(result == 0) {
+        return PacketError::CLOSED_CONNECTION;
+    } else {
+        if(error == SOCKET_ERROR_WOULD_BLOCK || error == SOCKET_ERROR_IN_PROGRESS)
+            return PacketError::NONE;
+        spdlog::error("Packet socket error. (Code={})", error);
+        if(error == SOCKET_ERROR_TIMEOUT)
+            return PacketError::TIMEOUT;
+    }
+    return PacketError::UNKNOWN;
 }
 
 std::string BaseUnlockServer::GetUnlockInfoPacket() {
@@ -126,7 +152,6 @@ std::string BaseUnlockServer::GetUnlockInfoPacket() {
         spdlog::error("Encrypt error.");
         return {};
     }
-
     nlohmann::json serverData = {
             {"pairingId", m_PairedDevice.pairingId},
             {"encData", StringUtils::ToHexString(cryptResult.data)}
@@ -134,18 +159,36 @@ std::string BaseUnlockServer::GetUnlockInfoPacket() {
     return serverData.dump();
 }
 
-void BaseUnlockServer::OnResponseReceived(uint8_t *buffer, size_t buffer_size) {
-    if(buffer == nullptr || buffer_size == 0) {
-        spdlog::error("Empty data received.", buffer_size);
+void BaseUnlockServer::OnResponseReceived(const Packet& packet) {
+    // Check packet
+    if(packet.error != PacketError::NONE) {
+        switch (packet.error) {
+            case PacketError::CLOSED_CONNECTION: {
+                spdlog::error("Connection closed.");
+                m_UnlockState = UnlockState::CONNECT_ERROR;
+                break;
+            }
+            case PacketError::TIMEOUT: {
+                m_UnlockState = UnlockState::TIMEOUT;
+                break;
+            }
+            default: {
+                m_UnlockState = UnlockState::DATA_ERROR;
+                break;
+            }
+        }
+        return;
+    }
+    if(packet.data.empty()) {
+        spdlog::error("Empty packet received.");
         m_UnlockState = UnlockState::DATA_ERROR;
         return;
     }
-    auto bufferVec = std::vector<uint8_t>(buffer_size);
-    std::memcpy(bufferVec.data(), buffer, buffer_size);
 
-    auto cryptResult = CryptUtils::DecryptAESPacket(bufferVec, m_PairedDevice.encryptionKey);
+    // Decrypt data
+    auto cryptResult = CryptUtils::DecryptAESPacket(packet.data, m_PairedDevice.encryptionKey);
     if(cryptResult.result != PacketCryptResult::OK) {
-        auto respStr = std::string((const char *)buffer, buffer_size);
+        auto respStr = std::string((const char *)packet.data.data(), packet.data.size());
         if(respStr == "CANCEL") {
             m_UnlockState = UnlockState::CANCELED;
             return;
@@ -167,7 +210,7 @@ void BaseUnlockServer::OnResponseReceived(uint8_t *buffer, size_t buffer_size) {
                 break;
             }
             default: {
-                spdlog::error("Invalid data received. (Size={})", buffer_size);
+                spdlog::error("Invalid data received. (Size={})", packet.data.size());
                 m_UnlockState = UnlockState::DATA_ERROR;
                 break;
             }
