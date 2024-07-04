@@ -17,6 +17,7 @@
 #include <unistd.h>
 #include <sys/socket.h>
 #include <sys/fcntl.h>
+#include <netinet/in.h>
 
 #define SOCKET_INVALID (-1)
 #define SOCKET_ERROR_IN_PROGRESS EINPROGRESS

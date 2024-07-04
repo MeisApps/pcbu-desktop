@@ -11,10 +11,10 @@ ARG QT_HOST=linux_arm64
 ARG QT_TARGET=desktop
 ARG QT_ARCH=linux_gcc_arm64
 RUN ~/.local/bin/aqt install-qt --outputdir /opt/qt ${QT_HOST} ${QT_TARGET} ${QT} ${QT_ARCH}
-ENV PATH /opt/qt/${QT}/gcc_arm64/bin:$PATH
-ENV QT_PLUGIN_PATH /opt/qt/${QT}/gcc_arm64/plugins/
-ENV QML_IMPORT_PATH /opt/qt/${QT}/gcc_arm64/qml/
-ENV QML2_IMPORT_PATH /opt/qt/${QT}/gcc_arm64/qml/
+ENV PATH=/opt/qt/${QT}/gcc_arm64/bin:$PATH
+ENV QT_PLUGIN_PATH=/opt/qt/${QT}/gcc_arm64/plugins/
+ENV QML_IMPORT_PATH=/opt/qt/${QT}/gcc_arm64/qml/
+ENV QML2_IMPORT_PATH=/opt/qt/${QT}/gcc_arm64/qml/
 
 WORKDIR /project
 COPY . .
