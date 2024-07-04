@@ -6,7 +6,6 @@
 #ifdef WINDOWS
 #include <Ws2tcpip.h>
 #else
-#include <netinet/in.h>
 #include <arpa/inet.h>
 #endif
 
