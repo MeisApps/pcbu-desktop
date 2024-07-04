@@ -157,12 +157,13 @@ NetworkInterface PairingForm::GetNetworkInterface() {
                 break;
             }
         }
-    }
-
-    if(!found) {
-        if(!localIfs.empty())
-            result = localIfs[0];
-        spdlog::warn("Invalid server IP settings.");
+        if(!found) {
+            if(!localIfs.empty())
+                result = localIfs[0];
+            spdlog::warn("Invalid server IP settings.");
+        }
+    } else {
+        result.ipAddress = settings.serverIP;
     }
     return result;
 }
