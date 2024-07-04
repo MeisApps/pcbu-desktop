@@ -91,7 +91,7 @@ bool BluetoothHelper::PairDevice(const BluetoothDevice &device) {
     DWORD result = BluetoothAuthenticateDevice(hwnd, nullptr, &deviceInfo, nullptr, 0);
     if (result == ERROR_SUCCESS || result == ERROR_NO_MORE_ITEMS)
         return true;
-    spdlog::error("Error while bluetooth pairing. (1Code={})", result);
+    spdlog::error("Error while bluetooth pairing. (Code={})", result);
     return false;
 }
 

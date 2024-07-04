@@ -90,17 +90,27 @@ void BTUnlockClient::ConnectThread() {
         return;
     }
 
-    struct timeval timeout{};
-    timeout.tv_sec = AppSettings::Get().socketTimeout;
     fd_set fdSet{};
     FD_SET(m_ClientSocket, &fdSet);
+    struct timeval timeout{};
+    timeout.tv_sec = (long)AppSettings::Get().socketTimeout;
 
+#ifdef WINDOWS
+    auto timeoutMs = (DWORD)(timeout.tv_sec * 1000);
+    if (setsockopt(m_ClientSocket, SOL_SOCKET, SO_RCVTIMEO, reinterpret_cast<const char *>(&timeoutMs), sizeof(timeoutMs)) < 0 ||
+        setsockopt(m_ClientSocket, SOL_SOCKET, SO_SNDTIMEO, reinterpret_cast<const char *>(&timeoutMs), sizeof(timeoutMs)) < 0) {
+        spdlog::error("setsockopt() for timeout failed. (Code={})", SOCKET_LAST_ERROR);
+        m_UnlockState = UnlockState::UNK_ERROR;
+        goto threadEnd;
+    }
+#else
     if (setsockopt(m_ClientSocket, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout)) < 0 ||
         setsockopt(m_ClientSocket, SOL_SOCKET, SO_SNDTIMEO, &timeout, sizeof(timeout)) < 0) {
         spdlog::error("setsockopt() for timeout failed. (Code={})", SOCKET_LAST_ERROR);
         m_UnlockState = UnlockState::UNK_ERROR;
         goto threadEnd;
     }
+#endif
 
     if(!SetSocketBlocking(m_ClientSocket, false)) {
         spdlog::error("Failed setting socket to non-blocking mode. (Code={})", SOCKET_LAST_ERROR);
@@ -116,7 +126,7 @@ void BTUnlockClient::ConnectThread() {
             goto threadEnd;
         }
     }
-    if (select(m_ClientSocket + 1, nullptr, &fdSet, nullptr, &timeout) <= 0) {
+    if (select((int)m_ClientSocket + 1, nullptr, &fdSet, nullptr, &timeout) <= 0) {
         spdlog::error("select() timed out or failed. (Code={})", SOCKET_LAST_ERROR);
         m_UnlockState = UnlockState::CONNECT_ERROR;
         goto threadEnd;
