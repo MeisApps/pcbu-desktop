@@ -29,8 +29,11 @@ fi
 mkdir build || true
 cd build
 if [[ "$PLATFORM" == "win" ]]; then
-  cmake ../../ -DCMAKE_BUILD_TYPE=Release -DTARGET_ARCH=$ARCH -DQT_BASE_DIR=$QT_BASE_DIR -G "Visual Studio 17 2022" -A $VS_ARCH -DCMAKE_GENERATOR_PLATFORM=$VS_ARCH
+  cmake ../../ -DCMAKE_BUILD_TYPE=Release -DTARGET_ARCH=$ARCH -DQT_BASE_DIR=$QT_BASE_DIR -G "Visual Studio 17 2022" -A $VS_ARCH -DCMAKE_GENERATOR_PLATFORM=$VS_ARCH -DMSVC_STATIC_LINK=1
   cmake --build . --target "win-pcbiounlock" --config Release -- /maxcpucount:3
+
+  rm -Rf ./*
+  cmake ../../ -DCMAKE_BUILD_TYPE=Release -DTARGET_ARCH=$ARCH -DQT_BASE_DIR=$QT_BASE_DIR -G "Visual Studio 17 2022" -A $VS_ARCH -DCMAKE_GENERATOR_PLATFORM=$VS_ARCH
   cmake --build . --target "pcbu_desktop" --config Release -- /maxcpucount:3
 else
   if [[ "$DOCKER_BUILD" == "1" ]]; then
