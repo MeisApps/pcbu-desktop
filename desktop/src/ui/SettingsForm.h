@@ -17,7 +17,8 @@ public:
         serverIP = QString::fromUtf8(settings.serverIP);
         serverMAC = QString::fromUtf8(settings.serverMAC);
         serverPort = settings.serverPort;
-        socketTimeout = settings.socketTimeout;
+        clientSocketTimeout = settings.clientSocketTimeout;
+        clientConnectRetries = settings.clientConnectRetries;
         waitForKeyPress = settings.waitForKeyPress;
     }
     [[nodiscard]] PCBUAppStorage ToStorage() const {
@@ -27,7 +28,8 @@ public:
         settings.serverIP = serverIP.toStdString();
         settings.serverMAC = serverMAC.toStdString();
         settings.serverPort = serverPort;
-        settings.socketTimeout = socketTimeout;
+        settings.clientSocketTimeout = clientSocketTimeout;
+        settings.clientConnectRetries = clientConnectRetries;
         settings.waitForKeyPress = waitForKeyPress;
         return settings;
     }
@@ -37,14 +39,16 @@ public:
     QString serverIP{};
     QString serverMAC{};
     uint16_t serverPort{};
-    uint32_t socketTimeout{};
+    uint32_t clientSocketTimeout{};
+    uint32_t clientConnectRetries{};
     bool waitForKeyPress{};
     Q_PROPERTY(QString installedVersion MEMBER installedVersion)
     Q_PROPERTY(QString language MEMBER language)
     Q_PROPERTY(QString serverIP MEMBER serverIP)
     Q_PROPERTY(QString serverMAC MEMBER serverMAC)
     Q_PROPERTY(uint16_t serverPort MEMBER serverPort)
-    Q_PROPERTY(uint32_t socketTimeout MEMBER socketTimeout)
+    Q_PROPERTY(uint32_t clientSocketTimeout MEMBER clientSocketTimeout)
+    Q_PROPERTY(uint32_t clientConnectRetries MEMBER clientConnectRetries)
     Q_PROPERTY(bool waitForKeyPress MEMBER waitForKeyPress)
 };
 

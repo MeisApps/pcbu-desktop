@@ -55,6 +55,9 @@ void BTUnlockClient::Stop() {
 void BTUnlockClient::ConnectThread() {
     std::string serverDataStr{};
     Packet responsePacket{};
+    uint32_t numRetries{};
+    auto settings = AppSettings::Get();
+
 #ifdef WINDOWS
     GUID guid = { 0x62182bf7, 0x97c8, 0x45f9, { 0xaa, 0x2c, 0x53, 0xc5, 0xf2, 0x00, 0x8b, 0xdf } };
     BTH_ADDR addr;
@@ -83,6 +86,7 @@ void BTUnlockClient::ConnectThread() {
     str2ba(m_DeviceAddress.c_str(), &address.rc_bdaddr);
 #endif
 
+    socketStart:
     if((m_ClientSocket = socket(AF_BLUETOOTH, SOCK_STREAM, BTPROTO_RFCOMM)) == SOCKET_INVALID) {
         spdlog::error("Bluetooth socket() failed. (Code={})", SOCKET_LAST_ERROR);
         m_IsRunning = false;
@@ -93,7 +97,7 @@ void BTUnlockClient::ConnectThread() {
     fd_set fdSet{};
     FD_SET(m_ClientSocket, &fdSet);
     struct timeval timeout{};
-    timeout.tv_sec = (long)AppSettings::Get().socketTimeout;
+    timeout.tv_sec = (long)settings.clientSocketTimeout;
 
 #ifdef WINDOWS
     auto timeoutMs = (DWORD)(timeout.tv_sec * 1000);
@@ -126,8 +130,13 @@ void BTUnlockClient::ConnectThread() {
             goto threadEnd;
         }
     }
-    if (select((int)m_ClientSocket + 1, nullptr, &fdSet, nullptr, &timeout) <= 0) {
-        spdlog::error("select() timed out or failed. (Code={})", SOCKET_LAST_ERROR);
+    if(select((int)m_ClientSocket + 1, nullptr, &fdSet, nullptr, &timeout) <= 0) {
+        spdlog::error("select() timed out or failed. (Code={}, Retry={})", SOCKET_LAST_ERROR, numRetries);
+        if(numRetries < settings.clientConnectRetries && m_IsRunning) {
+            SOCKET_CLOSE(m_ClientSocket);
+            numRetries++;
+            goto socketStart;
+        }
         m_UnlockState = UnlockState::CONNECT_ERROR;
         goto threadEnd;
     }

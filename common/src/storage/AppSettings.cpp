@@ -23,7 +23,8 @@ PCBUAppStorage AppSettings::Get() {
         settings.serverIP = json["serverIP"];
         settings.serverMAC = json["serverMAC"];
         settings.serverPort = json["serverPort"];
-        settings.socketTimeout = json["socketTimeout"];
+        settings.clientSocketTimeout = json["clientSocketTimeout"];
+        settings.clientConnectRetries = json["clientConnectRetries"];
         settings.waitForKeyPress = json["waitForKeyPress"];
         return settings;
     } catch (const std::exception& ex) {
@@ -32,7 +33,8 @@ PCBUAppStorage AppSettings::Get() {
         def.language = "auto";
         def.serverIP = "auto";
         def.serverPort = 43295;
-        def.socketTimeout = 30;
+        def.clientSocketTimeout = 30;
+        def.clientConnectRetries = 0;
         def.waitForKeyPress = false;
         spdlog::info("Creating new app storage...");
         Save(def);
@@ -48,7 +50,8 @@ void AppSettings::Save(const PCBUAppStorage &storage) {
                 {"serverIP", storage.serverIP},
                 {"serverMAC", storage.serverMAC},
                 {"serverPort", storage.serverPort},
-                {"socketTimeout", storage.socketTimeout},
+                {"clientSocketTimeout", storage.clientSocketTimeout},
+                {"clientConnectRetries", storage.clientConnectRetries},
                 {"waitForKeyPress", storage.waitForKeyPress},
         };
         if(!std::filesystem::exists(BASE_DIR))

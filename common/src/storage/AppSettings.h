@@ -12,7 +12,8 @@ struct PCBUAppStorage {
     std::string serverIP{};
     std::string serverMAC{};
     uint16_t serverPort{};
-    uint32_t socketTimeout{};
+    uint32_t clientSocketTimeout{};
+    uint32_t clientConnectRetries{};
     bool waitForKeyPress{};
 };
 

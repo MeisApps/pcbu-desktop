@@ -84,7 +84,6 @@ UnlockResult UnlockHandler::GetResult(const std::string& authUser, const std::st
         return completed.load() == numServers;
     });
     auto result = currentResult.load();
-    spdlog::info("Final state: {}", (int)result.state);
 
     // Cleanup
     for (auto& thread : threads) {
@@ -141,8 +140,8 @@ UnlockResult UnlockHandler::RunServer(BaseUnlockServer *server, AtomicUnlockResu
     keyScanner.Stop();
     if(!isFutureCancel)
         m_PrintMessage(UnlockStateUtils::ToString(state));
+    spdlog::info("Server result: {}", UnlockStateUtils::ToString(state));
 
-    spdlog::info("Server state: {}", (int)state);
     auto result = UnlockResult();
     result.state = state;
     result.device = server->GetDevice();

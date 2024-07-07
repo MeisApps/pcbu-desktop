@@ -50,6 +50,8 @@ void TCPUnlockClient::Stop() {
 void TCPUnlockClient::ConnectThread() {
     std::string serverDataStr{};
     Packet responsePacket{};
+    uint32_t numRetries{};
+    auto settings = AppSettings::Get();
 
     struct sockaddr_in serv_addr{};
     serv_addr.sin_family = AF_INET;
@@ -61,6 +63,7 @@ void TCPUnlockClient::ConnectThread() {
         return;
     }
 
+    socketStart:
     if ((m_ClientSocket = socket(AF_INET, SOCK_STREAM, 0)) == SOCKET_INVALID) {
         spdlog::error("socket() failed. (Code={})", SOCKET_LAST_ERROR);
         m_IsRunning = false;
@@ -71,7 +74,7 @@ void TCPUnlockClient::ConnectThread() {
     fd_set fdSet{};
     FD_SET(m_ClientSocket, &fdSet);
     struct timeval timeout{};
-    timeout.tv_sec = (long)AppSettings::Get().socketTimeout;
+    timeout.tv_sec = (long)settings.clientSocketTimeout;
 
 #ifdef WINDOWS
     auto timeoutMs = (DWORD)(timeout.tv_sec * 1000);
@@ -104,8 +107,13 @@ void TCPUnlockClient::ConnectThread() {
             goto threadEnd;
         }
     }
-    if (select((int)m_ClientSocket + 1, nullptr, &fdSet, nullptr, &timeout) <= 0) {
-        spdlog::error("select() timed out or failed. (Code={})", SOCKET_LAST_ERROR);
+    if(select((int)m_ClientSocket + 1, nullptr, &fdSet, nullptr, &timeout) <= 0) {
+        spdlog::error("select() timed out or failed. (Code={}, Retry={})", SOCKET_LAST_ERROR, numRetries);
+        if(numRetries < settings.clientConnectRetries && m_IsRunning) {
+            SOCKET_CLOSE(m_ClientSocket);
+            numRetries++;
+            goto socketStart;
+        }
         m_UnlockState = UnlockState::CONNECT_ERROR;
         goto threadEnd;
     }

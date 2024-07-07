@@ -36,11 +36,6 @@ Form {
                     Layout.column: 0
                     text: '%1:'.arg(QI18n.Get('server_port'))
                 }
-                Label {
-                    Layout.row: 3
-                    Layout.column: 0
-                    text: '%1:'.arg(QI18n.Get('socket_timeout'))
-                }
 
                 ComboBox { // Lang
                     Layout.fillWidth: true
@@ -120,12 +115,35 @@ Form {
                     id: serverPortTextField
                     text: SettingsForm.GetSettings().serverPort
                 }
-                TextField { // Socket timeout
-                    Layout.fillWidth: true
+
+                GridLayout {
                     Layout.row: 3
-                    Layout.column: 1
-                    id: socketTimeoutTextField
-                    text: SettingsForm.GetSettings().socketTimeout
+                    Layout.column: 0
+                    Layout.columnSpan: 2
+                    Label {
+                        Layout.row: 0
+                        Layout.column: 0
+                        text: '%1:'.arg(QI18n.Get('client_socket_timeout'))
+                    }
+                    Label {
+                        Layout.row: 0
+                        Layout.column: 2
+                        text: '%1:'.arg(QI18n.Get('client_connect_retries'))
+                    }
+                    TextField { // Client socket timeout
+                        Layout.fillWidth: true
+                        Layout.row: 0
+                        Layout.column: 1
+                        id: clientSocketTimeoutTextField
+                        text: SettingsForm.GetSettings().clientSocketTimeout
+                    }
+                    TextField { // Client connect retries
+                        Layout.fillWidth: true
+                        Layout.row: 0
+                        Layout.column: 3
+                        id: clientConnectRetriesTextField
+                        text: SettingsForm.GetSettings().clientConnectRetries
+                    }
                 }
             }
         }
@@ -153,24 +171,31 @@ Form {
                 let ipV4Regex = /^(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]\d|\d)(?:\.(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]\d|\d)){3}$/gm;
                 let serverIp = ipSelectTextField.text;
                 let serverPortNum = parseInt(serverPortTextField.text, 10);
-                let socketTimeoutNum = parseInt(socketTimeoutTextField.text, 10);
                 if(isNaN(serverPortNum) || serverPortNum < 0 || serverPortNum > 65535) {
                     showErrorMessage(QI18n.Get('error_invalid_port'));
                     return;
                 } else if(serverIp !== 'auto' && !ipV4Regex.test(serverIp)) {
                     showErrorMessage(QI18n.Get('error_invalid_ip'));
                     return;
-                } else if(isNaN(socketTimeoutNum)) {
-                    showErrorMessage(QI18n.Get('error_invalid_timeout'));
-                    return;
-                } else {
-                    let settings = SettingsForm.GetSettings();
-                    settings.serverIP = serverIp;
-                    settings.serverPort = serverPortNum;
-                    settings.serverMAC = serverIp === 'auto' ? networkListModel.get(ipSelectComboBox.currentIndex).macAddress : '';
-                    settings.socketTimeout = socketTimeoutNum;
-                    SettingsForm.SetSettings(settings);
                 }
+
+                let clientSocketTimeoutNum = parseInt(clientSocketTimeoutTextField.text, 10);
+                let clientConnectRetriesNum = parseInt(clientConnectRetriesTextField.text, 10);
+                if(isNaN(clientSocketTimeoutNum) || clientSocketTimeoutNum < 1) {
+                    clientSocketTimeoutNum = 1;
+                }
+                if(isNaN(clientConnectRetriesNum) || clientConnectRetriesNum < 0) {
+                    clientConnectRetriesNum = 0;
+                }
+
+                let settings = SettingsForm.GetSettings();
+                settings.serverIP = serverIp;
+                settings.serverPort = serverPortNum;
+                settings.serverMAC = serverIp === 'auto' ? networkListModel.get(ipSelectComboBox.currentIndex).macAddress : '';
+                settings.clientSocketTimeout = clientSocketTimeoutNum;
+                settings.clientConnectRetries = clientConnectRetriesNum;
+
+                SettingsForm.SetSettings(settings);
                 SettingsForm.OnSaveSettingsClicked(viewLoader)
             }
         }
