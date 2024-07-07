@@ -9,8 +9,12 @@ class LogsWindow : public QObject {
     QML_ELEMENT
     QML_SINGLETON
 public:
-    Q_INVOKABLE QString GetDesktopLogs();
-    Q_INVOKABLE QString GetModuleLogs();
+    ~LogsWindow() override;
+
+    Q_INVOKABLE void LoadLogs(QObject *window);
+
+private:
+    std::thread m_LoadThread{};
 };
 
 #endif //PCBU_DESKTOP_LOGSWINDOW_H

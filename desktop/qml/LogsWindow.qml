@@ -23,8 +23,10 @@ ApplicationWindow {
                 Layout.fillHeight: true
                 id: desktopLogScrollView
                 TextArea {
+                    id: desktopLogTextArea
                     readOnly: true
-                    text: LogsWindow.GetDesktopLogs()
+                    wrapMode: Text.WordWrap
+                    text: QI18n.Get('loading')
                 }
             }
         }
@@ -40,14 +42,22 @@ ApplicationWindow {
                 Layout.fillHeight: true
                 id: moduleLogScrollView
                 TextArea {
+                    id: moduleLogTextArea
                     readOnly: true
-                    text: LogsWindow.GetModuleLogs()
+                    wrapMode: Text.WordWrap
+                    text: QI18n.Get('loading')
                 }
             }
         }
     }
     Component.onCompleted: {
-        desktopLogScrollView.ScrollBar.vertical.position = 1.0 - desktopLogScrollView.ScrollBar.vertical.size;
-        moduleLogScrollView.ScrollBar.vertical.position = 1.0 - moduleLogScrollView.ScrollBar.vertical.size;
+        LogsWindow.LoadLogs(logsWindow);
+    }
+
+    function setLogs(desktopLogs, moduleLogs) {
+        desktopLogTextArea.text = desktopLogs;
+        moduleLogTextArea.text = moduleLogs;
+        desktopLogTextArea.cursorPosition = desktopLogTextArea.length;
+        moduleLogTextArea.cursorPosition = moduleLogTextArea.length;
     }
 }

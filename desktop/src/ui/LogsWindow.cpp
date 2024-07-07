@@ -5,13 +5,18 @@
 #include "shell/Shell.h"
 #include "storage/AppSettings.h"
 
-QString LogsWindow::GetDesktopLogs() {
-    spdlog::default_logger()->flush();
-    auto result = Shell::ReadBytes(AppSettings::BASE_DIR / "desktop.log");
-    return QString::fromUtf8(result);
+LogsWindow::~LogsWindow() {
+    if(m_LoadThread.joinable())
+        m_LoadThread.join();
 }
 
-QString LogsWindow::GetModuleLogs() {
-    auto result = Shell::ReadBytes(AppSettings::BASE_DIR / "module.log");
-    return QString::fromUtf8(result);
+void LogsWindow::LoadLogs(QObject *window) {
+    if(m_LoadThread.joinable())
+        m_LoadThread.join();
+    m_LoadThread = std::thread([window]() {
+        spdlog::default_logger()->flush();
+        auto desktopLogs = Shell::ReadBytes(AppSettings::BASE_DIR / "desktop.log");
+        auto moduleLogs = Shell::ReadBytes(AppSettings::BASE_DIR / "module.log");
+        QMetaObject::invokeMethod(window, "setLogs", Q_ARG(QVariant, QString::fromUtf8(desktopLogs)), Q_ARG(QVariant, QString::fromUtf8(moduleLogs)));
+    });
 }
