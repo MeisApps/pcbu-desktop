@@ -50,8 +50,10 @@ void TCPUnlockClient::Stop() {
 void TCPUnlockClient::ConnectThread() {
     std::string serverDataStr{};
     Packet responsePacket{};
+    PacketError writeResult{};
     uint32_t numRetries{};
     auto settings = AppSettings::Get();
+    spdlog::info("Connecting via TCP...");
 
     struct sockaddr_in serv_addr{};
     serv_addr.sin_family = AF_INET;
@@ -123,9 +125,24 @@ void TCPUnlockClient::ConnectThread() {
         m_UnlockState = UnlockState::UNK_ERROR;
         goto threadEnd;
     }
-    WritePacket(m_ClientSocket, {serverDataStr.begin(), serverDataStr.end()});
-    responsePacket = ReadPacket(m_ClientSocket);
-    OnResponseReceived(responsePacket);
+
+    writeResult = WritePacket(m_ClientSocket, {serverDataStr.begin(), serverDataStr.end()});
+    if(writeResult == PacketError::NONE) {
+        responsePacket = ReadPacket(m_ClientSocket);
+        OnResponseReceived(responsePacket);
+    } else {
+        switch (writeResult) {
+            case PacketError::CLOSED_CONNECTION:
+                m_UnlockState = UnlockState::CONNECT_ERROR;
+                break;
+            case PacketError::TIMEOUT:
+                m_UnlockState = UnlockState::TIMEOUT;
+                break;
+            default:
+                m_UnlockState = UnlockState::UNK_ERROR;
+                break;
+        }
+    }
 
     threadEnd:
     m_IsRunning = false;

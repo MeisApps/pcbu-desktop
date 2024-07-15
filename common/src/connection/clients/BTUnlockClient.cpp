@@ -55,8 +55,10 @@ void BTUnlockClient::Stop() {
 void BTUnlockClient::ConnectThread() {
     std::string serverDataStr{};
     Packet responsePacket{};
+    PacketError writeResult{};
     uint32_t numRetries{};
     auto settings = AppSettings::Get();
+    spdlog::info("Connecting via BT...");
 
 #ifdef WINDOWS
     GUID guid = { 0x62182bf7, 0x97c8, 0x45f9, { 0xaa, 0x2c, 0x53, 0xc5, 0xf2, 0x00, 0x8b, 0xdf } };
@@ -74,7 +76,6 @@ void BTUnlockClient::ConnectThread() {
 
     m_Channel = BluetoothHelper::FindSDPChannel(m_DeviceAddress, CHANNEL_UUID);
     if (m_Channel == -1) {
-        spdlog::error("Bluetooth FindSDPChannel failed.");
         m_IsRunning = false;
         m_UnlockState = UnlockState::CONNECT_ERROR;
         return;
@@ -146,9 +147,24 @@ void BTUnlockClient::ConnectThread() {
         m_UnlockState = UnlockState::UNK_ERROR;
         goto threadEnd;
     }
-    WritePacket(m_ClientSocket, {serverDataStr.begin(), serverDataStr.end()});
-    responsePacket = ReadPacket(m_ClientSocket);
-    OnResponseReceived(responsePacket);
+
+    writeResult = WritePacket(m_ClientSocket, {serverDataStr.begin(), serverDataStr.end()});
+    if(writeResult == PacketError::NONE) {
+        responsePacket = ReadPacket(m_ClientSocket);
+        OnResponseReceived(responsePacket);
+    } else {
+        switch (writeResult) {
+            case PacketError::CLOSED_CONNECTION:
+                m_UnlockState = UnlockState::CONNECT_ERROR;
+                break;
+            case PacketError::TIMEOUT:
+                m_UnlockState = UnlockState::TIMEOUT;
+                break;
+            default:
+                m_UnlockState = UnlockState::UNK_ERROR;
+                break;
+        }
+    }
 
     threadEnd:
     m_IsRunning = false;
