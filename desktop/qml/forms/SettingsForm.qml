@@ -120,22 +120,23 @@ Form {
                     Layout.row: 3
                     Layout.column: 0
                     Layout.columnSpan: 2
+                    columnSpacing: 2
                     Label {
                         Layout.row: 0
                         Layout.column: 0
-                        text: '%1:'.arg(QI18n.Get('client_socket_timeout'))
+                        text: '%1:'.arg(QI18n.Get('client_connect_timeout'))
                     }
                     Label {
                         Layout.row: 0
                         Layout.column: 2
                         text: '%1:'.arg(QI18n.Get('client_connect_retries'))
                     }
-                    TextField { // Client socket timeout
+                    TextField { // Client connect timeout
                         Layout.fillWidth: true
                         Layout.row: 0
                         Layout.column: 1
-                        id: clientSocketTimeoutTextField
-                        text: SettingsForm.GetSettings().clientSocketTimeout
+                        id: clientConnectTimeoutTextField
+                        text: SettingsForm.GetSettings().clientConnectTimeout
                     }
                     TextField { // Client connect retries
                         Layout.fillWidth: true
@@ -143,6 +144,19 @@ Form {
                         Layout.column: 3
                         id: clientConnectRetriesTextField
                         text: SettingsForm.GetSettings().clientConnectRetries
+                    }
+
+                    Label {
+                        Layout.row: 1
+                        Layout.column: 0
+                        text: '%1:'.arg(QI18n.Get('client_socket_timeout'))
+                    }
+                    TextField { // Client socket timeout
+                        Layout.fillWidth: true
+                        Layout.row: 1
+                        Layout.column: 1
+                        id: clientSocketTimeoutTextField
+                        text: SettingsForm.GetSettings().clientSocketTimeout
                     }
                 }
             }
@@ -180,9 +194,13 @@ Form {
                 }
 
                 let clientSocketTimeoutNum = parseInt(clientSocketTimeoutTextField.text, 10);
+                let clientConnectTimeoutNum = parseInt(clientConnectTimeoutTextField.text, 10);
                 let clientConnectRetriesNum = parseInt(clientConnectRetriesTextField.text, 10);
                 if(isNaN(clientSocketTimeoutNum) || clientSocketTimeoutNum < 1) {
                     clientSocketTimeoutNum = 1;
+                }
+                if(isNaN(clientConnectTimeoutNum) || clientConnectTimeoutNum < 1) {
+                    clientConnectTimeoutNum = 1;
                 }
                 if(isNaN(clientConnectRetriesNum) || clientConnectRetriesNum < 0) {
                     clientConnectRetriesNum = 0;
@@ -193,8 +211,8 @@ Form {
                 settings.serverPort = serverPortNum;
                 settings.serverMAC = serverIp === 'auto' ? networkListModel.get(ipSelectComboBox.currentIndex).macAddress : '';
                 settings.clientSocketTimeout = clientSocketTimeoutNum;
+                settings.clientConnectTimeout = clientConnectTimeoutNum;
                 settings.clientConnectRetries = clientConnectRetriesNum;
-
                 SettingsForm.SetSettings(settings);
                 SettingsForm.OnSaveSettingsClicked(viewLoader)
             }

@@ -37,23 +37,14 @@ UnlockState BaseUnlockServer::PollResult() {
 
 bool BaseUnlockServer::SetSocketBlocking(SOCKET socket, bool isBlocking) {
 #ifdef WINDOWS
-    if(isBlocking) {
-        u_long mode = 0;
-        return ioctlsocket(socket, FIONBIO, &mode) == 0;
-    }
-    u_long mode = 1;
+    u_long mode = isBlocking ? 0 : 1;
     return ioctlsocket(socket, FIONBIO, &mode) == 0;
 #else
-    if(isBlocking) {
-        int flags = fcntl(socket, F_GETFL, 0);
-        if (flags == -1)
-            return false;
-        return fcntl(socket, F_SETFL, flags & ~O_NONBLOCK) != -1;
-    }
-    int flags = fcntl(socket, F_GETFL, 0);
-    if (flags == -1)
+    int oldFlags = fcntl(socket, F_GETFL, 0);
+    if (oldFlags == -1)
         return false;
-    return fcntl(socket, F_SETFL, flags | O_NONBLOCK) != -1;
+    auto flags = isBlocking ? (oldFlags & ~O_NONBLOCK) : (oldFlags | O_NONBLOCK);
+    return fcntl(socket, F_SETFL, flags) != -1;
 #endif
 }
 

@@ -18,6 +18,7 @@ public:
         serverMAC = QString::fromUtf8(settings.serverMAC);
         serverPort = settings.serverPort;
         clientSocketTimeout = settings.clientSocketTimeout;
+        clientConnectTimeout = settings.clientConnectTimeout;
         clientConnectRetries = settings.clientConnectRetries;
         waitForKeyPress = settings.waitForKeyPress;
     }
@@ -29,6 +30,7 @@ public:
         settings.serverMAC = serverMAC.toStdString();
         settings.serverPort = serverPort;
         settings.clientSocketTimeout = clientSocketTimeout;
+        settings.clientConnectTimeout = clientConnectTimeout;
         settings.clientConnectRetries = clientConnectRetries;
         settings.waitForKeyPress = waitForKeyPress;
         return settings;
@@ -40,6 +42,7 @@ public:
     QString serverMAC{};
     uint16_t serverPort{};
     uint32_t clientSocketTimeout{};
+    uint32_t clientConnectTimeout{};
     uint32_t clientConnectRetries{};
     bool waitForKeyPress{};
     Q_PROPERTY(QString installedVersion MEMBER installedVersion)
@@ -48,6 +51,7 @@ public:
     Q_PROPERTY(QString serverMAC MEMBER serverMAC)
     Q_PROPERTY(uint16_t serverPort MEMBER serverPort)
     Q_PROPERTY(uint32_t clientSocketTimeout MEMBER clientSocketTimeout)
+    Q_PROPERTY(uint32_t clientConnectTimeout MEMBER clientConnectTimeout)
     Q_PROPERTY(uint32_t clientConnectRetries MEMBER clientConnectRetries)
     Q_PROPERTY(bool waitForKeyPress MEMBER waitForKeyPress)
 };

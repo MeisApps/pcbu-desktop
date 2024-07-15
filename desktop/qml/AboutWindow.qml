@@ -18,7 +18,7 @@ ApplicationWindow {
         }
         Label {
             text: '%1 %2'.arg(QI18n.Get('version')).arg(UpdaterWindow.GetAppVersion())
-            font.pointSize: 18
+            font.pointSize: 16
         }
         Label {
             text: QI18n.Get('by_meis_apps')
