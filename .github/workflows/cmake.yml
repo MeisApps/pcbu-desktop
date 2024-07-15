@@ -21,7 +21,6 @@ jobs:
         with:
           pkgs: openssl
           triplet: x64-windows-static
-          revision: master
           token: ${{ github.token }}
           github-binarycache: true
           cache-key: 'vcpkg-x64'
@@ -53,7 +52,6 @@ jobs:
         with:
           pkgs: openssl
           triplet: arm64-windows-static
-          revision: master
           token: ${{ github.token }}
           github-binarycache: true
           cache-key: 'vcpkg-arm64'
@@ -123,7 +121,7 @@ jobs:
           submodules: recursive
 
       - name: Prepare Qt
-        run: sudo chmod -R 777 /opt
+        run: sudo chmod 777 /opt
       - name: Install Qt
         uses: jurplel/install-qt-action@v3
         with:
