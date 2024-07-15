@@ -41,7 +41,7 @@ std::vector<NetworkInterface> NetworkHelper::GetLocalNetInterfaces() {
         return {};
 
     for (PIP_ADAPTER_ADDRESSES adapter = adapterAddresses; adapter; adapter = adapter->Next) {
-        if (adapter->IfType == IF_TYPE_SOFTWARE_LOOPBACK)
+        if (adapter->IfType == IF_TYPE_SOFTWARE_LOOPBACK || adapter->OperStatus != IfOperStatusUp)
             continue;
 
         char macBuffer[18]{};
@@ -76,7 +76,7 @@ std::vector<NetworkInterface> NetworkHelper::GetLocalNetInterfaces() {
 
     std::map<std::string, NetworkInterface> ifMap{};
     for(auto ifa = ifaddr; ifa != nullptr; ifa = ifa->ifa_next) {
-        if(ifa->ifa_addr == nullptr || ifa->ifa_flags & IFF_LOOPBACK)
+        if(ifa->ifa_addr == nullptr || ifa->ifa_flags & IFF_LOOPBACK || !(ifa->ifa_flags & IFF_UP))
             continue;
         int family = ifa->ifa_addr->sa_family;
         if(family == AF_INET || family == AF_PACKET) {
@@ -124,10 +124,17 @@ std::vector<NetworkInterface> NetworkHelper::GetLocalNetInterfaces() {
         if(netIf.ipAddress.starts_with("192.168.") || netIf.ipAddress.starts_with("10."))
             rank += 50;
 #ifdef WINDOWS
-        if(netIf.ifName.contains("Bluetooth") || netIf.ifName.contains("vEthernet") || netIf.ifName.contains("VMware") || netIf.ifName.contains("VirtualBox") || netIf.ifName.contains("Docker"))
+        if(netIf.ifName.contains("Bluetooth")
+        || netIf.ifName.contains("vEthernet")
+        || netIf.ifName.contains("VMware")
+        || netIf.ifName.contains("VirtualBox")
+        || netIf.ifName.contains("Docker"))
             rank -= 100;
 #else
-        if(netIf.ifName.starts_with("vir") || netIf.ifName.starts_with("docker") || netIf.ifName.starts_with("ham"))
+        if(netIf.ifName.starts_with("vir")
+        || netIf.ifName.starts_with("docker")
+        || netIf.ifName.starts_with("ham")
+        || netIf.ifName.starts_with("bridge"))
             rank -= 100;
 #endif
         return rank;
