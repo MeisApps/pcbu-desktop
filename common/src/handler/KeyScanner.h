@@ -24,11 +24,11 @@ private:
     void ScanThread();
 
     std::thread m_ScanThread{};
+    std::mutex m_ScanMutex{};
     bool m_IsRunning{};
 
     std::vector<std::map<int, bool>> m_KeyMaps;
 #endif
 };
-
 
 #endif //PAM_PCBIOUNLOCK_KEYSCANNER_H

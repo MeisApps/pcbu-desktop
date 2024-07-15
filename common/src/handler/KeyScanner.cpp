@@ -25,6 +25,7 @@ bool KeyScanner::GetKeyState(int key) {
     return GetAsyncKeyState(key) < 0;
 #endif
 #ifdef LINUX
+    std::lock_guard<std::mutex> lock(m_ScanMutex);
     for(auto keyMap : m_KeyMaps) {
         if(keyMap.count(key) && keyMap[key])
             return true;
@@ -47,6 +48,7 @@ std::map<int, bool> KeyScanner::GetAllKeys() {
     return map;
 #endif
 #ifdef LINUX
+    std::lock_guard<std::mutex> lock(m_ScanMutex);
     return m_KeyMaps[0]; // ToDo
 #endif
 #ifdef APPLE
@@ -90,18 +92,23 @@ void KeyScanner::ScanThread() {
         fcntl(kbd, F_SETFL, flags | O_NONBLOCK);
         kbds.push_back(kbd);
     }
-
     if(kbds.empty()) {
         spdlog::error("No keyboards found.");
         return;
     }
+    m_KeyMaps.clear();
+    for(int i = 0; i < kbds.size(); i++)
+        m_KeyMaps.emplace_back();
 
     while (m_IsRunning) {
         int idx{};
         for(auto kbd : kbds) {
             input_event ie{};
-            if(read(kbd, &ie, sizeof(ie)) == sizeof(ie))
+            if(read(kbd, &ie, sizeof(ie)) == sizeof(ie)) {
+                m_ScanMutex.lock();
                 m_KeyMaps[idx][ie.code] = ie.value != 0;
+                m_ScanMutex.unlock();
+            }
             idx++;
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
