@@ -74,7 +74,6 @@ void BTUnlockClient::ConnectThread() {
 
     m_Channel = BluetoothHelper::FindSDPChannel(m_DeviceAddress, CHANNEL_UUID);
     if (m_Channel == -1) {
-        spdlog::error("Bluetooth FindSDPChannel failed.");
         m_IsRunning = false;
         m_UnlockState = UnlockState::CONNECT_ERROR;
         return;

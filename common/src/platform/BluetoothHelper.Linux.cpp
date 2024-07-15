@@ -6,13 +6,13 @@
 #include <bluetooth/hci_lib.h>
 #include <bluetooth/sdp.h>
 #include <bluetooth/sdp_lib.h>
+#include <spdlog/spdlog.h>
 
 bool BluetoothHelper::IsAvailable() {
     int dev_id = hci_get_route(nullptr);
     int sock = hci_open_dev(dev_id);
-    if (dev_id < 0 || sock < 0) {
+    if (dev_id < 0 || sock < 0)
         return false;
-    }
     close(sock);
     return true;
 }
@@ -31,10 +31,10 @@ std::vector<BluetoothDevice> BluetoothHelper::ScanDevices() {
 
     int len = 8;
     int max_rsp = 255;
-    int flags = IREQ_CACHE_FLUSH;
     auto ii = (inquiry_info*)malloc(max_rsp * sizeof(inquiry_info));
-    int num_rsp = hci_inquiry(dev_id, len, max_rsp, nullptr, &ii, flags);
+    int num_rsp = hci_inquiry(dev_id, len, max_rsp, nullptr, &ii, IREQ_CACHE_FLUSH);
     if (num_rsp <= 0) {
+        spdlog::error("hci_inquiry() failed.");
         free(ii);
         close(sock);
         return {};
@@ -46,8 +46,7 @@ std::vector<BluetoothDevice> BluetoothHelper::ScanDevices() {
         char name[248]{};
         ba2str(&(ii + i)->bdaddr, addr);
         memset(name, 0, sizeof(name));
-        if (hci_read_remote_name(sock, &(ii + i)->bdaddr, sizeof(name),
-                                 name, 0) < 0)
+        if (hci_read_remote_name(sock, &(ii + i)->bdaddr, sizeof(name), name, 0) < 0)
             strcpy(name, "Unknown device");
         result.push_back({name, addr});
     }
@@ -66,6 +65,7 @@ int BluetoothHelper::FindSDPChannel(const std::string& deviceAddr, uint8_t *uuid
     auto bdAny = (bdaddr_t){ {0, 0, 0, 0, 0, 0} };
     sdp_session_t* session = sdp_connect(&bdAny, &address, SDP_RETRY_IF_BUSY);
     if (!session) {
+        spdlog::error("sdp_connect() failed. (Code={})", errno);
         return -1;
     }
     uuid_t uuid128;
@@ -77,10 +77,12 @@ int BluetoothHelper::FindSDPChannel(const std::string& deviceAddr, uint8_t *uuid
     int success = sdp_service_search_attr_req(
             session, searchList, SDP_ATTR_REQ_RANGE, attrIdList, &responseList);
     if (success) {
+        spdlog::error("sdp_service_search_attr_req() failed. (Code={})", success);
         return -1;
     }
     success = sdp_list_len(responseList);
     if (success <= 0) {
+        spdlog::error("sdp_list_len() failed. (Code={})", success);
         return -1;
     }
     int channel = 0;
@@ -90,6 +92,7 @@ int BluetoothHelper::FindSDPChannel(const std::string& deviceAddr, uint8_t *uuid
         sdp_list_t* protoList;
         success = sdp_get_access_protos(record, &protoList);
         if (success) {
+            spdlog::error("sdp_get_access_protos() failed. (Code={})", success);
             return -1;
         }
         sdp_list_t* protocol = protoList;
@@ -126,7 +129,9 @@ int BluetoothHelper::FindSDPChannel(const std::string& deviceAddr, uint8_t *uuid
         sdp_list_free(protoList, nullptr);
         responses = responses->next;
     }
-    if (channel <= 0 || channel > 30)
+    if (channel <= 0 || channel > 30) {
+        spdlog::error("Could not find SDP channel.");
         return -1;
+    }
     return channel;
 }
