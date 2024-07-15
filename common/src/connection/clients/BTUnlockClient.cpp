@@ -58,6 +58,7 @@ void BTUnlockClient::ConnectThread() {
     PacketError writeResult{};
     uint32_t numRetries{};
     auto settings = AppSettings::Get();
+    spdlog::info("Connecting via BT...");
 
 #ifdef WINDOWS
     GUID guid = { 0x62182bf7, 0x97c8, 0x45f9, { 0xaa, 0x2c, 0x53, 0xc5, 0xf2, 0x00, 0x8b, 0xdf } };

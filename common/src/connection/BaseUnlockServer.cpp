@@ -128,7 +128,8 @@ PacketError BaseUnlockServer::GetPacketError(int result, int error) {
     } else {
         if(error == SOCKET_ERROR_WOULD_BLOCK || error == SOCKET_ERROR_IN_PROGRESS || error == SOCKET_ERROR_TRY_AGAIN)
             return PacketError::NONE;
-        spdlog::error("Packet socket error. (Code={})", error);
+
+        spdlog::error("Socket operation failed. (Code={}, Str={})", error, strerror(error));
         if(error == SOCKET_ERROR_CONNECT_REFUSED || error == SOCKET_ERROR_HOST_UNREACHABLE)
             return PacketError::CLOSED_CONNECTION;
         if(error == SOCKET_ERROR_TIMEOUT)

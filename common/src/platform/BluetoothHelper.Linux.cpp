@@ -112,6 +112,7 @@ int BluetoothHelper::FindSDPChannel(const std::string& deviceAddr, uint8_t *uuid
         sdp_list_t *protocol = protoList;
         while (protocol) {
             auto pds = (sdp_list_t *)protocol->data;
+            int protocolCount = 0;
             while (pds) {
                 auto d = (sdp_data_t *)pds->data;
                 while (d) {
@@ -119,9 +120,11 @@ int BluetoothHelper::FindSDPChannel(const std::string& deviceAddr, uint8_t *uuid
                         case SDP_UUID16:
                         case SDP_UUID32:
                         case SDP_UUID128:
-                            if (sdp_uuid_to_proto(&d->val.uuid) == RFCOMM_UUID) {
+                            protocolCount = sdp_uuid_to_proto(&d->val.uuid);
+                            break;
+                        case SDP_UINT8:
+                            if (protocolCount == RFCOMM_UUID)
                                 channel = d->val.uint8;
-                            }
                             break;
                         default:
                             break;

@@ -9,7 +9,6 @@
 
 class KeyScanner {
 public:
-    KeyScanner();
     ~KeyScanner();
 
     bool GetKeyState(int key);
@@ -21,13 +20,14 @@ public:
 private:
 #ifdef LINUX
     static std::vector<std::string> GetKeyboards();
-    void ScanThread();
+    void ScanThread(int idx);
 
-    std::thread m_ScanThread{};
+    std::vector<int> m_KeyboardFds{};
+    std::vector<std::thread> m_ScanThreads{};
     std::mutex m_ScanMutex{};
     bool m_IsRunning{};
 
-    std::vector<std::map<int, bool>> m_KeyMaps;
+    std::vector<std::map<int, bool>> m_KeyMaps{};
 #endif
 };
 

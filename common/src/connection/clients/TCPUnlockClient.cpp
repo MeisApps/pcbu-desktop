@@ -53,6 +53,7 @@ void TCPUnlockClient::ConnectThread() {
     PacketError writeResult{};
     uint32_t numRetries{};
     auto settings = AppSettings::Get();
+    spdlog::info("Connecting via TCP...");
 
     struct sockaddr_in serv_addr{};
     serv_addr.sin_family = AF_INET;
