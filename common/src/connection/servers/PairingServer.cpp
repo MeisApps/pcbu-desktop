@@ -8,7 +8,7 @@
 #include "utils/CryptUtils.h"
 
 PairingServer::PairingServer()
-    : m_Acceptor(m_IOService, boostnet::tcp::endpoint(boostnet::tcp::v4(), AppSettings::Get().serverPort)),
+    : m_Acceptor(m_IOService, boostnet::tcp::endpoint(boostnet::tcp::v4(), AppSettings::Get().pairingServerPort)),
       m_Socket(m_IOService) {
 
 }
@@ -40,7 +40,9 @@ void PairingServer::Stop() {
         return;
     try {
         if(m_Socket.is_open()) {
-            m_Socket.shutdown(boost::asio::socket_base::shutdown_both);
+            try {
+                m_Socket.shutdown(boost::asio::socket_base::shutdown_both);
+            } catch (...) {}
             m_Socket.close();
         }
         if(m_Acceptor.is_open())
@@ -49,7 +51,7 @@ void PairingServer::Stop() {
         if(m_AcceptThread.joinable())
             m_AcceptThread.join();
         m_IOService.reset();
-        m_Acceptor = boostnet::tcp::acceptor(m_IOService, boostnet::tcp::endpoint(boostnet::tcp::v4(), AppSettings::Get().serverPort));
+        m_Acceptor = boostnet::tcp::acceptor(m_IOService, boostnet::tcp::endpoint(boostnet::tcp::v4(), AppSettings::Get().pairingServerPort));
         m_Socket = boostnet::tcp::socket(m_IOService);
     } catch(const std::exception& ex) {
         spdlog::error("Error stopping pairing server: {}", ex.what());
@@ -65,7 +67,9 @@ void PairingServer::Accept() {
         }
         auto data = ReadPacket();
         if(data.empty()) {
-            m_Socket.shutdown(boost::asio::socket_base::shutdown_both);
+            try {
+                m_Socket.shutdown(boost::asio::socket_base::shutdown_both);
+            } catch (...) {}
             m_Socket.close();
             Accept();
             return;
@@ -106,7 +110,9 @@ void PairingServer::Accept() {
             respPacket.errMsg = fmt::format("Error during pairing: {}", ex.what());
             WritePacket(respPacket.ToJson().dump());
         }
-        m_Socket.shutdown(boost::asio::socket_base::shutdown_both);
+        try {
+            m_Socket.shutdown(boost::asio::socket_base::shutdown_both);
+        } catch (...) {}
         m_Socket.close();
         Accept();
     });

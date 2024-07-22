@@ -60,7 +60,6 @@ public slots:
 private:
     PairingStep GetNextStep();
     void UpdateStepForm(QObject *viewLoader, QObject *window);
-    NetworkInterface GetNetworkInterface();
 
     PairingStep m_CurrentStep{};
     std::stack<PairingStep> m_StepStack{};

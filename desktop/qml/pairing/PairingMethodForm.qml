@@ -45,6 +45,17 @@ StepForm {
                     text: QI18n.Get('pairing_method_bt_desc')
                 }
             }
+            /*ColumnLayout {
+                RadioButton {
+                    ButtonGroup.group: methodRadioGroup
+                    property string methodStr: 'CLOUD_TCP'
+                    text: QI18n.Get('pairing_method_cloud_tcp_select')
+                    checked: PairingForm.GetData().pairingMethod === methodStr
+                }
+                Label {
+                    text: QI18n.Get('pairing_method_cloud_tcp_desc')
+                }
+            }*/
         }
     }
 }

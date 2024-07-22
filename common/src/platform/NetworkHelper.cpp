@@ -6,6 +6,7 @@
 #include <map>
 #include <spdlog/spdlog.h>
 
+#include "storage/AppSettings.h"
 #include "utils/StringUtils.h"
 
 #ifdef WINDOWS
@@ -197,4 +198,29 @@ bool NetworkHelper::HasLANConnection() {
     return hasLAN;
 #endif
     return false;
+}
+
+NetworkInterface NetworkHelper::GetSavedNetworkInterface() {
+    NetworkInterface result{};
+    auto localIfs = NetworkHelper::GetLocalNetInterfaces();
+    auto settings = AppSettings::Get();
+    auto found = false;
+    if(settings.serverIP == "auto") {
+        for(const auto& netIf : localIfs) {
+            if(netIf.macAddress == settings.serverMAC) {
+                result = netIf;
+                found = true;
+                break;
+            }
+        }
+        if(!found) {
+            if(!localIfs.empty())
+                result = localIfs[0];
+            else
+                spdlog::warn("Invalid server IP settings.");
+        }
+    } else {
+        result.ipAddress = settings.serverIP;
+    }
+    return result;
 }

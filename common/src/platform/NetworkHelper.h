@@ -16,6 +16,8 @@ public:
     static std::string GetHostName();
     static bool HasLANConnection();
 
+    static NetworkInterface GetSavedNetworkInterface();
+
 private:
     NetworkHelper() = default;
 };

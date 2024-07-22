@@ -1,20 +1,21 @@
 #include "UnlockHandler.h"
-#include "storage/AppSettings.h"
-#include "KeyScanner.h"
-#include "I18n.h"
 
+#include "I18n.h"
+#include "KeyScanner.h"
 #include "connection/clients/TCPUnlockClient.h"
 #include "connection/clients/BTUnlockClient.h"
+#include "connection/servers/TCPUnlockServer.h"
+#include "platform/NetworkHelper.h"
+#include "storage/AppSettings.h"
+#include "utils/RestClient.h"
 
-#ifdef _WIN32
+#ifdef WINDOWS
 #include <Windows.h>
 #define KEY_LEFTCTRL VK_LCONTROL
 #define KEY_LEFTALT VK_LMENU
-#endif
-#ifdef LINUX
+#elif LINUX
 #include <linux/input.h>
-#endif
-#ifdef APPLE
+#elif APPLE
 #include <Carbon/Carbon.h>
 #define KEY_LEFTCTRL kVK_Control
 #define KEY_LEFTALT kVK_Option
@@ -26,9 +27,11 @@ UnlockHandler::UnlockHandler(const std::function<void(std::string)>& printMessag
 
 UnlockResult UnlockHandler::GetResult(const std::string& authUser, const std::string& authProgram, std::atomic<bool> *isRunning) {
     auto appSettings = AppSettings::Get();
-    std::vector<BaseUnlockServer *> servers{};
+    auto netIf = NetworkHelper::GetSavedNetworkInterface();
+
+    std::vector<BaseUnlockConnection *> servers{};
     for(const auto& device : PairedDevicesStorage::GetDevicesForUser(authUser)) {
-        BaseUnlockServer *server{};
+        BaseUnlockConnection *server{};
         switch (device.pairingMethod) {
             case PairingMethod::TCP:
                 server = new TCPUnlockClient(device.ipAddress, 43298, device);
@@ -36,9 +39,10 @@ UnlockResult UnlockHandler::GetResult(const std::string& authUser, const std::st
             case PairingMethod::BLUETOOTH:
                 server = new BTUnlockClient(device.bluetoothAddress, device);
                 break;
-            /*case PairingMethod::CLOUD_TCP:
-                server = new TCPUnlockServer("0.0.0.0", appSettings.unlockServerPort, device);
-                break;*/
+            case PairingMethod::CLOUD_TCP: {
+                server = new TCPUnlockServer(device); // ToDo: One server for all devices
+                break;
+            }
             default:
                 break;
         }
@@ -46,6 +50,7 @@ UnlockResult UnlockHandler::GetResult(const std::string& authUser, const std::st
             spdlog::error("Invalid pairing method.");
             continue;
         }
+
         server->SetUnlockInfo(authUser, authProgram);
         servers.emplace_back(server);
     }
@@ -95,7 +100,7 @@ UnlockResult UnlockHandler::GetResult(const std::string& authUser, const std::st
     return result;
 }
 
-UnlockResult UnlockHandler::RunServer(BaseUnlockServer *server, AtomicUnlockResult *currentResult, std::atomic<bool> *isRunning) {
+UnlockResult UnlockHandler::RunServer(BaseUnlockConnection *server, AtomicUnlockResult *currentResult, std::atomic<bool> *isRunning) {
     if(!server->Start()) {
         auto errorMsg = I18n::Get("error_start_handler");
         spdlog::error(errorMsg);

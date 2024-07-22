@@ -1,9 +1,9 @@
 #ifndef PAM_PCBIOUNLOCK_TCPUNLOCKCLIENT_H
 #define PAM_PCBIOUNLOCK_TCPUNLOCKCLIENT_H
 
-#include "connection/BaseUnlockServer.h"
+#include "connection/BaseUnlockConnection.h"
 
-class TCPUnlockClient : public BaseUnlockServer {
+class TCPUnlockClient : public BaseUnlockConnection {
 public:
     TCPUnlockClient(const std::string& ipAddress, int port, const PairedDevice& device);
 

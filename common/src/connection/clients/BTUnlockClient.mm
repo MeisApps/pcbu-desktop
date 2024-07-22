@@ -1,7 +1,7 @@
 #include "BTUnlockClient.h"
 
 BTUnlockClient::BTUnlockClient(const std::string& deviceAddress, const PairedDevice& device)
-        : BaseUnlockServer(device) {
+        : BaseUnlockConnection(device) {
 #warning Not implemented.
 }
 

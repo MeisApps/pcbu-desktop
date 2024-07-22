@@ -9,8 +9,8 @@ ApplicationWindow {
     id: window
     width: 1024
     height: 768
-    minimumWidth: 800
-    minimumHeight: 600
+    minimumWidth: 1024
+    minimumHeight: 768
     visible: true
     title: 'PC Bio Unlock'
 

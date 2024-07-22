@@ -22,7 +22,8 @@ PCBUAppStorage AppSettings::Get() {
         settings.language = json["language"];
         settings.serverIP = json["serverIP"];
         settings.serverMAC = json["serverMAC"];
-        settings.serverPort = json["serverPort"];
+        settings.pairingServerPort = json["pairingServerPort"];
+        settings.unlockServerPort = json["unlockServerPort"];
         settings.clientSocketTimeout = json["clientSocketTimeout"];
         settings.clientConnectTimeout = json["clientConnectTimeout"];
         settings.clientConnectRetries = json["clientConnectRetries"];
@@ -33,10 +34,11 @@ PCBUAppStorage AppSettings::Get() {
         auto def = PCBUAppStorage();
         def.language = "auto";
         def.serverIP = "auto";
-        def.serverPort = 43295;
+        def.pairingServerPort = 43295;
+        def.unlockServerPort = 43296;
         def.clientSocketTimeout = 120;
-        def.clientConnectTimeout = 30;
-        def.clientConnectRetries = 0;
+        def.clientConnectTimeout = 10;
+        def.clientConnectRetries = 1;
         def.waitForKeyPress = false;
         spdlog::info("Creating new app storage...");
         Save(def);
@@ -51,7 +53,8 @@ void AppSettings::Save(const PCBUAppStorage &storage) {
                 {"language", storage.language},
                 {"serverIP", storage.serverIP},
                 {"serverMAC", storage.serverMAC},
-                {"serverPort", storage.serverPort},
+                {"pairingServerPort", storage.pairingServerPort},
+                {"unlockServerPort", storage.unlockServerPort},
                 {"clientSocketTimeout", storage.clientSocketTimeout},
                 {"clientConnectTimeout", storage.clientConnectTimeout},
                 {"clientConnectRetries", storage.clientConnectRetries},

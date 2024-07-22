@@ -1,9 +1,9 @@
 #ifndef PAM_PCBIOUNLOCK_BTUNLOCKCLIENT_H
 #define PAM_PCBIOUNLOCK_BTUNLOCKCLIENT_H
 
-#include "connection/BaseUnlockServer.h"
+#include "connection/BaseUnlockConnection.h"
 
-class BTUnlockClient : public BaseUnlockServer {
+class BTUnlockClient : public BaseUnlockConnection {
 public:
     BTUnlockClient(const std::string& deviceAddress, const PairedDevice& device);
 

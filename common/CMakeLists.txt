@@ -60,8 +60,8 @@ endif()
 
 add_library(pcbu_common
         src/connection/SocketDefs.h
-        src/connection/BaseUnlockServer.h
-        src/connection/BaseUnlockServer.cpp
+        src/connection/BaseUnlockConnection.h
+        src/connection/BaseUnlockConnection.cpp
         src/connection/clients/TCPUnlockClient.h
         src/connection/clients/TCPUnlockClient.cpp
         src/connection/clients/BTUnlockClient.h
@@ -96,6 +96,12 @@ add_library(pcbu_common
         src/utils/AppInfo.cpp
         src/utils/AppInfo.h
         ${PLATFORM_SRC}
+        src/connection/servers/TCPUnlockServer.cpp
+        src/connection/servers/TCPUnlockServer.h
+        src/utils/RestClient.cpp
+        src/utils/RestClient.h
+        src/connection/BaseConnection.cpp
+        src/connection/BaseConnection.h
 )
 target_include_directories(pcbu_common PUBLIC
         src

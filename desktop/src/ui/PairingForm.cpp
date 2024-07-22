@@ -4,8 +4,8 @@
 #include "platform/PlatformHelper.h"
 #include "platform/BluetoothHelper.h"
 #include "storage/AppSettings.h"
-#include "utils/StringUtils.h"
 #include "utils/QRUtils.h"
+#include "utils/StringUtils.h"
 
 PairingForm::~PairingForm() {
     m_IsBluetoothScanRunning = false;
@@ -24,8 +24,8 @@ void PairingForm::SetData(const PairingAssistantModel& data) {
 }
 
 QUrl PairingForm::GetQRImage() {
-    auto qrData = PairingQRData(GetNetworkInterface().ipAddress,
-                                AppSettings::Get().serverPort,
+    auto qrData = PairingQRData(NetworkHelper::GetSavedNetworkInterface().ipAddress,
+                                AppSettings::Get().pairingServerPort,
                                 PairingMethodUtils::FromString(m_PairingData.pairingMethod.toStdString()),
                                 m_EncKey);
     auto qrSvg = QRUtils::GenerateSVG(qrData.ToJson().dump());
@@ -77,7 +77,7 @@ void PairingForm::UpdateStepForm(QObject *viewLoader, QObject *window) {
         serverData.password = m_PairingData.password.toStdString();
         serverData.encKey = m_EncKey;
         serverData.method = PairingMethodUtils::FromString(m_PairingData.pairingMethod.toStdString());
-        serverData.macAddress = GetNetworkInterface().macAddress;
+        serverData.macAddress = NetworkHelper::GetSavedNetworkInterface().macAddress;
         serverData.btAddress = m_PairingData.bluetoothAddress.toStdString();
         m_PairingServer->Start(serverData);
     } else {
@@ -142,30 +142,6 @@ void PairingForm::UpdateStepForm(QObject *viewLoader, QObject *window) {
             QMetaObject::invokeMethod(viewLoader, "setSource", Q_ARG(QUrl, QUrl("qrc:/ui/forms/MainForm.qml")));
             break;
     }
-}
-
-NetworkInterface PairingForm::GetNetworkInterface() {
-    NetworkInterface result{};
-    auto localIfs = NetworkHelper::GetLocalNetInterfaces();
-    auto settings = AppSettings::Get();
-    auto found = false;
-    if(settings.serverIP == "auto") {
-        for(const auto& netIf : localIfs) {
-            if(netIf.macAddress == settings.serverMAC) {
-                result = netIf;
-                found = true;
-                break;
-            }
-        }
-        if(!found) {
-            if(!localIfs.empty())
-                result = localIfs[0];
-            spdlog::warn("Invalid server IP settings.");
-        }
-    } else {
-        result.ipAddress = settings.serverIP;
-    }
-    return result;
 }
 
 void PairingForm::Show(QObject *viewLoader, QObject *window) {

@@ -5,40 +5,23 @@
 #include <string>
 #include <thread>
 #include <utility>
-#include "nlohmann/json.hpp"
+#include <nlohmann/json.hpp>
 
+#include "BaseConnection.h"
 #include "handler/UnlockState.h"
 #include "storage/PairedDevicesStorage.h"
 #include "utils/Utils.h"
 #include "utils/CryptUtils.h"
-
-#ifdef WINDOWS
-typedef unsigned long long SOCKET;
-#else
-#define SOCKET int
-#endif
-
-enum class PacketError {
-    UNKNOWN,
-    NONE,
-    CLOSED_CONNECTION,
-    TIMEOUT
-};
-
-struct Packet {
-    PacketError error{};
-    std::vector<uint8_t> data{};
-};
 
 struct UnlockResponseData {
     std::string unlockToken;
     std::string password;
 };
 
-class BaseUnlockServer {
+class BaseUnlockConnection : public BaseConnection {
 public:
-    explicit BaseUnlockServer(const PairedDevice& device);
-    virtual ~BaseUnlockServer();
+    explicit BaseUnlockConnection(const PairedDevice& device);
+    virtual ~BaseUnlockConnection();
 
     virtual bool Start() = 0;
     virtual void Stop() = 0;
@@ -51,20 +34,16 @@ public:
     UnlockState PollResult();
 
 protected:
-    static bool SetSocketBlocking(SOCKET socket, bool isBlocking);
-    static Packet ReadPacket(SOCKET socket);
-    static PacketError WritePacket(SOCKET socket, const std::vector<uint8_t>& data);
+    virtual void PerformAuthFlow(SOCKET socket);
 
+private:
     std::string GetUnlockInfoPacket();
     void OnResponseReceived(const Packet& packet);
 
-private:
-    static PacketError GetPacketError(int result, int error);
-
 protected:
-    bool m_IsRunning{};
+    std::atomic<bool> m_IsRunning{};
     std::thread m_AcceptThread{};
-    bool m_HasConnection{};
+    std::atomic<bool> m_HasConnection{};
     std::string m_UserName{};
 
     std::atomic<UnlockState> m_UnlockState{};

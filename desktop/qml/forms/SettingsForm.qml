@@ -20,7 +20,6 @@ Form {
                 columns: 4
                 rows: 2
                 columnSpacing: 5
-
                 Label {
                     Layout.row: 0
                     Layout.column: 0
@@ -34,7 +33,12 @@ Form {
                 Label {
                     Layout.row: 2
                     Layout.column: 0
-                    text: '%1:'.arg(QI18n.Get('server_port'))
+                    text: '%1:'.arg(QI18n.Get('pairing_server_port'))
+                }
+                Label {
+                    Layout.row: 3
+                    Layout.column: 0
+                    text: '%1:'.arg(QI18n.Get('unlock_server_port'))
                 }
 
                 ComboBox { // Lang
@@ -63,6 +67,7 @@ Form {
                         SettingsForm.SetSettings(settings);
                     }
                 }
+
                 ColumnLayout { // IP
                     Layout.fillWidth: true
                     Layout.row: 1
@@ -108,16 +113,24 @@ Form {
                         visible: SettingsForm.GetSettings().serverIP !== 'auto'
                     }
                 }
+
                 TextField { // Pairing port
                     Layout.fillWidth: true
                     Layout.row: 2
                     Layout.column: 1
-                    id: serverPortTextField
-                    text: SettingsForm.GetSettings().serverPort
+                    id: pairingServerPortTextField
+                    text: SettingsForm.GetSettings().pairingServerPort
+                }
+                TextField { // Unlock port
+                    Layout.fillWidth: true
+                    Layout.row: 3
+                    Layout.column: 1
+                    id: unlockServerPortTextField
+                    text: SettingsForm.GetSettings().unlockServerPort
                 }
 
                 GridLayout {
-                    Layout.row: 3
+                    Layout.row: 4
                     Layout.column: 0
                     Layout.columnSpan: 2
                     columnSpacing: 2
@@ -131,6 +144,7 @@ Form {
                         Layout.column: 2
                         text: '%1:'.arg(QI18n.Get('client_connect_retries'))
                     }
+
                     TextField { // Client connect timeout
                         Layout.fillWidth: true
                         Layout.row: 0
@@ -182,13 +196,20 @@ Form {
             nextTitle: QI18n.Get('save')
             onBackClicked: MainWindow.Show(viewLoader)
             onNextClicked: {
-                let ipV4Regex = /^(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]\d|\d)(?:\.(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]\d|\d)){3}$/gm;
-                let serverIp = ipSelectTextField.text;
-                let serverPortNum = parseInt(serverPortTextField.text, 10);
-                if(isNaN(serverPortNum) || serverPortNum < 0 || serverPortNum > 65535) {
+                let pairingServerPortNum = parseInt(pairingServerPortTextField.text, 10);
+                let unlockServerPortNum = parseInt(unlockServerPortTextField.text, 10);
+                if(isNaN(pairingServerPortNum) || pairingServerPortNum < 0 || pairingServerPortNum > 65535) {
                     showErrorMessage(QI18n.Get('error_invalid_port'));
                     return;
-                } else if(serverIp !== 'auto' && !ipV4Regex.test(serverIp)) {
+                }
+                if(isNaN(unlockServerPortNum) || unlockServerPortNum < 0 || unlockServerPortNum > 65535) {
+                    showErrorMessage(QI18n.Get('error_invalid_port'));
+                    return;
+                }
+
+                let ipV4Regex = /^(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]\d|\d)(?:\.(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]\d|\d)){3}$/gm;
+                let serverIp = ipSelectTextField.text;
+                if(serverIp !== 'auto' && !ipV4Regex.test(serverIp)) {
                     showErrorMessage(QI18n.Get('error_invalid_ip'));
                     return;
                 }
@@ -208,8 +229,9 @@ Form {
 
                 let settings = SettingsForm.GetSettings();
                 settings.serverIP = serverIp;
-                settings.serverPort = serverPortNum;
                 settings.serverMAC = serverIp === 'auto' ? networkListModel.get(ipSelectComboBox.currentIndex).macAddress : '';
+                settings.pairingServerPort = pairingServerPortNum;
+                settings.unlockServerPort = unlockServerPortNum;
                 settings.clientSocketTimeout = clientSocketTimeoutNum;
                 settings.clientConnectTimeout = clientConnectTimeoutNum;
                 settings.clientConnectRetries = clientConnectRetriesNum;

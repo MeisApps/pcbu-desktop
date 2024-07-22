@@ -2,12 +2,12 @@
 
 #define CPPHTTPLIB_OPENSSL_SUPPORT
 #include <httplib.h>
-#include <nlohmann/json.hpp>
 #include <spdlog/spdlog.h>
 
 #include "shell/Shell.h"
 #include "utils/AppInfo.h"
 #include "utils/I18n.h"
+#include "utils/RestClient.h"
 
 #ifdef APPLE
 #include <mach-o/dyld.h>
@@ -32,21 +32,11 @@ QString UpdaterWindow::GetLatestVersion() {
 void UpdaterWindow::CheckForUpdates(QObject *window) {
     m_CheckThread = std::thread([this, window]() {
         try {
-            httplib::Client client("https://api.meis-apps.com");
-            client.set_connection_timeout(5, 0);
-            client.set_read_timeout(5, 0);
-            client.set_write_timeout(5, 0);
-            auto result = client.Get("/rest/appUpdater/checkUpdates?product=PCBioUnlock&platform=Desktop");
-            if(!result)
-                throw std::runtime_error(to_string(result.error()));
-
-            auto resultJson = nlohmann::json::parse(result->body);
-            std::string latestVersion = resultJson["version"];
+            auto latestVersion = RestClient::CheckForUpdates("PCBioUnlock", "Desktop");
             m_VersionMutex.lock();
             m_LatestVersion = QString::fromUtf8(latestVersion);
             m_VersionMutex.unlock();
             spdlog::info("Latest version: {}", latestVersion);
-
             if(AppInfo::CompareVersion(AppInfo::GetVersion(), latestVersion) == 1)
                 QMetaObject::invokeMethod(window, "showUpdaterWindow");
         } catch(const std::exception& ex) {

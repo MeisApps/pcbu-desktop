@@ -10,7 +10,7 @@
 #endif
 
 TCPUnlockClient::TCPUnlockClient(const std::string& ipAddress, int port, const PairedDevice& device)
-    : BaseUnlockServer(device) {
+    : BaseUnlockConnection(device) {
     m_IP = ipAddress;
     m_Port = port;
     m_ClientSocket = (SOCKET)SOCKET_INVALID;
@@ -21,13 +21,7 @@ bool TCPUnlockClient::Start() {
     if(m_IsRunning)
         return true;
 
-#ifdef WINDOWS
-    WSADATA wsa{};
-    if (WSAStartup(MAKEWORD(2, 2), &wsa) != 0) {
-        spdlog::error("WSAStartup failed.");
-        return false;
-    }
-#endif
+    WSA_STARTUP
     m_IsRunning = true;
     m_AcceptThread = std::thread(&TCPUnlockClient::ConnectThread, this);
     return true;
@@ -48,9 +42,6 @@ void TCPUnlockClient::Stop() {
 }
 
 void TCPUnlockClient::ConnectThread() {
-    std::string serverDataStr{};
-    Packet responsePacket{};
-    PacketError writeResult{};
     uint32_t numRetries{};
     auto settings = AppSettings::Get();
     spdlog::info("Connecting via TCP...");
@@ -80,21 +71,17 @@ void TCPUnlockClient::ConnectThread() {
     connectTimeout.tv_sec = (long)settings.clientConnectTimeout;
 
 #ifdef WINDOWS
-    auto timeoutMs = (DWORD)(socketTimeout.tv_sec * 1000);
-    if (setsockopt(m_ClientSocket, SOL_SOCKET, SO_RCVTIMEO, reinterpret_cast<const char *>(&timeoutMs), sizeof(timeoutMs)) < 0 ||
-        setsockopt(m_ClientSocket, SOL_SOCKET, SO_SNDTIMEO, reinterpret_cast<const char *>(&timeoutMs), sizeof(timeoutMs)) < 0) {
-        spdlog::error("setsockopt() for timeout failed. (Code={})", SOCKET_LAST_ERROR);
-        m_UnlockState = UnlockState::UNK_ERROR;
-        goto threadEnd;
-    }
+    auto timeoutVal = (DWORD)(socketTimeout.tv_sec * 1000);
 #else
-    if (setsockopt(m_ClientSocket, SOL_SOCKET, SO_RCVTIMEO, &socketTimeout, sizeof(socketTimeout)) < 0 ||
-        setsockopt(m_ClientSocket, SOL_SOCKET, SO_SNDTIMEO, &socketTimeout, sizeof(socketTimeout)) < 0) {
+    auto timeoutVal = socketTimeout;
+#endif
+    if (setsockopt(m_ClientSocket, SOL_SOCKET, SO_RCVTIMEO, &timeoutVal, sizeof(timeoutVal)) < 0 ||
+        setsockopt(m_ClientSocket, SOL_SOCKET, SO_SNDTIMEO, &timeoutVal, sizeof(timeoutVal)) < 0) {
         spdlog::error("setsockopt() for timeout failed. (Code={})", SOCKET_LAST_ERROR);
         m_UnlockState = UnlockState::UNK_ERROR;
         goto threadEnd;
     }
-#endif
+
     if(!SetSocketBlocking(m_ClientSocket, false)) {
         spdlog::error("Failed setting socket to non-blocking mode. (Code={})", SOCKET_LAST_ERROR);
         m_UnlockState = UnlockState::UNK_ERROR;
@@ -120,29 +107,7 @@ void TCPUnlockClient::ConnectThread() {
     }
 
     m_HasConnection = true;
-    serverDataStr = GetUnlockInfoPacket();
-    if(serverDataStr.empty()) {
-        m_UnlockState = UnlockState::UNK_ERROR;
-        goto threadEnd;
-    }
-
-    writeResult = WritePacket(m_ClientSocket, {serverDataStr.begin(), serverDataStr.end()});
-    if(writeResult == PacketError::NONE) {
-        responsePacket = ReadPacket(m_ClientSocket);
-        OnResponseReceived(responsePacket);
-    } else {
-        switch (writeResult) {
-            case PacketError::CLOSED_CONNECTION:
-                m_UnlockState = UnlockState::CONNECT_ERROR;
-                break;
-            case PacketError::TIMEOUT:
-                m_UnlockState = UnlockState::TIMEOUT;
-                break;
-            default:
-                m_UnlockState = UnlockState::UNK_ERROR;
-                break;
-        }
-    }
+    PerformAuthFlow(m_ClientSocket);
 
     threadEnd:
     m_IsRunning = false;

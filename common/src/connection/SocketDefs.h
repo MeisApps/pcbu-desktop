@@ -7,6 +7,8 @@
 #define read(x, y, z) recv(x, (char*)y, z, 0)
 #define write(x, y, z) send(x, y, z, 0)
 
+#define WSA_STARTUP WSADATA wsa{}; if (WSAStartup(MAKEWORD(2, 2), &wsa) != 0) { spdlog::error("WSAStartup failed."); return false; }
+
 #define SOCKET_INVALID INVALID_SOCKET
 #define SOCKET_ERROR_TRY_AGAIN WSAEWOULDBLOCK // WOULDBLOCK on Windows
 #define SOCKET_ERROR_IN_PROGRESS WSAEINPROGRESS
@@ -21,6 +23,8 @@
 #include <sys/socket.h>
 #include <sys/fcntl.h>
 #include <netinet/in.h>
+
+#define WSA_STARTUP
 
 #define SOCKET_INVALID (-1)
 #define SOCKET_ERROR_TRY_AGAIN EAGAIN

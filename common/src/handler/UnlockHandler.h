@@ -7,7 +7,7 @@
 
 #include "UnlockState.h"
 #include "storage/PairedDevicesStorage.h"
-#include "connection/BaseUnlockServer.h"
+#include "connection/BaseUnlockConnection.h"
 
 struct UnlockResult {
     UnlockResult() = default;
@@ -42,7 +42,7 @@ public:
     UnlockResult GetResult(const std::string& authUser, const std::string& authProgram, std::atomic<bool> *isRunning = nullptr);
 
 private:
-    UnlockResult RunServer(BaseUnlockServer *server, AtomicUnlockResult *currentResult, std::atomic<bool> *isRunning);
+    UnlockResult RunServer(BaseUnlockConnection *server, AtomicUnlockResult *currentResult, std::atomic<bool> *isRunning);
     std::function<void (std::string)> m_PrintMessage{};
 };
 
