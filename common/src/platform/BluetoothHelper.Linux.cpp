@@ -148,10 +148,61 @@ int BluetoothHelper::FindSDPChannel(const std::string& deviceAddr, uint8_t *uuid
     return channel;
 }
 
-std::optional<SDPService> BluetoothHelper::RegisterSDPService(SOCKADDR address) {
-    return {};
+std::optional<SDPService> BluetoothHelper::RegisterSDPService(uint8_t channel) { // ToDo: More error checks
+    static uint8_t CHANNEL_UUID[16] = { 0x62, 0x18, 0x2b, 0xf7, 0x97, 0xc8,
+                                        0x45, 0xf9, 0xaa, 0x2c, 0x53, 0xc5, 0xf2, 0x00, 0x8b, 0xdf };
+    uuid_t rootUUID{}, l2capUUID{}, rfcommUUID{}, svcUUID{};
+    sdp_list_t *l2capList{}, *rfcommList{}, *rootList{}, *protoList{}, *accessProtoList{};
+    sdp_data_t *channelData{};
+    sdp_record_t *record = sdp_record_alloc();
+
+    sdp_uuid128_create(&svcUUID, &CHANNEL_UUID);
+    sdp_set_service_id(record, svcUUID);
+
+    sdp_uuid16_create(&rootUUID, PUBLIC_BROWSE_GROUP);
+    rootList = sdp_list_append(nullptr, &rootUUID);
+    sdp_set_browse_groups(record, rootList);
+
+    sdp_uuid16_create(&l2capUUID, L2CAP_UUID);
+    l2capList = sdp_list_append(nullptr, &l2capUUID);
+    protoList = sdp_list_append(nullptr, l2capList);
+
+    sdp_uuid16_create(&rfcommUUID, RFCOMM_UUID);
+    channelData = sdp_data_alloc(SDP_UINT8, &channel);
+    rfcommList = sdp_list_append(nullptr, &rfcommUUID);
+    sdp_list_append(rfcommList, channelData);
+    sdp_list_append(protoList, rfcommList);
+
+    accessProtoList = sdp_list_append(nullptr, protoList);
+    sdp_set_access_protos(record, accessProtoList);
+    sdp_set_info_attr(record, "PC Bio Unlock BT", "", "");
+
+    bdaddr_t local = {{0, 0, 0, 0xff, 0xff, 0xff}};
+    bdaddr_t localAny = {{0, 0, 0, 0, 0, 0}};
+    auto session = sdp_connect(&localAny, &local, SDP_RETRY_IF_BUSY);
+    if(sdp_record_register(session, record, SDP_RECORD_PERSIST) < 0) {
+        spdlog::error("sdp_record_register() failed.");
+    }
+
+    sdp_data_free(channelData);
+    sdp_list_free(accessProtoList, nullptr);
+    sdp_list_free(rfcommList, nullptr);
+    sdp_list_free(protoList, nullptr);
+    sdp_list_free(l2capList, nullptr);
+    sdp_list_free(rootList, nullptr);
+
+    if(session == nullptr)
+        return {};
+    SDPService sdpService{};
+    sdpService.handle = session;
+    return sdpService;
 }
 
 bool BluetoothHelper::CloseSDPService(SDPService& service) {
-    return false;
+    if (service.handle == nullptr)
+        return false;
+    if(sdp_close((sdp_session_t *)service.handle) < 0)
+        return false;
+    service.handle = nullptr;
+    return true;
 }

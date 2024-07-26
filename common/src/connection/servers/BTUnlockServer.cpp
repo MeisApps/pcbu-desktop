@@ -55,7 +55,7 @@ void BTUnlockServer::AcceptThread() {
 #elif LINUX
     struct sockaddr_rc address = { 0 };
     address.rc_family = AF_BLUETOOTH;
-    address.rc_bdaddr = *BDADDR_ANY;
+    address.rc_bdaddr = (bdaddr_t){{0, 0, 0, 0, 0, 0}};
     address.rc_channel = (uint8_t)27;
 #endif
     auto addrLen = (socklen_t)sizeof(address);
@@ -88,7 +88,7 @@ void BTUnlockServer::AcceptThread() {
     }
     sdpService = BluetoothHelper::RegisterSDPService(sockAddr);
 #else
-    sdpService = BluetoothHelper::RegisterSDPService();
+    sdpService = BluetoothHelper::RegisterSDPService(address.rc_channel);
 #endif
     if(!sdpService) {
         spdlog::error("RegisterSDPService() failed. (Code={})", SOCKET_LAST_ERROR);

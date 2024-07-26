@@ -35,7 +35,7 @@ public:
     static bool CloseSDPService(SDPService& service);
 
 #ifdef LINUX
-    static std::optional<SDPService> RegisterSDPService();
+    static std::optional<SDPService> RegisterSDPService(uint8_t channel);
 
     static int FindSDPChannel(const std::string& deviceAddr, uint8_t *uuid);
 #elif WINDOWS
