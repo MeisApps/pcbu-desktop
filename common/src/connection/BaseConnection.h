@@ -27,6 +27,8 @@ protected:
     BaseConnection() = default;
 
     static bool SetSocketBlocking(SOCKET socket, bool isBlocking);
+    static bool SetSocketRWTimeout(SOCKET socket, uint32_t secs);
+
     static Packet ReadPacket(SOCKET socket);
     static PacketError WritePacket(SOCKET socket, const std::vector<uint8_t>& data);
 

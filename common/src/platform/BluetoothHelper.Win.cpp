@@ -119,3 +119,33 @@ int BluetoothHelper::ba2str(const BTH_ADDR btaddr, char *straddr) {
         return 1;
     return 0;
 }
+
+std::optional<SDPService> BluetoothHelper::RegisterSDPService(SOCKADDR address) {
+    GUID guid = { 0x62182bf7, 0x97c8, 0x45f9, { 0xaa, 0x2c, 0x53, 0xc5, 0xf2, 0x00, 0x8b, 0xe0 } };
+    auto service = new WSAQUERYSETW;
+    std::memset(service, 0, sizeof(WSAQUERYSETW));
+    service->dwSize = sizeof(WSAQUERYSETW);
+    service->lpszServiceInstanceName = (LPWSTR)L"PC Bio Unlock BT";
+    service->lpServiceClassId = &guid;
+    service->dwNumberOfCsAddrs = 1;
+    CSADDR_INFO csAddr{};
+    csAddr.LocalAddr.iSockaddrLength = sizeof(address);
+    csAddr.LocalAddr.lpSockaddr = (LPSOCKADDR)&address;
+    csAddr.iSocketType = SOCK_STREAM;
+    csAddr.iProtocol = BTHPROTO_RFCOMM;
+    service->lpcsaBuffer = &csAddr;
+    if (WSASetServiceW(service, RNRSERVICE_REGISTER, 0) != 0)
+        return {};
+    SDPService sdpService{};
+    sdpService.handle = service;
+    return sdpService;
+}
+
+bool BluetoothHelper::CloseSDPService(SDPService& service) {
+    if (service.handle == nullptr)
+        return false;
+    if (WSASetServiceW((LPWSAQUERYSETW)service.handle, RNRSERVICE_DELETE, 0) != 0)
+        return false;
+    service.handle = nullptr;
+    return true;
+}

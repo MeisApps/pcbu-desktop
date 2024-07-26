@@ -6,7 +6,6 @@
 
 #ifdef WINDOWS
 #include <ws2bth.h>
-
 #define AF_BLUETOOTH AF_BTH
 #define BTPROTO_RFCOMM BTHPROTO_RFCOMM
 #elif LINUX
@@ -80,7 +79,7 @@ void BTUnlockClient::ConnectThread() {
 
     socketStart:
     if((m_ClientSocket = socket(AF_BLUETOOTH, SOCK_STREAM, BTPROTO_RFCOMM)) == SOCKET_INVALID) {
-        spdlog::error("Bluetooth socket() failed. (Code={})", SOCKET_LAST_ERROR);
+        spdlog::error("socket(AF_BLUETOOTH) failed. (Code={})", SOCKET_LAST_ERROR);
         m_IsRunning = false;
         m_UnlockState = UnlockState::UNK_ERROR;
         return;
@@ -88,18 +87,10 @@ void BTUnlockClient::ConnectThread() {
 
     fd_set fdSet{};
     FD_SET(m_ClientSocket, &fdSet);
-    struct timeval socketTimeout{}, connectTimeout{};
-    socketTimeout.tv_sec = (long)settings.clientSocketTimeout;
+    struct timeval connectTimeout{};
     connectTimeout.tv_sec = (long)settings.clientConnectTimeout;
-
-#ifdef WINDOWS
-    auto timeoutVal = (DWORD)(socketTimeout.tv_sec * 1000);
-#else
-    auto timeoutVal = socketTimeout;
-#endif
-    if (setsockopt(m_ClientSocket, SOL_SOCKET, SO_RCVTIMEO, &timeoutVal, sizeof(timeoutVal)) < 0 ||
-        setsockopt(m_ClientSocket, SOL_SOCKET, SO_SNDTIMEO, &timeoutVal, sizeof(timeoutVal)) < 0) {
-        spdlog::error("setsockopt() for timeout failed. (Code={})", SOCKET_LAST_ERROR);
+    if (!SetSocketRWTimeout(m_ClientSocket, settings.clientSocketTimeout)) {
+        spdlog::error("Failed setting R/W timeout for socket. (Code={})", SOCKET_LAST_ERROR);
         m_UnlockState = UnlockState::UNK_ERROR;
         goto threadEnd;
     }

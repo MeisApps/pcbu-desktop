@@ -60,6 +60,8 @@ endif()
 
 add_library(pcbu_common
         src/connection/SocketDefs.h
+        src/connection/BaseConnection.cpp
+        src/connection/BaseConnection.h
         src/connection/BaseUnlockConnection.h
         src/connection/BaseUnlockConnection.cpp
         src/connection/clients/TCPUnlockClient.h
@@ -68,6 +70,10 @@ add_library(pcbu_common
         src/connection/servers/PairingServer.cpp
         src/connection/servers/PairingServer.h
         src/connection/servers/PairingStructs.h
+        src/connection/servers/BTUnlockServer.cpp
+        src/connection/servers/BTUnlockServer.h
+        src/connection/servers/TCPUnlockServer.cpp
+        src/connection/servers/TCPUnlockServer.h
         src/handler/I18n.h
         src/handler/I18n.cpp
         src/handler/KeyScanner.h
@@ -95,13 +101,9 @@ add_library(pcbu_common
         src/utils/Utils.h
         src/utils/AppInfo.cpp
         src/utils/AppInfo.h
-        ${PLATFORM_SRC}
-        src/connection/servers/TCPUnlockServer.cpp
-        src/connection/servers/TCPUnlockServer.h
         src/utils/RestClient.cpp
         src/utils/RestClient.h
-        src/connection/BaseConnection.cpp
-        src/connection/BaseConnection.h
+        ${PLATFORM_SRC}
 )
 target_include_directories(pcbu_common PUBLIC
         src

@@ -66,18 +66,10 @@ void TCPUnlockClient::ConnectThread() {
 
     fd_set fdSet{};
     FD_SET(m_ClientSocket, &fdSet);
-    struct timeval socketTimeout{}, connectTimeout{};
-    socketTimeout.tv_sec = (long)settings.clientSocketTimeout;
+    struct timeval connectTimeout{};
     connectTimeout.tv_sec = (long)settings.clientConnectTimeout;
-
-#ifdef WINDOWS
-    auto timeoutVal = (DWORD)(socketTimeout.tv_sec * 1000);
-#else
-    auto timeoutVal = socketTimeout;
-#endif
-    if (setsockopt(m_ClientSocket, SOL_SOCKET, SO_RCVTIMEO, &timeoutVal, sizeof(timeoutVal)) < 0 ||
-        setsockopt(m_ClientSocket, SOL_SOCKET, SO_SNDTIMEO, &timeoutVal, sizeof(timeoutVal)) < 0) {
-        spdlog::error("setsockopt() for timeout failed. (Code={})", SOCKET_LAST_ERROR);
+    if (!SetSocketRWTimeout(m_ClientSocket, settings.clientSocketTimeout)) {
+        spdlog::error("Failed setting R/W timeout for socket. (Code={})", SOCKET_LAST_ERROR);
         m_UnlockState = UnlockState::UNK_ERROR;
         goto threadEnd;
     }

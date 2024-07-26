@@ -147,3 +147,11 @@ int BluetoothHelper::FindSDPChannel(const std::string& deviceAddr, uint8_t *uuid
     }
     return channel;
 }
+
+std::optional<SDPService> BluetoothHelper::RegisterSDPService(SOCKADDR address) {
+    return {};
+}
+
+bool BluetoothHelper::CloseSDPService(SDPService& service) {
+    return false;
+}

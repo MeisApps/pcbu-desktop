@@ -2,6 +2,7 @@
 #define PCBU_DESKTOP_BLUETOOTHHELPER_H
 
 #include <cstdint>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -16,6 +17,10 @@ struct BluetoothDevice {
     std::string address{};
 };
 
+struct SDPService {
+    void *handle{};
+};
+
 class BluetoothHelper {
 public:
     static bool IsAvailable();
@@ -26,12 +31,19 @@ public:
 
     static bool PairDevice(const BluetoothDevice& device);
 
+#if defined(WINDOWS) || defined(LINUX)
+    static bool CloseSDPService(SDPService& service);
+
 #ifdef LINUX
+    static std::optional<SDPService> RegisterSDPService();
+
     static int FindSDPChannel(const std::string& deviceAddr, uint8_t *uuid);
-#endif
-#ifdef WINDOWS
+#elif WINDOWS
+    static std::optional<SDPService> RegisterSDPService(SOCKADDR address);
+
     static int str2ba(const char* straddr, BTH_ADDR* btaddr);
-    static int ba2str(const BTH_ADDR btaddr, char* straddr);
+    static int ba2str(BTH_ADDR btaddr, char* straddr);
+#endif
 #endif
 
 private:

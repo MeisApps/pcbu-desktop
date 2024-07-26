@@ -103,13 +103,13 @@ void ServiceInstaller::Install() {
     auto settings = AppSettings::Get();
     if(IsProgramInstalled(UFW_NAME)) {
         m_Logger("Adding firewall rules (ufw)...");
-        result = Shell::RunCommand(fmt::format("ufw allow {}/tcp", settings.serverPort)).exitCode == 0;
+        result = Shell::RunCommand(fmt::format("ufw allow {}/tcp", settings.pairingServerPort)).exitCode == 0;
         if(!result)
             m_Logger(I18n::Get("warning_firewall_rule_add", "ufw"));
     }
     if(IsProgramInstalled(FIREWALLD_NAME)) {
         m_Logger("Adding firewall rules (firewalld)...");
-        result = Shell::RunCommand(fmt::format("firewall-cmd --zone=public --add-port={}/tcp --permanent", settings.serverPort)).exitCode == 0 &&
+        result = Shell::RunCommand(fmt::format("firewall-cmd --zone=public --add-port={}/tcp --permanent", settings.pairingServerPort)).exitCode == 0 &&
                 Shell::RunCommand("firewall-cmd --reload").exitCode == 0;
         if(!result)
             m_Logger(I18n::Get("warning_firewall_rule_add", "firewalld"));
@@ -147,13 +147,13 @@ void ServiceInstaller::Uninstall() {
     auto settings = AppSettings::Get();
     if(IsProgramInstalled(UFW_NAME)) {
         m_Logger("Removing firewall rules (ufw)...");
-        result = Shell::RunCommand(fmt::format("ufw delete allow {}/tcp", settings.serverPort)).exitCode == 0;
+        result = Shell::RunCommand(fmt::format("ufw delete allow {}/tcp", settings.pairingServerPort)).exitCode == 0;
         if(!result)
             m_Logger(I18n::Get("warning_firewall_rule_remove", "ufw"));
     }
     if(IsProgramInstalled(FIREWALLD_NAME)) {
         m_Logger("Removing firewall rules (firewalld)...");
-        result = Shell::RunCommand(fmt::format("firewall-cmd --zone=public --remove-port={}/tcp --permanent", settings.serverPort)).exitCode == 0 &&
+        result = Shell::RunCommand(fmt::format("firewall-cmd --zone=public --remove-port={}/tcp --permanent", settings.pairingServerPort)).exitCode == 0 &&
                 Shell::RunCommand("firewall-cmd --reload").exitCode == 0;
         if(!result)
             m_Logger(I18n::Get("warning_firewall_rule_remove", "firewalld"));

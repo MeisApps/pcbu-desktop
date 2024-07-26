@@ -17,6 +17,22 @@ bool BaseConnection::SetSocketBlocking(SOCKET socket, bool isBlocking) {
 #endif
 }
 
+bool BaseConnection::SetSocketRWTimeout(SOCKET socket, uint32_t secs) {
+#ifdef WINDOWS
+    auto timeoutVal = (DWORD)secs * 1000;
+    if (setsockopt(socket, SOL_SOCKET, SO_RCVTIMEO, reinterpret_cast<const char *>(&timeoutVal), sizeof(timeoutVal)) < 0 ||
+        setsockopt(socket, SOL_SOCKET, SO_SNDTIMEO, reinterpret_cast<const char *>(&timeoutVal), sizeof(timeoutVal)) < 0) {
+#else
+    struct timeval timeoutVal{};
+    timeoutVal.tv_sec = secs;
+    if (setsockopt(socket, SOL_SOCKET, SO_RCVTIMEO, &timeoutVal, sizeof(timeoutVal)) < 0 ||
+        setsockopt(socket, SOL_SOCKET, SO_SNDTIMEO, &timeoutVal, sizeof(timeoutVal)) < 0) {
+#endif
+        return false;
+    }
+    return true;
+}
+
 Packet BaseConnection::ReadPacket(SOCKET socket) {
     std::vector<uint8_t> lenBuffer{};
     lenBuffer.resize(sizeof(uint16_t));
