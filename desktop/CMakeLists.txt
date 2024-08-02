@@ -134,6 +134,7 @@ qt_add_qml_module(pcbu_desktop
         ${QML_FILES}
         SOURCES
         ${UI_SRC_FILES}
+        RESOURCE_PREFIX "/qt/qml/"
 )
 target_link_libraries(pcbu_desktop PRIVATE
         Qt::Core
