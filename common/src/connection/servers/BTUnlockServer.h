@@ -1,5 +1,8 @@
 #ifndef PCBU_DESKTOP_BTUNLOCKSERVER_H
 #define PCBU_DESKTOP_BTUNLOCKSERVER_H
+#ifdef APPLE
+#include "BTUnlockServer.Mac.h"
+#else
 
 #include "connection/BaseUnlockConnection.h"
 
@@ -22,4 +25,5 @@ private:
     std::vector<std::thread> m_ClientThreads{};
 };
 
+#endif
 #endif //PCBU_DESKTOP_BTUNLOCKSERVER_H

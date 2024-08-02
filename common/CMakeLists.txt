@@ -22,6 +22,7 @@ if(WIN32)
     )
     set(PLATFORM_SRC
             src/connection/clients/BTUnlockClient.cpp
+            src/connection/servers/BTUnlockServer.cpp
             src/platform/PlatformHelper.Win.cpp
             src/platform/BluetoothHelper.Win.cpp
             src/utils/RegistryUtils.cpp
@@ -31,14 +32,16 @@ elseif(APPLE)
     add_compile_definitions(APPLE)
     enable_language(OBJCXX)
     set(PLATFORM_LIBS
+            "-framework Foundation"
             "-framework CoreServices"
             "-framework SystemConfiguration"
-            "-framework IOKit"
             "-framework Carbon"
+            "-framework IOKit"
             "-framework IOBluetooth"
     )
     set(PLATFORM_SRC
-            src/connection/clients/BTUnlockClient.mm
+            src/connection/clients/BTUnlockClient.Mac.mm
+            src/connection/servers/BTUnlockServer.Mac.mm
             src/platform/PlatformHelper.Mac.cpp
             src/platform/BluetoothHelper.Mac.mm
     )
@@ -53,6 +56,7 @@ elseif(UNIX)
     )
     set(PLATFORM_SRC
             src/connection/clients/BTUnlockClient.cpp
+            src/connection/servers/BTUnlockServer.cpp
             src/platform/PlatformHelper.Linux.cpp
             src/platform/BluetoothHelper.Linux.cpp
     )
@@ -70,7 +74,6 @@ add_library(pcbu_common
         src/connection/servers/PairingServer.cpp
         src/connection/servers/PairingServer.h
         src/connection/servers/PairingStructs.h
-        src/connection/servers/BTUnlockServer.cpp
         src/connection/servers/BTUnlockServer.h
         src/connection/servers/TCPUnlockServer.cpp
         src/connection/servers/TCPUnlockServer.h

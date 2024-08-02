@@ -1,5 +1,8 @@
 #ifndef PAM_PCBIOUNLOCK_BTUNLOCKCLIENT_H
 #define PAM_PCBIOUNLOCK_BTUNLOCKCLIENT_H
+#ifdef APPLE
+#include "BTUnlockClient.Mac.h"
+#else
 
 #include "connection/BaseUnlockConnection.h"
 
@@ -18,4 +21,5 @@ private:
     std::string m_DeviceAddress;
 };
 
+#endif
 #endif //PAM_PCBIOUNLOCK_BTUNLOCKCLIENT_H
