@@ -26,11 +26,13 @@ UnlockHandler::UnlockHandler(const std::function<void(std::string)>& printMessag
 }
 
 UnlockResult UnlockHandler::GetResult(const std::string& authUser, const std::string& authProgram, std::atomic<bool> *isRunning) {
-    auto appSettings = AppSettings::Get();
+    auto settings = AppSettings::Get();
     auto netIf = NetworkHelper::GetSavedNetworkInterface();
+    auto devices = PairedDevicesStorage::GetDevicesForUser(authUser);
+    auto enableManualUnlock = settings.isManualUnlockEnabled;
 
     std::vector<BaseUnlockConnection *> servers{};
-    for(const auto& device : PairedDevicesStorage::GetDevicesForUser(authUser)) {
+    for(const auto& device : devices) {
         BaseUnlockConnection *server{};
         switch (device.pairingMethod) {
             case PairingMethod::TCP:
@@ -39,18 +41,19 @@ UnlockResult UnlockHandler::GetResult(const std::string& authUser, const std::st
             case PairingMethod::BLUETOOTH:
                 server = new BTUnlockClient(device.bluetoothAddress, device);
                 break;
-            case PairingMethod::CLOUD_TCP: {
-                server = new TCPUnlockServer(device); // ToDo: One server for all devices
-                break;
+            case PairingMethod::CLOUD_TCP:
+                enableManualUnlock = true;
+                continue;
+            default: {
+                spdlog::error("Invalid pairing method.");
+                continue;
             }
-            default:
-                break;
         }
-        if(server == nullptr) {
-            spdlog::error("Invalid pairing method.");
-            continue;
-        }
-
+        server->SetUnlockInfo(authUser, authProgram);
+        servers.emplace_back(server);
+    }
+    if(!devices.empty() && enableManualUnlock) {
+        auto server = new TCPUnlockServer();
         server->SetUnlockInfo(authUser, authProgram);
         servers.emplace_back(server);
     }

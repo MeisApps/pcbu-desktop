@@ -2,13 +2,14 @@
 
 #include "../SocketDefs.h"
 #include "storage/AppSettings.h"
+#include "storage/PairedDevicesStorage.h"
 
 #ifdef WINDOWS
 #include <Ws2tcpip.h>
 #endif
 
-TCPUnlockServer::TCPUnlockServer(const PairedDevice &device)
-    : BaseUnlockConnection(device) {
+TCPUnlockServer::TCPUnlockServer()
+    : BaseUnlockConnection() {
     m_ServerSocket = SOCKET_INVALID;
 }
 
@@ -34,6 +35,18 @@ void TCPUnlockServer::Stop() {
 }
 
 void TCPUnlockServer::PerformAuthFlow(SOCKET socket) {
+    auto devicePacket = ReadPacket(socket);
+    if(devicePacket.error != PacketError::NONE) {
+        spdlog::error("Packet error.");
+        return;
+    }
+    auto pairingId = std::string((const char *)devicePacket.data.data(), devicePacket.data.size());
+    auto device = PairedDevicesStorage::GetDeviceByID(pairingId);
+    if(!device.has_value()) {
+        spdlog::error("Invalid pairing ID.");
+        return;
+    }
+    m_PairedDevice = device.value();
     BaseUnlockConnection::PerformAuthFlow(socket);
 }
 
@@ -83,7 +96,6 @@ void TCPUnlockServer::AcceptThread() {
             m_UnlockState = UnlockState::UNK_ERROR;
             break;
         }
-        spdlog::info("TCP client connected.");
         m_ClientThreads.emplace_back(&TCPUnlockServer::ClientThread, this, clientSocket);
     }
 
@@ -98,6 +110,7 @@ void TCPUnlockServer::AcceptThread() {
 }
 
 void TCPUnlockServer::ClientThread(SOCKET clientSocket) {
+    spdlog::info("TCP client connected.");
     m_HasConnection = true;
     PerformAuthFlow(clientSocket);
 

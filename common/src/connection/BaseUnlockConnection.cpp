@@ -2,10 +2,14 @@
 
 #include "utils/StringUtils.h"
 
-BaseUnlockConnection::BaseUnlockConnection(const PairedDevice& device) {
-    m_PairedDevice = device;
+BaseUnlockConnection::BaseUnlockConnection() {
     m_UnlockToken = StringUtils::RandomString(64);
     m_UnlockState = UnlockState::UNKNOWN;
+}
+
+BaseUnlockConnection::BaseUnlockConnection(const PairedDevice& device)
+    : BaseUnlockConnection() {
+    m_PairedDevice = device;
 }
 
 BaseUnlockConnection::~BaseUnlockConnection() {
@@ -98,11 +102,6 @@ void BaseUnlockConnection::OnResponseReceived(const Packet& packet) {
         }
         return;
     }
-    if(packet.data.empty()) {
-        spdlog::error("Empty packet received.");
-        m_UnlockState = UnlockState::DATA_ERROR;
-        return;
-    }
 
     // Decrypt data
     auto cryptResult = CryptUtils::DecryptAESPacket(packet.data, m_PairedDevice.encryptionKey);
@@ -129,7 +128,7 @@ void BaseUnlockConnection::OnResponseReceived(const Packet& packet) {
                 break;
             }
             default: {
-                spdlog::error("Invalid data received. (Size={})", packet.data.size());
+                spdlog::error("Invalid data received. (Size={}, Str={})", packet.data.size(), respStr);
                 m_UnlockState = UnlockState::DATA_ERROR;
                 break;
             }

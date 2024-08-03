@@ -5,7 +5,7 @@
 
 class TCPUnlockServer : public BaseUnlockConnection {
 public:
-    explicit TCPUnlockServer(const PairedDevice &device);
+    TCPUnlockServer();
 
     bool Start() override;
     void Stop() override;

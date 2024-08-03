@@ -28,6 +28,7 @@ PCBUAppStorage AppSettings::Get() {
         settings.clientConnectTimeout = json["clientConnectTimeout"];
         settings.clientConnectRetries = json["clientConnectRetries"];
         settings.waitForKeyPress = json["waitForKeyPress"];
+        settings.isManualUnlockEnabled = json["isManualUnlockEnabled"];
         return settings;
     } catch (const std::exception& ex) {
         spdlog::error("Failed reading app storage: {}", ex.what());
@@ -37,9 +38,10 @@ PCBUAppStorage AppSettings::Get() {
         def.pairingServerPort = 43295;
         def.unlockServerPort = 43296;
         def.clientSocketTimeout = 120;
-        def.clientConnectTimeout = 10;
-        def.clientConnectRetries = 1;
+        def.clientConnectTimeout = 5;
+        def.clientConnectRetries = 2;
         def.waitForKeyPress = false;
+        def.isManualUnlockEnabled = false;
         spdlog::info("Creating new app storage...");
         Save(def);
         return def;
@@ -59,6 +61,7 @@ void AppSettings::Save(const PCBUAppStorage &storage) {
                 {"clientConnectTimeout", storage.clientConnectTimeout},
                 {"clientConnectRetries", storage.clientConnectRetries},
                 {"waitForKeyPress", storage.waitForKeyPress},
+                {"isManualUnlockEnabled", storage.isManualUnlockEnabled},
         };
         if(!std::filesystem::exists(BASE_DIR))
             Shell::CreateDir(BASE_DIR);

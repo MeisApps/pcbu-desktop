@@ -96,6 +96,8 @@ void PairingServer::Accept() {
             respPacket.pairingId = device.pairingId;
             respPacket.hostName = NetworkHelper::GetHostName();
             respPacket.hostOS = AppInfo::GetOperatingSystem();
+            respPacket.hostAddress = NetworkHelper::GetSavedNetworkInterface().ipAddress;
+            respPacket.hostPort = AppSettings::Get().unlockServerPort;
             respPacket.pairingMethod = device.pairingMethod;
             respPacket.macAddress = m_ServerData.macAddress;
             respPacket.userName = m_ServerData.userName;

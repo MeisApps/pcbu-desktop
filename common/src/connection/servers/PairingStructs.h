@@ -33,6 +33,8 @@ struct PacketPairResponse { // From PC
     PairingMethod pairingMethod{};
     std::string hostName{};
     std::string hostOS{};
+    std::string hostAddress{};
+    uint16_t hostPort{};
     std::string macAddress{};
     std::string userName{};
     std::string password{};
@@ -44,6 +46,8 @@ struct PacketPairResponse { // From PC
                 {"pairingMethod", PairingMethodUtils::ToString(pairingMethod)},
                 {"hostName", hostName},
                 {"hostOS", hostOS},
+                {"hostAddress", hostAddress},
+                {"hostPort", hostPort},
                 {"macAddress", macAddress},
                 {"userName", userName},
                 {"password", password}

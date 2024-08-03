@@ -7,7 +7,7 @@ std::string AppInfo::GetVersion() {
 }
 
 std::string AppInfo::GetProtocolVersion() {
-    return "1.2.0";
+    return "1.3.0";
 }
 
 std::string AppInfo::GetOperatingSystem() {

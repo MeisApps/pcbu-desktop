@@ -20,6 +20,7 @@ struct UnlockResponseData {
 
 class BaseUnlockConnection : public BaseConnection {
 public:
+    BaseUnlockConnection();
     explicit BaseUnlockConnection(const PairedDevice& device);
     virtual ~BaseUnlockConnection();
 
