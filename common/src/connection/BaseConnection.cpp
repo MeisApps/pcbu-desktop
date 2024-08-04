@@ -4,6 +4,10 @@
 
 #include "SocketDefs.h"
 
+bool BaseConnection::IsServer() {
+    return false;
+}
+
 bool BaseConnection::SetSocketBlocking(SOCKET socket, bool isBlocking) {
 #ifdef WINDOWS
     u_long mode = isBlocking ? 0 : 1;
@@ -115,10 +119,18 @@ PacketError BaseConnection::GetPacketError(int result, int error) {
             return PacketError::NONE;
 
         spdlog::error("Socket operation failed. (Code={}, Str={})", error, strerror(error));
-        if(error == SOCKET_ERROR_CONNECT_REFUSED || error == SOCKET_ERROR_HOST_UNREACHABLE)
+        if(error == SOCKET_ERROR_CONNECT_REFUSED || error == SOCKET_ERROR_HOST_UNREACHABLE
+            || error == SOCKET_ERROR_CONNECT_ABORTED || error == SOCKET_ERROR_CONNECT_RESET)
             return PacketError::CLOSED_CONNECTION;
         if(error == SOCKET_ERROR_TIMEOUT)
             return PacketError::TIMEOUT;
+#ifdef WINDOWS
+        if(error == WSAESHUTDOWN)
+            return PacketError::CLOSED_CONNECTION;
+#else
+        if(error == EPIPE)
+            return PacketError::CLOSED_CONNECTION;
+#endif
     }
     return PacketError::UNKNOWN;
 }

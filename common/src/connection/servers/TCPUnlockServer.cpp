@@ -13,6 +13,10 @@ TCPUnlockServer::TCPUnlockServer()
     m_ServerSocket = SOCKET_INVALID;
 }
 
+bool TCPUnlockServer::IsServer() {
+    return true;
+}
+
 bool TCPUnlockServer::Start() {
     if(m_IsRunning)
         return true;
@@ -88,7 +92,9 @@ void TCPUnlockServer::AcceptThread() {
     while (m_IsRunning) {
         SOCKET clientSocket;
         if ((clientSocket = accept(m_ServerSocket, (struct sockaddr *)&address, (socklen_t *)&addrLen)) == SOCKET_INVALID) {
-            spdlog::error("accept() failed. (Code={})", SOCKET_LAST_ERROR);
+            auto err = SOCKET_LAST_ERROR;
+            if(err != SOCKET_ERROR_CONNECT_ABORTED)
+                spdlog::error("accept() failed. (Code={})", err);
             break;
         }
         if(!SetSocketBlocking(clientSocket, false)) {

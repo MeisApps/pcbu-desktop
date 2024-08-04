@@ -31,15 +31,15 @@ UnlockResult UnlockHandler::GetResult(const std::string& authUser, const std::st
     auto devices = PairedDevicesStorage::GetDevicesForUser(authUser);
     auto enableManualUnlock = settings.isManualUnlockEnabled;
 
-    std::vector<BaseUnlockConnection *> servers{};
+    std::vector<BaseUnlockConnection *> connections{};
     for(const auto& device : devices) {
-        BaseUnlockConnection *server{};
+        BaseUnlockConnection *connection{};
         switch (device.pairingMethod) {
             case PairingMethod::TCP:
-                server = new TCPUnlockClient(device.ipAddress, 43298, device);
+                connection = new TCPUnlockClient(device.ipAddress, 43298, device);
                 break;
             case PairingMethod::BLUETOOTH:
-                server = new BTUnlockClient(device.bluetoothAddress, device);
+                connection = new BTUnlockClient(device.bluetoothAddress, device);
                 break;
             case PairingMethod::CLOUD_TCP:
                 enableManualUnlock = true;
@@ -49,15 +49,15 @@ UnlockResult UnlockHandler::GetResult(const std::string& authUser, const std::st
                 continue;
             }
         }
-        server->SetUnlockInfo(authUser, authProgram);
-        servers.emplace_back(server);
+        connection->SetUnlockInfo(authUser, authProgram);
+        connections.emplace_back(connection);
     }
     if(!devices.empty() && enableManualUnlock) {
         auto server = new TCPUnlockServer();
         server->SetUnlockInfo(authUser, authProgram);
-        servers.emplace_back(server);
+        connections.emplace_back(server);
     }
-    if(servers.empty()) {
+    if(connections.empty()) {
         auto errorMsg = I18n::Get("error_not_paired", authUser);
         spdlog::error(errorMsg);
         m_PrintMessage(errorMsg);
@@ -70,10 +70,10 @@ UnlockResult UnlockHandler::GetResult(const std::string& authUser, const std::st
     std::atomic completed(0);
     std::mutex mutex{};
     std::condition_variable cv{};
-    auto numServers = servers.size();
-    for (auto server : servers) {
-        threads.emplace_back([this, server, numServers, isRunning, &currentResult, &completed, &cv, &mutex]() {
-            auto serverResult = RunServer(server, &currentResult, isRunning);
+    auto numServers = connections.size();
+    for (auto connection : connections) {
+        threads.emplace_back([this, connection, numServers, isRunning, &currentResult, &completed, &cv, &mutex]() {
+            auto serverResult = RunServer(connection, &currentResult, isRunning);
             completed.fetch_add(1);
             if(serverResult.state == UnlockState::SUCCESS)
                 currentResult.store(serverResult);
@@ -98,20 +98,21 @@ UnlockResult UnlockHandler::GetResult(const std::string& authUser, const std::st
         if (thread.joinable())
             thread.join();
     }
-    for(const auto server : servers)
-        delete server;
+    for(const auto connection : connections)
+        delete connection;
     return result;
 }
 
-UnlockResult UnlockHandler::RunServer(BaseUnlockConnection *server, AtomicUnlockResult *currentResult, std::atomic<bool> *isRunning) {
-    if(!server->Start()) {
+UnlockResult UnlockHandler::RunServer(BaseUnlockConnection *connection, AtomicUnlockResult *currentResult, std::atomic<bool> *isRunning) {
+    if(!connection->Start()) {
         auto errorMsg = I18n::Get("error_start_handler");
         spdlog::error(errorMsg);
         m_PrintMessage(errorMsg);
         return UnlockResult(UnlockState::START_ERROR);
     }
 
-    m_PrintMessage(I18n::Get("wait_phone_connect"));
+    auto connectMessage = I18n::Get(connection->IsServer() ? "wait_server_phone_connect" : "wait_client_phone_connect");
+    m_PrintMessage(connectMessage);
     auto keyScanner = KeyScanner();
     keyScanner.Start();
 
@@ -125,15 +126,15 @@ UnlockResult UnlockHandler::RunServer(BaseUnlockConnection *server, AtomicUnlock
             isFutureCancel = true;
             break;
         }
-
-        if(server->HasClient() && isWaitingForConnection) {
+        if(connection->HasClient() && isWaitingForConnection) {
             m_PrintMessage(I18n::Get("wait_phone_unlock"));
             isWaitingForConnection = false;
         }
-        state = server->PollResult();
+
+        state = connection->PollResult();
         if(state != UnlockState::UNKNOWN)
             break;
-        if(!server->HasClient() && Utils::GetCurrentTimeMs() - startTime > CRYPT_PACKET_TIMEOUT) {
+        if(!connection->HasClient() && Utils::GetCurrentTimeMs() - startTime > CRYPT_PACKET_TIMEOUT) {
             state = UnlockState::TIMEOUT;
             break;
         }
@@ -141,18 +142,23 @@ UnlockResult UnlockHandler::RunServer(BaseUnlockConnection *server, AtomicUnlock
             state = UnlockState::CANCELED;
             break;
         }
+
+        if(!connection->HasClient() && !isWaitingForConnection) {
+            m_PrintMessage(connectMessage);
+            isWaitingForConnection = true;
+        }
         std::this_thread::sleep_for(std::chrono::milliseconds(20));
     }
 
-    server->Stop();
+    connection->Stop();
     keyScanner.Stop();
     if(!isFutureCancel)
         m_PrintMessage(UnlockStateUtils::ToString(state));
-    spdlog::info("Server result: {}", UnlockStateUtils::ToString(state));
+    spdlog::info("Connection result: {}", UnlockStateUtils::ToString(state));
 
     auto result = UnlockResult();
     result.state = state;
-    result.device = server->GetDevice();
-    result.password = server->GetResponseData().password;
+    result.device = connection->GetDevice();
+    result.password = connection->GetResponseData().password;
     return result;
 }

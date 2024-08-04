@@ -23,6 +23,9 @@ struct Packet {
 };
 
 class BaseConnection {
+public:
+    virtual bool IsServer();
+
 protected:
     BaseConnection() = default;
 
