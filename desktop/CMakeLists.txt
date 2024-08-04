@@ -23,7 +23,7 @@ endif()
 find_package(Qt6 COMPONENTS Core Gui Quick QuickControls2 REQUIRED)
 
 if(WIN32)
-    add_compile_definitions(WINDOWS)
+    add_compile_definitions(WINDOWS _WIN32_WINNT=0x0A00)
     set(PLATFORM_SRC
             src/installer/WinFirewallHelper.cpp
             src/installer/WinFirewallHelper.h

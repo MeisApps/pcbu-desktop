@@ -9,7 +9,7 @@ find_package(OpenSSL 3 REQUIRED)
 
 add_compile_definitions(TARGET_ARCH="${TARGET_ARCH}")
 if(WIN32)
-    add_compile_definitions(WINDOWS)
+    add_compile_definitions(WINDOWS _WIN32_WINNT=0x0A00)
     set(PLATFORM_LIBS
             crypt32
             Ws2_32
