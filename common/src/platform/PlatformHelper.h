@@ -16,6 +16,9 @@ public:
 
     static bool CheckLogin(const std::string& userName, const std::string& password);
 
+#ifdef WINDOWS
+    static bool SetDefaultCredProv(const std::string& userName, const std::string& provId);
+#endif
 private:
     PlatformHelper() = default;
 };

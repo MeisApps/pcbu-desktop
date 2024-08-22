@@ -2,7 +2,7 @@
 
 #include <spdlog/spdlog.h>
 
-std::string RegistryUtils::GetStringValue(HKEY hKeyParent, const std::string &subKey, const std::string &valueName) {
+std::optional<std::string> RegistryUtils::GetStringValue(HKEY hKeyParent, const std::string &subKey, const std::string &valueName) {
     HKEY hKey;
     LONG result = RegOpenKeyExA(hKeyParent, subKey.c_str(), 0, KEY_READ, &hKey);
     if (result != ERROR_SUCCESS) {
@@ -27,5 +27,23 @@ std::string RegistryUtils::GetStringValue(HKEY hKeyParent, const std::string &su
     RegCloseKey(hKey);
     if (!data.empty() && data.back() == '\0')
         data.pop_back();
-    return {data.begin(), data.end()};
+    return std::string {data.begin(), data.end()};
+}
+
+bool RegistryUtils::SetStringValue(HKEY hKeyParent, const std::string &subKey, const std::string &valueName,
+                                          const std::string &newValue) {
+    HKEY hKey;
+    LONG result = RegOpenKeyExA(hKeyParent, subKey.c_str(), 0, KEY_SET_VALUE, &hKey);
+    if (result != ERROR_SUCCESS) {
+        spdlog::error("Failed to open registry key. (Status={})", result);
+        return false;
+    }
+    result = RegSetValueExA(hKey, valueName.c_str(), 0, REG_SZ, (BYTE *)newValue.c_str(), newValue.size() + 1);
+    if (result != ERROR_SUCCESS) {
+        RegCloseKey(hKey);
+        spdlog::error("Failed to set registry value. (Status={})", result);
+        return false;
+    }
+    RegCloseKey(hKey);
+    return true;
 }

@@ -106,10 +106,17 @@ void PairingServer::Accept() {
             WritePacket(respPacket.ToJson().dump());
             PairedDevicesStorage::AddDevice(device);
             spdlog::info("Successfully paired device. (ID={}, Method={})", device.pairingId, PairingMethodUtils::ToString(device.pairingMethod));
+
+#ifdef WINDOWS
+            if(PlatformHelper::SetDefaultCredProv(m_ServerData.userName, "{74A23DE2-B81D-46EC-E129-CD32507ED716}"))
+                spdlog::info("Successfully changed default credential provider for user '{}'.", m_ServerData.userName);
+            else
+                spdlog::error("Failed setting default credential provider for user '{}'.", m_ServerData.userName);
+#endif
         } catch(const std::exception& ex) {
             spdlog::error("Pairing server error: {}", ex.what());
             auto respPacket = PacketPairResponse();
-            respPacket.errMsg = fmt::format("Error during pairing: {}", ex.what());
+            respPacket.errMsg = fmt::format("Error during pairing on PC: {}", ex.what());
             WritePacket(respPacket.ToJson().dump());
         }
         try {
