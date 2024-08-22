@@ -86,6 +86,7 @@ elif [[ "$PLATFORM" == "linux" ]]; then
   chmod +x appimage_dir/usr/bin/run-app.sh
 
   export QML_SOURCES_PATHS=../../desktop/qml
+  export EXTRA_QT_MODULES=svg;
   if [[ "$ARCH" == "arm64" ]] && [[ "$DOCKER_BUILD" == "1" ]]; then
     qemu-aarch64-static ./linuxdeploy-$LINUX_ARCH.AppImage --appdir appimage_dir --plugin checkrt --desktop-file ../linux/PCBioUnlock.desktop
     wget "https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-$LINUX_ARCH.AppImage" && chmod +x ./linuxdeploy-plugin-qt-$LINUX_ARCH.AppImage
