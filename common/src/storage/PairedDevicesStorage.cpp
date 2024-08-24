@@ -7,7 +7,11 @@
 #include "AppSettings.h"
 #include "shell/Shell.h"
 
-#ifdef APPLE
+#ifdef WINDOWS
+#include <Windows.h>
+#include <sddl.h>
+#include <aclapi.h>
+#elif APPLE
 #define CHOWN_USER "root"
 #elif LINUX
 #define CHOWN_USER "root:root"
@@ -114,9 +118,22 @@ void PairedDevicesStorage::ProtectFile(const std::string &filePath, bool protect
     if(!std::filesystem::exists(filePath))
         return;
 #ifdef WINDOWS
-    auto cmd = Shell::RunCommand(fmt::format("icacls \"{}\" /{} *S-1-5-32-545:F", filePath, protect ? "deny" : "grant"));
-    if(cmd.exitCode != 0)
-        throw std::runtime_error(fmt::format("Error setting file permissions. (Code={}) {}", cmd.exitCode, cmd.output));
+    PSID pSystemSid = nullptr;
+    BOOL bIsSystem = FALSE;
+    if (!ConvertStringSidToSidW(L"S-1-5-18", &pSystemSid)) {
+        spdlog::error("Failed to create SYSTEM SID. (Code={})", GetLastError());
+    } else if (!CheckTokenMembership(nullptr, pSystemSid, &bIsSystem)) {
+        spdlog::error("Failed to check token membership. (Code={})", GetLastError());
+        bIsSystem = FALSE;
+    }
+    LocalFree(pSystemSid);
+    if(!ModifyFileAccess(filePath, "S-1-5-32-545", protect)) {
+        auto errorStr = "Error setting file permissions.";
+        if(bIsSystem)
+            spdlog::error(errorStr);
+        else
+            throw std::runtime_error(errorStr);
+    }
 #elif defined(APPLE) || defined(LINUX)
     if(protect) {
         auto cmd = Shell::RunCommand(fmt::format(R"(chown {0} "{1}" && chmod 600 "{1}")", CHOWN_USER, filePath));
@@ -125,3 +142,78 @@ void PairedDevicesStorage::ProtectFile(const std::string &filePath, bool protect
     }
 #endif
 }
+
+#ifdef WINDOWS
+bool PairedDevicesStorage::ModifyFileAccess(const std::string& filePath, const std::string& sid, bool deny) {
+    PSID pSid{};
+    if (!ConvertStringSidToSidA(sid.c_str(), &pSid)) {
+        spdlog::error("Failed to convert SID. (Code={})", GetLastError());
+        return false;
+    }
+
+    PACL pOldDACL{};
+    PSECURITY_DESCRIPTOR pSD{};
+    DWORD dwRes = GetNamedSecurityInfoA(filePath.c_str(), SE_FILE_OBJECT, DACL_SECURITY_INFORMATION,
+            nullptr, nullptr, &pOldDACL, nullptr, &pSD);
+    if (dwRes != ERROR_SUCCESS) {
+        spdlog::error("GetNamedSecurityInfo() failed. (Code={})", dwRes);
+        if (pSid) LocalFree(pSid);
+        return false;
+    }
+
+    EXPLICIT_ACCESS ea{};
+    ea.grfAccessPermissions = GENERIC_ALL;
+    ea.grfAccessMode = deny ? DENY_ACCESS : GRANT_ACCESS;
+    ea.grfInheritance = SUB_CONTAINERS_AND_OBJECTS_INHERIT;
+    ea.Trustee.TrusteeForm = TRUSTEE_IS_SID;
+    ea.Trustee.TrusteeType = TRUSTEE_IS_GROUP;
+    ea.Trustee.ptstrName = (LPTSTR)pSid;
+    bool aceExists = false;
+    ACL_SIZE_INFORMATION aclSizeInfo{};
+    if (GetAclInformation(pOldDACL, &aclSizeInfo, sizeof(ACL_SIZE_INFORMATION), AclSizeInformation)) {
+        for (DWORD i = 0; i < aclSizeInfo.AceCount; ++i) {
+            LPVOID pAce;
+            if (GetAce(pOldDACL, i, &pAce)) {
+                auto aceHeader = (ACE_HEADER *)pAce;
+                bool isInherited = (aceHeader->AceFlags & INHERITED_ACE) != 0;
+                if (!isInherited && (aceHeader->AceType == ACCESS_ALLOWED_ACE_TYPE || aceHeader->AceType == ACCESS_DENIED_ACE_TYPE)) {
+                    auto ace = (ACCESS_ALLOWED_ACE *)pAce;
+                    if (EqualSid(pSid, &ace->SidStart)) {
+                        aceExists = true;
+                        ace->Mask = ea.grfAccessPermissions;
+                        aceHeader->AceType = deny ? ACCESS_DENIED_ACE_TYPE : ACCESS_ALLOWED_ACE_TYPE;
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    PACL pNewDACL{};
+    if (!aceExists) {
+        dwRes = SetEntriesInAclA(1, &ea, pOldDACL, &pNewDACL);
+        if (dwRes != ERROR_SUCCESS) {
+            spdlog::error("SetEntriesInAcl() failed. (Code={})", dwRes);
+            if (pSD) LocalFree(pSD);
+            if (pSid) LocalFree(pSid);
+            return false;
+        }
+    } else {
+        pNewDACL = pOldDACL;
+    }
+    dwRes = SetNamedSecurityInfoA((LPSTR)filePath.c_str(), SE_FILE_OBJECT, DACL_SECURITY_INFORMATION,
+                                  nullptr, nullptr, pNewDACL, nullptr);
+    if (dwRes != ERROR_SUCCESS) {
+        spdlog::error("SetNamedSecurityInfo() failed. (Code={})", dwRes);
+        if (!aceExists && pNewDACL) LocalFree(pNewDACL);
+        if (pSD) LocalFree(pSD);
+        if (pSid) LocalFree(pSid);
+        return false;
+    }
+
+    if (!aceExists && pNewDACL) LocalFree(pNewDACL);
+    if (pSD) LocalFree(pSD);
+    if (pSid) LocalFree(pSid);
+    return true;
+}
+#endif

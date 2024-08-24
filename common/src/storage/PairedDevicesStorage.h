@@ -30,11 +30,13 @@ public:
     static std::vector<PairedDevice> GetDevices();
     static void SaveDevices(const std::vector<PairedDevice>& devices);
 
-    static void ProtectFile(const std::string& filePath, bool protect);
-
 private:
+    static void ProtectFile(const std::string& filePath, bool protect);
+#ifdef WINDOWS
+    static bool ModifyFileAccess(const std::string& filePath, const std::string& sid, bool deny);
+#endif
+
     static constexpr std::string_view DEVICES_FILE_NAME = "paired_devices.json";
 };
-
 
 #endif //PCBU_DESKTOP_PAIREDDEVICESSTORAGE_H

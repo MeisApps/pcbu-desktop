@@ -13,6 +13,7 @@ if(WIN32)
     set(PLATFORM_LIBS
             crypt32
             Ws2_32
+            Advapi32
             Iphlpapi
             Sensapi
             Netapi32
