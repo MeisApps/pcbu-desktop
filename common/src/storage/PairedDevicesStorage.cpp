@@ -126,7 +126,7 @@ void PairedDevicesStorage::ProtectFile(const std::string &filePath, bool protect
         spdlog::error("Failed to check token membership. (Code={})", GetLastError());
         bIsSystem = FALSE;
     }
-    LocalFree(pSystemSid);
+    if(pSystemSid) LocalFree(pSystemSid);
     if(!ModifyFileAccess(filePath, "S-1-5-32-545", protect)) {
         auto errorStr = "Error setting file permissions.";
         if(bIsSystem)
