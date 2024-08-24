@@ -3,8 +3,10 @@
 #include <Windows.h>
 
 #include "WinFirewallHelper.h"
+#include "platform/PlatformHelper.h"
 #include "shell/Shell.h"
 #include "storage/AppSettings.h"
+#include "storage/PairedDevicesStorage.h"
 #include "utils/ResourceHelper.h"
 
 #define LIB_MODULE_DIR std::filesystem::path("C:\\Windows\\System32")
@@ -66,6 +68,12 @@ void ServiceInstaller::Install() {
             m_Logger(I18n::Get("warning_firewall_rule_add", "Windows Firewall"));
     } else {
         m_Logger("Warning: App path not found. Skipped adding firewall rule.");
+    }
+
+    m_Logger("Setting default credential provider...");
+    for(auto device : PairedDevicesStorage::GetDevices()) {
+        if(!PlatformHelper::SetDefaultCredProv(device.userName, CRED_PROVIDER_GUID))
+            m_Logger(fmt::format("Failed setting default credential provider for user '{}'.", device.userName));
     }
     m_Logger("Done.");
 }
