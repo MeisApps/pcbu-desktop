@@ -3,7 +3,7 @@
 #include "StringUtils.h"
 
 std::string AppInfo::GetVersion() {
-    return "2.0.6";
+    return "2.0.7";
 }
 
 std::string AppInfo::GetProtocolVersion() {
