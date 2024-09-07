@@ -38,9 +38,14 @@ void SettingsForm::Show(QObject *viewLoader) {
     QMetaObject::invokeMethod(viewLoader, "setSource", Q_ARG(QUrl, QUrl("qrc:/ui/forms/SettingsForm.qml")));
 }
 
-void SettingsForm::OnSaveSettingsClicked(QObject *viewLoader) {
+void SettingsForm::OnSaveSettingsClicked(QObject *viewLoader, QObject *window) {
     AppSettings::Save(m_EditSettings.ToStorage());
-    auto installer = ServiceInstaller();
-    installer.ApplySettings(m_EditServiceSettings, false);
+    try {
+        auto installer = ServiceInstaller();
+        installer.ApplySettings(m_EditServiceSettings, false);
+    } catch (const std::exception& ex) {
+        spdlog::error("{}", ex.what());
+        QMetaObject::invokeMethod(window, "showErrorMessage", Q_ARG(QVariant, "Failed to write service settings."));
+    }
     QMetaObject::invokeMethod(viewLoader, "setSource", Q_ARG(QUrl, QUrl("qrc:/ui/forms/MainForm.qml")));
 }

@@ -236,7 +236,7 @@ Form {
                 settings.clientConnectTimeout = clientConnectTimeoutNum;
                 settings.clientConnectRetries = clientConnectRetriesNum;
                 SettingsForm.SetSettings(settings);
-                SettingsForm.OnSaveSettingsClicked(viewLoader)
+                SettingsForm.OnSaveSettingsClicked(viewLoader, window)
             }
         }
     }

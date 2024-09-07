@@ -86,7 +86,7 @@ public:
 
 public slots:
     void Show(QObject *viewLoader);
-    void OnSaveSettingsClicked(QObject *viewLoader);
+    void OnSaveSettingsClicked(QObject *viewLoader, QObject *window);
 
 private:
     AppSettingsModel m_EditSettings{};
