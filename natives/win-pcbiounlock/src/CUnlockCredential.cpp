@@ -409,13 +409,13 @@ HRESULT CUnlockCredential::GetSerialization(_Out_ CREDENTIAL_PROVIDER_GET_SERIAL
 
     // Check for password or unlock success
     std::wstring pwd;
-    if (_rgFieldStrings[SFI_PASSWORD] && lstrlenW(_rgFieldStrings[SFI_PASSWORD]) >= 1)
-    {
-        pwd = std::wstring(_rgFieldStrings[SFI_PASSWORD]);
-    }
-    else if (_unlockResult.state == UnlockState::SUCCESS)
+    if (_unlockResult.state == UnlockState::SUCCESS)
     {
         pwd = StringUtils::ToWideString(_unlockResult.password);
+    }
+    else if (_rgFieldStrings[SFI_PASSWORD] && lstrlenW(_rgFieldStrings[SFI_PASSWORD]) >= 1)
+    {
+        pwd = std::wstring(_rgFieldStrings[SFI_PASSWORD]);
     }
     else
     {
