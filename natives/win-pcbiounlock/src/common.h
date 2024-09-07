@@ -22,10 +22,11 @@
 enum SAMPLE_FIELD_ID
 {
     SFI_TILEIMAGE         = 0,
-    SFI_MESSAGE           = 1,
-    SFI_PASSWORD          = 2,
-    SFI_SUBMIT_BUTTON     = 3,
-    SFI_NUM_FIELDS        = 4,  // Note: if new fields are added, keep NUM_FIELDS last.  This is used as a count of the number of fields
+    SFI_USERNAME          = 1,
+    SFI_MESSAGE           = 2,
+    SFI_PASSWORD          = 3,
+    SFI_SUBMIT_BUTTON     = 4,
+    SFI_NUM_FIELDS        = 5,  // Note: if new fields are added, keep NUM_FIELDS last.  This is used as a count of the number of fields
 };
 
 // The first value indicates when the tile is displayed (selected, not selected)
@@ -47,6 +48,7 @@ static const FIELD_STATE_PAIR s_rgFieldStatePairs[] =
 {
     { CPFS_DISPLAY_IN_BOTH,            CPFIS_NONE    },    // SFI_TILEIMAGE
     { CPFS_DISPLAY_IN_BOTH,            CPFIS_NONE    },    // SFI_LABEL
+    { CPFS_DISPLAY_IN_BOTH,            CPFIS_NONE    },    // SFI_LABEL
     { CPFS_DISPLAY_IN_SELECTED_TILE,   CPFIS_FOCUSED },    // SFI_PASSWORD
     { CPFS_DISPLAY_IN_SELECTED_TILE,   CPFIS_NONE    },    // SFI_SUBMIT_BUTTON
 };
@@ -58,8 +60,9 @@ static const FIELD_STATE_PAIR s_rgFieldStatePairs[] =
 static std::wstring pwdStr = StringUtils::ToWideString(I18n::Get("password"));
 static const CREDENTIAL_PROVIDER_FIELD_DESCRIPTOR s_rgCredProvFieldDescriptors[] =
 {
-    { SFI_TILEIMAGE,         CPFT_TILE_IMAGE,    (LPWSTR)L"Image",                      CPFG_CREDENTIAL_PROVIDER_LOGO  },
-    { SFI_MESSAGE,             CPFT_SMALL_TEXT,    (LPWSTR)L"Message"                                                  },
-    { SFI_PASSWORD,          CPFT_PASSWORD_TEXT, (LPWSTR)pwdStr.c_str()                                         },
-    { SFI_SUBMIT_BUTTON,     CPFT_SUBMIT_BUTTON, (LPWSTR)L"Submit"                                                     },
+    { SFI_TILEIMAGE,         CPFT_TILE_IMAGE,    (LPWSTR)L"Image",      CPFG_CREDENTIAL_PROVIDER_LOGO  },
+    { SFI_USERNAME,             CPFT_SMALL_TEXT,    (LPWSTR)L"Username"                                             },
+    { SFI_MESSAGE,             CPFT_SMALL_TEXT,    (LPWSTR)L"Message"                                               },
+    { SFI_PASSWORD,          CPFT_PASSWORD_TEXT, (LPWSTR)pwdStr.c_str()                                             },
+    { SFI_SUBMIT_BUTTON,     CPFT_SUBMIT_BUTTON, (LPWSTR)L"Submit"                                                  },
 };

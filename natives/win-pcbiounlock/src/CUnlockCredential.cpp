@@ -82,6 +82,18 @@ HRESULT CUnlockCredential::Initialize(CREDENTIAL_PROVIDER_USAGE_SCENARIO cpus,
     // Initialize the String value of all the fields.
     if (SUCCEEDED(hr))
     {
+        hr = pcpUser->GetStringValue(PKEY_Identity_QualifiedUserName, &_pszQualifiedUserName);
+    }
+    if (SUCCEEDED(hr))
+    {
+        hr = pcpUser->GetSid(&_pszUserSid);
+    }
+    if (SUCCEEDED(hr))
+    {
+        hr = SHStrDupW(_pszQualifiedUserName, &_rgFieldStrings[SFI_USERNAME]);
+    }
+    if (SUCCEEDED(hr))
+    {
         hr = SHStrDupW(StringUtils::ToWideString(I18n::Get("initializing")).c_str(), &_rgFieldStrings[SFI_MESSAGE]);
     }
     if (SUCCEEDED(hr))
@@ -91,14 +103,6 @@ HRESULT CUnlockCredential::Initialize(CREDENTIAL_PROVIDER_USAGE_SCENARIO cpus,
     if (SUCCEEDED(hr))
     {
         hr = SHStrDupW(L"Submit", &_rgFieldStrings[SFI_SUBMIT_BUTTON]);
-    }
-    if (SUCCEEDED(hr))
-    {
-        hr = pcpUser->GetStringValue(PKEY_Identity_QualifiedUserName, &_pszQualifiedUserName);
-    }
-    if (SUCCEEDED(hr))
-    {
-        hr = pcpUser->GetSid(&_pszUserSid);
     }
     if(SUCCEEDED(hr))
     {
@@ -212,12 +216,19 @@ HRESULT CUnlockCredential::GetFieldState(DWORD dwFieldID,
                                          _Out_ CREDENTIAL_PROVIDER_FIELD_INTERACTIVE_STATE *pcpfis)
 {
     HRESULT hr;
-
     // Validate our parameters.
     if ((dwFieldID < ARRAYSIZE(_rgFieldStatePairs)))
     {
-        *pcpfs = _rgFieldStatePairs[dwFieldID].cpfs;
-        *pcpfis = _rgFieldStatePairs[dwFieldID].cpfis;
+        if(dwFieldID == SFI_USERNAME && _cpus != CPUS_CREDUI) // Show username only in CredUI
+        {
+            *pcpfs = CPFS_HIDDEN;
+            *pcpfis = CPFIS_NONE;
+        }
+        else
+        {
+            *pcpfs = _rgFieldStatePairs[dwFieldID].cpfs;
+            *pcpfis = _rgFieldStatePairs[dwFieldID].cpfis;
+        }
         hr = S_OK;
     }
     else
@@ -257,7 +268,7 @@ HRESULT CUnlockCredential::GetBitmapValue(DWORD dwFieldID, _Outptr_result_nullon
     if ((SFI_TILEIMAGE == dwFieldID))
     {
         HBITMAP hbmp = LoadBitmapW(g_hinst, MAKEINTRESOURCE(IDB_TILE_IMAGE));
-        if (hbmp != NULL)
+        if (hbmp != nullptr)
         {
             hr = S_OK;
             *phbmp = hbmp;
@@ -265,8 +276,8 @@ HRESULT CUnlockCredential::GetBitmapValue(DWORD dwFieldID, _Outptr_result_nullon
         else
         {
             hr = HRESULT_FROM_WIN32(GetLastError());
-            hbmp = (HBITMAP)LoadImageW(NULL, L"C:\\ProgramData\\Microsoft\\User Account Pictures\\user.bmp", IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE);
-            if(hbmp != NULL)
+            hbmp = (HBITMAP)LoadImageW(nullptr, L"C:\\ProgramData\\Microsoft\\User Account Pictures\\user.bmp", IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE);
+            if(hbmp != nullptr)
             {
                 hr = S_OK;
                 *phbmp = hbmp;
