@@ -135,5 +135,5 @@ bool Shell::WriteBytes(const std::filesystem::path &path, const std::vector<uint
     std::ofstream file(path, std::ios::out | std::ios::binary);
     file.write(reinterpret_cast<const char *>(data.data()), (std::streamsize)data.size());
     file.close();
-    return !file.bad();
+    return !file.fail() && !file.bad();
 }
