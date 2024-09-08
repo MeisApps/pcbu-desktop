@@ -53,7 +53,8 @@ bool PlatformHelper::HasUserPassword(const std::string &userName) {
     return true;
 }
 
-bool PlatformHelper::CheckLogin(const std::string &userName, const std::string &password) {
+PlatformLoginResult PlatformHelper::CheckLogin(const std::string &userName, const std::string &password) {
+    bool hasUser = false;
     bool isValid = false;
     auto cfUsername = CFStringCreateWithCString(nullptr, userName.c_str(), kCFStringEncodingUTF8);
     auto cfPassword = CFStringCreateWithCString(nullptr, password.c_str(), kCFStringEncodingUTF8);
@@ -61,6 +62,7 @@ bool PlatformHelper::CheckLogin(const std::string &userName, const std::string &
     CSIdentityQueryExecute(query, kCSIdentityQueryGenerateUpdateEvents, nullptr);
     auto idArray = CSIdentityQueryCopyResults(query);
     if (CFArrayGetCount(idArray) == 1) {
+        hasUser = true;
         auto result = (CSIdentityRef) CFArrayGetValueAtIndex(idArray, 0);
         if (CSIdentityAuthenticateUsingPassword(result, cfPassword)) {
             isValid = true;
@@ -71,7 +73,11 @@ bool PlatformHelper::CheckLogin(const std::string &userName, const std::string &
     CFRelease(cfPassword);
     CFRelease(idArray);
     CFRelease(query);
-    return isValid;
+    if(!hasUser)
+        return PlatformLoginResult::INVALID_USER;
+    if(!isValid)
+        return PlatformLoginResult::INVALID_PASSWORD;
+    return PlatformLoginResult::SUCCESS;
 }
 
 bool PlatformHelper::HasNativeLibrary(const std::string &libName) {

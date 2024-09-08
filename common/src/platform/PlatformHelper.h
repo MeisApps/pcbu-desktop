@@ -5,6 +5,13 @@
 #include <vector>
 #include <spdlog/spdlog.h>
 
+enum class PlatformLoginResult {
+    SUCCESS,
+    INVALID_USER,
+    INVALID_PASSWORD,
+    ACCOUNT_LOCKED
+};
+
 class PlatformHelper {
 public:
     static std::string GetDeviceUUID();
@@ -14,7 +21,7 @@ public:
     static std::string GetCurrentUser();
     static bool HasUserPassword(const std::string& userName);
 
-    static bool CheckLogin(const std::string& userName, const std::string& password);
+    static PlatformLoginResult CheckLogin(const std::string& userName, const std::string& password);
 
 #ifdef WINDOWS
     static bool SetDefaultCredProv(const std::string& userName, const std::string& provId);

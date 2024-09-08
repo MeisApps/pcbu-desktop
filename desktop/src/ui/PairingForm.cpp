@@ -180,8 +180,22 @@ void PairingForm::OnNextClicked(QObject *viewLoader, QObject *window) {
             QMetaObject::invokeMethod(window, "showErrorMessage", Q_ARG(QVariant, QString::fromUtf8(errorStr)));
             return;
         }
-        if(!PlatformHelper::CheckLogin(m_PairingData.userName.toStdString(), m_PairingData.password.toStdString())) {
-            auto errorStr = m_PairingData.isManualUserName ? I18n::Get("error_invalid_user_or_incorrect_password") : I18n::Get("error_incorrect_password");
+        auto loginResult = PlatformHelper::CheckLogin(m_PairingData.userName.toStdString(), m_PairingData.password.toStdString());
+        std::string errorStr{};
+        switch (loginResult) {
+            case PlatformLoginResult::INVALID_USER:
+                errorStr = I18n::Get("error_invalid_user");
+                break;
+            case PlatformLoginResult::INVALID_PASSWORD:
+                errorStr = m_PairingData.isManualUserName ? I18n::Get("error_invalid_user_or_incorrect_password") : I18n::Get("error_incorrect_password");
+                break;
+            case PlatformLoginResult::ACCOUNT_LOCKED:
+                errorStr = I18n::Get("error_win_account_locked");
+                break;
+            case PlatformLoginResult::SUCCESS:
+                break;
+        }
+        if(!errorStr.empty()) {
             QMetaObject::invokeMethod(window, "showErrorMessage", Q_ARG(QVariant, QString::fromUtf8(errorStr)));
             return;
         }

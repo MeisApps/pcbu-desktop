@@ -19,7 +19,7 @@ int runMain(int argc, char *argv[]) {
     auto result = handler.GetResult(userName, serviceName);
     if(result.state == UnlockState::SUCCESS) {
         if(strcmp(userName, result.device.userName.c_str()) == 0) {
-            if(PlatformHelper::CheckLogin(userName, result.password)) {
+            if(PlatformHelper::CheckLogin(userName, result.password) == PlatformLoginResult::SUCCESS) {
                 // pam_set_item(pamh, PAM_AUTHTOK, result.additionalData.c_str()); ToDo
                 return 0;
             }

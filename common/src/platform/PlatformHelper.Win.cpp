@@ -177,24 +177,25 @@ bool PlatformHelper::HasUserPassword(const std::string &userName) {
     LogonUserA(split[1].c_str(), split[0].c_str(), "",
                LOGON32_LOGON_INTERACTIVE, LOGON32_PROVIDER_DEFAULT, &hToken);
     DWORD error = GetLastError();
-    if (hToken != nullptr)
-        CloseHandle(hToken);
+    if (hToken != nullptr) CloseHandle(hToken);
     return error != 1327;
 }
 
-bool PlatformHelper::CheckLogin(const std::string &userName, const std::string &password) {
+PlatformLoginResult PlatformHelper::CheckLogin(const std::string &userName, const std::string &password) {
     auto split = StringUtils::Split(userName, "\\");
     if(split.size() != 2)
-        return false;
+        return PlatformLoginResult::INVALID_USER;
     HANDLE hToken = nullptr;
     BOOL result = LogonUserA(split[1].c_str(), split[0].c_str(), password.c_str(),
                              LOGON32_LOGON_INTERACTIVE, LOGON32_PROVIDER_DEFAULT, &hToken);
     DWORD error = GetLastError();
-    if (hToken != nullptr)
-        CloseHandle(hToken);
-    if(!result)
-        spdlog::warn("LogonUserA() failed. (Code={})", error);
-    return result;
+    if (hToken != nullptr) CloseHandle(hToken);
+    if(result)
+        return PlatformLoginResult::SUCCESS;
+    spdlog::warn("LogonUserA() failed. (Code={})", error);
+    if(error == ERROR_ACCOUNT_LOCKED_OUT)
+        return PlatformLoginResult::ACCOUNT_LOCKED;
+    return PlatformLoginResult::INVALID_PASSWORD;
 }
 
 bool PlatformHelper::SetDefaultCredProv(const std::string &userName, const std::string &provId) {

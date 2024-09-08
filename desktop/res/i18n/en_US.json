@@ -64,6 +64,8 @@
     "error_pairing_not_installed": "Please install the service module first.",
     "error_user_no_password": "Your user does not have a password set. Please set one in Windows settings.",
     "error_win_invalid_user": "Invalid username. (Must be 'DOMAIN\\USERNAME')",
+    "error_win_account_locked": "Windows has locked your user account due to too many invalid login attempts. Please wait until the lock expires and try again.",
+    "error_invalid_user": "The specified user could not be found.",
     "error_invalid_user_or_no_password": "The specified user could not be found or does not have a password set. Please set one in Windows settings.",
     "error_invalid_user_or_incorrect_password": "The username or password is incorrect.",
     "notice_ms_account": "Note: You are using a Microsoft account, so you need to enter your account password.",
