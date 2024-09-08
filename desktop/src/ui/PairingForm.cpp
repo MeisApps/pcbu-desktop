@@ -169,12 +169,20 @@ void PairingForm::OnBackClicked(QObject *viewLoader, QObject *window) {
 
 void PairingForm::OnNextClicked(QObject *viewLoader, QObject *window) {
     if(m_CurrentStep == PairingStep::USER_PASSWORD_SELECT) {
+#ifdef WINDOWS
+        if(StringUtils::Split(m_PairingData.userName.toStdString(), "\\").size() != 2) {
+            QMetaObject::invokeMethod(window, "showErrorMessage", Q_ARG(QVariant, QString::fromUtf8(I18n::Get("error_win_invalid_user"))));
+            return;
+        }
+#endif
         if(!PlatformHelper::HasUserPassword(m_PairingData.userName.toStdString())) {
-            QMetaObject::invokeMethod(window, "showErrorMessage", Q_ARG(QVariant, QString::fromUtf8(I18n::Get("error_user_no_password"))));
+            auto errorStr = m_PairingData.isManualUserName ? I18n::Get("error_invalid_user_or_no_password") : I18n::Get("error_user_no_password");
+            QMetaObject::invokeMethod(window, "showErrorMessage", Q_ARG(QVariant, QString::fromUtf8(errorStr)));
             return;
         }
         if(!PlatformHelper::CheckLogin(m_PairingData.userName.toStdString(), m_PairingData.password.toStdString())) {
-            QMetaObject::invokeMethod(window, "showErrorMessage", Q_ARG(QVariant, QString::fromUtf8(I18n::Get("error_incorrect_password"))));
+            auto errorStr = m_PairingData.isManualUserName ? I18n::Get("error_invalid_user_or_incorrect_password") : I18n::Get("error_incorrect_password");
+            QMetaObject::invokeMethod(window, "showErrorMessage", Q_ARG(QVariant, QString::fromUtf8(errorStr)));
             return;
         }
     }

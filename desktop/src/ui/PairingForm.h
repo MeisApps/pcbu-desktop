@@ -22,10 +22,12 @@ struct PairingAssistantModel {
 public:
     QString userName{};
     QString password{};
+    bool isManualUserName{};
     QString pairingMethod{};
     QString bluetoothAddress{};
     Q_PROPERTY(QString userName MEMBER userName)
     Q_PROPERTY(QString password MEMBER password)
+    Q_PROPERTY(bool isManualUserName MEMBER isManualUserName)
     Q_PROPERTY(QString pairingMethod MEMBER pairingMethod)
     Q_PROPERTY(QString bluetoothAddress MEMBER bluetoothAddress)
 };

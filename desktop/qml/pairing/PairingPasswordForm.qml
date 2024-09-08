@@ -35,24 +35,58 @@ StepForm {
                                 text: '%1:'.arg(QI18n.Get('user'))
                                 verticalAlignment: Text.AlignVCenter
                             }
-                            ComboBox {
-                                Layout.fillWidth: true
-                                id: userComboBox
-                                model: userListModel
-                                textRole: 'userName'
-                                currentIndex: {
-                                    for(let i = 0; i < model.size(); i++) {
-                                        if(model.get(i).isCurrentUser)
-                                            return i;
+                            ColumnLayout {
+                                ComboBox {
+                                    Layout.fillWidth: true
+                                    id: userComboBox
+                                    model: userListModel
+                                    textRole: 'userName'
+                                    currentIndex: {
+                                        for(let i = 0; i < model.size(); i++) {
+                                            if(model.get(i).isCurrentUser)
+                                                return i;
+                                        }
+                                        return 0;
                                     }
-                                    return 0;
+                                    onCurrentIndexChanged: {
+                                        let currUser = userListModel.get(currentIndex);
+                                        let data = PairingForm.GetData();
+                                        data.userName = currUser.userName;
+                                        PairingForm.SetData(data);
+                                        msAccountNoticeLabel.visible = currUser.isMicrosoftAccount;
+                                    }
                                 }
-                                onCurrentIndexChanged: {
-                                    let currUser = userListModel.get(currentIndex);
-                                    let data = PairingForm.GetData();
-                                    data.userName = currUser.userName;
-                                    PairingForm.SetData(data);
-                                    msAccountNoticeLabel.visible = currUser.isMicrosoftAccount;
+                                TextField {
+                                    Layout.fillWidth: true
+                                    id: userTextField
+                                    text: ''
+                                    visible: false
+                                    onTextChanged: {
+                                        let data = PairingForm.GetData();
+                                        data.userName = userTextField.text;
+                                        PairingForm.SetData(data);
+                                    }
+                                }
+                                CheckBox {
+                                    id: userEnterManualCheckBox
+                                    text: QI18n.Get('manual_enter')
+                                    checked: false
+                                    onToggled: {
+                                        let isChecked = userEnterManualCheckBox.checked;
+                                        userComboBox.visible = !isChecked;
+                                        userTextField.visible = isChecked;
+
+                                        let data = PairingForm.GetData();
+                                        data.isManualUserName = isChecked;
+                                        if(isChecked) {
+                                            data.userName = userTextField.text;
+                                        } else {
+                                            let currUser = userListModel.get(userComboBox.currentIndex);
+                                            data.userName = currUser.userName;
+                                            msAccountNoticeLabel.visible = currUser.isMicrosoftAccount;
+                                        }
+                                        PairingForm.SetData(data);
+                                    }
                                 }
                             }
                         }

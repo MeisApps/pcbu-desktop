@@ -46,6 +46,7 @@
     "latest_version": "Neueste Version",
     "download": "Herunterladen",
     "ignore": "Ignorieren",
+    "manual_enter": "Manuell eingeben",
 
     "install": "Installieren",
     "uninstall": "Deinstallieren",
@@ -62,6 +63,9 @@
     "error_bluetooth_pairing": "Bluetooth Pairing fehlgeschlagen. Bitte lösche dein Telefon, falls es bereits gekoppelt ist und versuche es erneut.",
     "error_pairing_not_installed": "Bitte installiere zuerst das Dienstmodul.",
     "error_user_no_password": "Dein Benutzer hat kein Passwort gesetzt. Setze bitte eins in den Windows Einstellungen.",
+    "error_win_invalid_user": "Ungültiger Benutzername. (Muss im Format 'DOMAIN\\USERNAME' sein)",
+    "error_invalid_user_or_no_password": "Der angegebene Benutzer konnte nicht gefunden werden oder hat kein Passwort gesetzt. Setze bitte eins in den Windows Einstellungen.",
+    "error_invalid_user_or_incorrect_password": "Der Benutzername oder das Passwort sind falsch.",
     "notice_ms_account": "Hinweis: Du verwendest einen Microsoft Account, also musst du das Passwort des Accounts eingeben.",
 
     "pairing_form_password_desc": "Wähle bitte einen Benutzer und gib dessen Passwort ein. Alle deine Daten werden verschlüsselt auf deinem Telefon gespeichert und werden mit niemandem geteilt.",
