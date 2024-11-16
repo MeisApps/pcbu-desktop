@@ -52,12 +52,12 @@ if [[ "$PLATFORM" == "win" ]]; then
   cp desktop/Release/pcbu_desktop.exe installer_dir/
   "/c/Program Files (x86)/Windows Kits/10/bin/10.0.22621.0/x64/mt.exe" -manifest ../win/requireAdmin.manifest -outputresource:installer_dir/pcbu_desktop.exe
 
-  "/c/Qt/6.7.2/msvc2019_64/bin/windeployqt" --qmldir ../../desktop/qml installer_dir/pcbu_desktop.exe
+  "/c/Qt/6.8.0/msvc2022_64/bin/windeployqt" --qmldir ../../desktop/qml installer_dir/pcbu_desktop.exe
   if [[ "$ARCH" == "arm64" ]]; then # ToDo: Workaround for no windeployqt on arm64
     find "installer_dir/" -type f -name "*.dll" | while read -r dll_file; do
       file_name=$(basename "$dll_file")
       if [[ "$file_name" != "D3Dcompiler_47.dll" ]] && [[ "$file_name" != "opengl32sw.dll" ]]; then
-        replacement_file=$(find "/c/Qt/6.7.2/msvc2019_arm64/" -type f -name "$file_name" | head -n 1)
+        replacement_file=$(find "/c/Qt/6.8.0/msvc2022_arm64/" -type f -name "$file_name" | head -n 1)
         if [ -f "$replacement_file" ]; then
           echo "Replacing $dll_file with $replacement_file"
           cp "$replacement_file" "$dll_file"
