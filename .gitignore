@@ -1,6 +1,9 @@
 **/.DS_Store
 .idea
+.cache
 cmake-build-debug
 cmake-build-release
+cmake-nvim-debug
+cmake-nvim-release
 pkg/build
 desktop/res/natives
