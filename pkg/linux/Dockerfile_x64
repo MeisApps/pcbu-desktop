@@ -5,7 +5,7 @@ RUN apt-get install -y python3 python3-pip pipx mesa-common-dev libgl1-mesa-dev 
 RUN apt-get install -y libssl-dev libpam-dev libcrypt-dev libbluetooth-dev
 
 RUN pipx install aqtinstall
-ARG QT=6.8.0
+ARG QT=6.7.2
 ARG QT_HOST=linux
 ARG QT_TARGET=desktop
 ARG QT_ARCH=linux_gcc_64
@@ -19,4 +19,4 @@ WORKDIR /project
 COPY . .
 WORKDIR /project/pkg
 RUN chmod +x build-desktop.sh
-ENTRYPOINT ["bash", "-c", "cd /project/pkg && ARCH=x64 QT_BASE_DIR=/opt/qt/6.8.0 DOCKER_BUILD=1 ./build-desktop.sh"]
+ENTRYPOINT ["bash", "-c", "cd /project/pkg && ARCH=x64 QT_BASE_DIR=/opt/qt/6.7.2 DOCKER_BUILD=1 ./build-desktop.sh"]

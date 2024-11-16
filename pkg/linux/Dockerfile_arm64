@@ -6,7 +6,7 @@ RUN apt-get install -y libssl-dev libpam-dev libcrypt-dev libbluetooth-dev
 RUN apt-get install -y qemu-user-static
 
 RUN pipx install aqtinstall
-ARG QT=6.8.0
+ARG QT=6.7.2
 ARG QT_HOST=linux_arm64
 ARG QT_TARGET=desktop
 ARG QT_ARCH=linux_gcc_arm64
@@ -20,4 +20,4 @@ WORKDIR /project
 COPY . .
 WORKDIR /project/pkg
 RUN chmod +x build-desktop.sh
-ENTRYPOINT ["bash", "-c", "cd /project/pkg && ARCH=arm64 QT_BASE_DIR=/opt/qt/6.8.0 DOCKER_BUILD=1 ./build-desktop.sh"]
+ENTRYPOINT ["bash", "-c", "cd /project/pkg && ARCH=arm64 QT_BASE_DIR=/opt/qt/6.7.2 DOCKER_BUILD=1 ./build-desktop.sh"]
