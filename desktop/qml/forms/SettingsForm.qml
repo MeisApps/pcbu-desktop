@@ -35,11 +35,11 @@ Form {
                     Layout.column: 0
                     text: '%1:'.arg(QI18n.Get('pairing_server_port'))
                 }
-                Label {
+                /*Label {
                     Layout.row: 3
                     Layout.column: 0
                     text: '%1:'.arg(QI18n.Get('unlock_server_port'))
-                }
+                }*/
 
                 ComboBox { // Lang
                     Layout.fillWidth: true
@@ -121,13 +121,13 @@ Form {
                     id: pairingServerPortTextField
                     text: SettingsForm.GetSettings().pairingServerPort
                 }
-                TextField { // Unlock port
+                /*TextField { // Unlock port
                     Layout.fillWidth: true
                     Layout.row: 3
                     Layout.column: 1
                     id: unlockServerPortTextField
                     text: SettingsForm.GetSettings().unlockServerPort
-                }
+                }*/
 
                 GridLayout {
                     Layout.row: 4
@@ -197,15 +197,15 @@ Form {
             onBackClicked: MainWindow.Show(viewLoader)
             onNextClicked: {
                 let pairingServerPortNum = parseInt(pairingServerPortTextField.text, 10);
-                let unlockServerPortNum = parseInt(unlockServerPortTextField.text, 10);
+                //let unlockServerPortNum = parseInt(unlockServerPortTextField.text, 10);
                 if(isNaN(pairingServerPortNum) || pairingServerPortNum < 0 || pairingServerPortNum > 65535) {
                     showErrorMessage(QI18n.Get('error_invalid_port'));
                     return;
                 }
-                if(isNaN(unlockServerPortNum) || unlockServerPortNum < 0 || unlockServerPortNum > 65535) {
+                /*if(isNaN(unlockServerPortNum) || unlockServerPortNum < 0 || unlockServerPortNum > 65535) {
                     showErrorMessage(QI18n.Get('error_invalid_port'));
                     return;
-                }
+                }*/
 
                 let ipV4Regex = /^(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]\d|\d)(?:\.(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]\d|\d)){3}$/gm;
                 let serverIp = ipSelectTextField.text;
@@ -231,7 +231,7 @@ Form {
                 settings.serverIP = serverIp;
                 settings.serverMAC = serverIp === 'auto' ? networkListModel.get(ipSelectComboBox.currentIndex).macAddress : '';
                 settings.pairingServerPort = pairingServerPortNum;
-                settings.unlockServerPort = unlockServerPortNum;
+                settings.unlockServerPort = SettingsForm.GetSettings().unlockServerPort;
                 settings.clientSocketTimeout = clientSocketTimeoutNum;
                 settings.clientConnectTimeout = clientConnectTimeoutNum;
                 settings.clientConnectRetries = clientConnectRetriesNum;
