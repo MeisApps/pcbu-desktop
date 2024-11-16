@@ -16,6 +16,7 @@
 #include "CUnlockCredential.h"
 #include "guid.h"
 
+#include <spdlog/spdlog.h>
 #include "storage/PairedDevicesStorage.h"
 
 CSampleProvider::CSampleProvider() :
@@ -282,6 +283,7 @@ HRESULT CSampleProvider::_EnumerateCredentials()
                                 hr = cred->Initialize(_cpus, s_rgCredProvFieldDescriptors, s_rgFieldStatePairs, pCredUser, this, userDomain);
                                 if (FAILED(hr))
                                 {
+                                    spdlog::error("Failed to initialize credential.");
                                     cred->Release();
                                     cred = nullptr;
                                 }
@@ -292,13 +294,19 @@ HRESULT CSampleProvider::_EnumerateCredentials()
                             }
                             else
                             {
+                                spdlog::error("Failed to allocate credential.");
                                 hr = E_OUTOFMEMORY;
                             }
                         }
                     }
+                    else
+                    {
+                        spdlog::error("Failed to get QualifiedUserName.");
+                    }
                 }
                 else
                 {
+                    spdlog::error("Failed to get user in credProviderUserArray.");
                     hr = E_OUTOFMEMORY;
                 }
             }
@@ -309,6 +317,16 @@ HRESULT CSampleProvider::_EnumerateCredentials()
                 spdlog::error("Could not find any paired user.");
             }
         }
+        else
+        {
+            hr = E_ABORT;
+            spdlog::error("No users found (count=0).");
+        }
+    }
+    else
+    {
+        hr = E_ABORT;
+        spdlog::error("No users found (array=nullptr).");
     }
     return hr;
 }

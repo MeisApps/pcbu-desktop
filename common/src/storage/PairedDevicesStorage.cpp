@@ -6,6 +6,7 @@
 
 #include "AppSettings.h"
 #include "shell/Shell.h"
+#include "utils/StringUtils.h"
 
 #ifdef WINDOWS
 #include <Windows.h>
@@ -27,8 +28,13 @@ std::optional<PairedDevice> PairedDevicesStorage::GetDeviceByID(const std::strin
 std::vector<PairedDevice> PairedDevicesStorage::GetDevicesForUser(const std::string &userName) {
     std::vector<PairedDevice> result{};
     for(const auto& device : GetDevices()) {
+        #ifdef WINDOWS
+        if(StringUtils::ToLower(device.userName) == StringUtils::ToLower(userName))
+            result.emplace_back(device);
+        #else
         if(device.userName == userName)
             result.emplace_back(device);
+        #endif
     }
     return result;
 }

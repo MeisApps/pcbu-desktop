@@ -25,7 +25,7 @@
 
 #include "common.h"
 #include "CUnlockListener.h"
-#include "dll.h"
+#include "Dll.h"
 #include "resource.h"
 #include "handler/UnlockHandler.h"
 
