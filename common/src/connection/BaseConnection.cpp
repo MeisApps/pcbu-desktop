@@ -125,7 +125,7 @@ PacketError BaseConnection::GetPacketError(int result, int error) {
         if(error == SOCKET_ERROR_TIMEOUT)
             return PacketError::TIMEOUT;
 #ifdef WINDOWS
-        if(error == WSAESHUTDOWN)
+        if(error == WSAESHUTDOWN || error == WSAENOTSOCK)
             return PacketError::CLOSED_CONNECTION;
 #else
         if(error == EPIPE)
