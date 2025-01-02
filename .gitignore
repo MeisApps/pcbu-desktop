@@ -7,3 +7,4 @@ cmake-nvim-debug
 cmake-nvim-release
 pkg/build
 desktop/res/natives
+compile_commands.json
