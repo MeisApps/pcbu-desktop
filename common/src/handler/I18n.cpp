@@ -18,6 +18,8 @@ void I18n::FindLocale() {
     if(settingsLang != "auto") {
         if(settingsLang == "de_DE")
             m_Locale = 1;
+        else if(settingsLang == "zh_CN")
+            m_Locale = 2;
         else
             m_Locale = 0;
         return;
@@ -59,6 +61,8 @@ void I18n::FindLocale() {
 
     if(locale.starts_with("de"))
         m_Locale = 1;
+    else if(locale.starts_with("zh"))
+        m_Locale = 2;
     else
         m_Locale = 0;
 }
