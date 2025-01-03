@@ -9,12 +9,17 @@
 #include "storage/PairedDevicesStorage.h"
 #include "utils/ResourceHelper.h"
 
-#define LIB_MODULE_DIR std::filesystem::path("C:\\Windows\\System32")
 #define LIB_MODULE_FILE "win-pcbiounlock.dll"
-
 #define CRED_PROVIDER_NAME "win-pcbiounlock"
 #define CRED_PROVIDER_GUID "{74A23DE2-B81D-46EC-E129-CD32507ED716}"
 #define APP_FIREWALL_RULE_NAME "PC Bio Unlock"
+
+std::filesystem::path ServiceInstaller_GetSysDir() {
+    CHAR sysDir[MAX_PATH]{};
+    if(GetSystemDirectoryA(sysDir, sizeof(sysDir)) > 0)
+        return sysDir;
+    return "C:\\Windows\\System32";
+}
 
 ServiceInstaller::ServiceInstaller(const std::function<void(const std::string &)> &logCallback) {
     m_Logger = logCallback;
@@ -38,13 +43,13 @@ void ServiceInstaller::ApplySettings(const std::vector<ServiceSetting> &settings
 }
 
 bool ServiceInstaller::IsInstalled() {
-    return std::filesystem::exists(LIB_MODULE_DIR / LIB_MODULE_FILE);
+    return std::filesystem::exists(ServiceInstaller_GetSysDir() / LIB_MODULE_FILE);
 }
 
 void ServiceInstaller::Install() {
     m_Logger("Copying credential provider...");
     auto nativeLib = ResourceHelper::GetResource(":/res/natives/{}", LIB_MODULE_FILE);
-    auto libPath = LIB_MODULE_DIR / LIB_MODULE_FILE;
+    auto libPath = ServiceInstaller_GetSysDir() / LIB_MODULE_FILE;
     auto result = Shell::WriteBytes(libPath, nativeLib);
     if(!result)
         throw std::runtime_error(I18n::Get("error_file_write", libPath.string()));
@@ -80,7 +85,7 @@ void ServiceInstaller::Install() {
 
 void ServiceInstaller::Uninstall() {
     m_Logger("Removing credential provider...");
-    auto libPath = LIB_MODULE_DIR / LIB_MODULE_FILE;
+    auto libPath = ServiceInstaller_GetSysDir() / LIB_MODULE_FILE;
     auto result = Shell::RemoveFile(libPath);
     if(!result)
         throw std::runtime_error(I18n::Get("error_file_remove", libPath.string()));
