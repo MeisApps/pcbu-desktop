@@ -5,19 +5,12 @@
 
 class I18n {
 public:
-    enum class Locale {
-        UNKNOWN,
-        ENGLISH,
-        GERMAN
-    };
-
     template<typename ...T>
     static std::string Get(const std::string& key, T&&... args) {
         return fmt::format(fmt::runtime(Get(key)), args...);
     }
 
     static std::string Get(const std::string& key);
-    static Locale GetLocale();
 
 private:
     I18n() = default;
