@@ -22,14 +22,12 @@ LocaleHelper::Locale LocaleHelper::GetUserLocale() {
     }
 
 #ifdef _WIN32
-    LCID lcid = GetThreadLocale();
-    wchar_t name[LOCALE_NAME_MAX_LENGTH];
-    if (LCIDToLocaleName(lcid, name, LOCALE_NAME_MAX_LENGTH, 0) == 0) {
-        spdlog::warn("Failed to get thread locale.");
+    WCHAR localeName[LOCALE_NAME_MAX_LENGTH];
+    if (GetUserDefaultLocaleName(localeName, LOCALE_NAME_MAX_LENGTH) == 0) {
+        spdlog::error("Failed to get system locale.");
         return Locale::ENGLISH;
     }
-    auto ws = std::wstring(name);
-    auto locale = std::string(ws.begin(), ws.end());
+    auto locale = StringUtils::FromWideString(localeName);
 #else
     std::string locale{};
     if(std::filesystem::exists("/etc/locale.conf")) {
@@ -62,7 +60,6 @@ LocaleHelper::Locale LocaleHelper::GetUserLocale() {
 #endif
 
     locale = StringUtils::Replace(StringUtils::ToLower(locale), "-", "_");
-    spdlog::info(locale);
     if(locale.starts_with("zh_cn"))
         return Locale::CHINESE_SIMPLIFIED;
     else if(locale.starts_with("de"))
