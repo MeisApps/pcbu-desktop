@@ -54,12 +54,40 @@ const std::map<std::string, std::string> g_DeLangMap = {
         {"unlock_error_app", "Unbekannter App Fehler. Bitte Support kontaktieren."},
         {"unlock_error_unknown", "Unbekannter Fehler. Bitte Support kontaktieren."}
 };
+const std::map<std::string, std::string> g_ZhLangMap = {
+        {"initializing", "初始化中..."},
+        {"password", "密码"},
+        {"error_unknown", "未知错误。"},
+        {"error_pam", "错误：无法获取 PAM 信息。"},
+        {"error_not_paired", "错误：用户 {} 未配对。"},
+        {"error_invalid_user", "错误：无效用户。"},
+        {"error_start_handler", "错误：无法启动套接字。"},
+        {"error_password", "密码错误。"},
+        {"enter_password", "请输入密码。"},
+        {"wait_network", "等待网络连接..."},
+        {"wait_key_press", "按任意键或点击。"},
+        {"wait_client_phone_connect", "正在连接到手机..."},
+        {"wait_server_phone_connect", "等待手机连接..."},
+        {"wait_phone_unlock", "使用手机解锁..."},
+        {"unlock_success", "成功。"},
+        {"unlock_canceled", "已取消。"},
+        {"unlock_timeout", "超时。"},
+        {"unlock_error_connect", "无法连接到手机。"},
+        {"unlock_error_time", "错误：电脑时间与手机时间不匹配。"},
+        {"unlock_error_data", "错误：接收到无效数据。"},
+        {"unlock_error_not_paired", "错误：手机未配对。"},
+        {"unlock_error_app", "未知的应用错误，请联系支持。"},
+        {"unlock_error_unknown", "未知错误，请联系支持。"}
+};
 
 std::string I18n::Get(const std::string &key) {
     std::map<std::string, std::string> langMap{};
     switch (LocaleHelper::GetUserLocale()) {
         case LocaleHelper::Locale::GERMAN:
             langMap = g_DeLangMap;
+            break;
+        case LocaleHelper::Locale::CHINESE_SIMPLIFIED:
+            langMap = g_ZhLangMap;
             break;
         case LocaleHelper::Locale::ENGLISH:
         default:

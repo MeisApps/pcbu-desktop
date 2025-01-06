@@ -68,6 +68,7 @@
     "error_invalid_user": "找不到指定的用户。",
     "error_invalid_user_or_no_password": "找不到指定的用户或未设置密码。请在 Windows 设置中设置密码。",
     "error_invalid_user_or_incorrect_password": "用户名或密码不正确。",
+    "error_server_init":"配对服务器初始化失败，请在设置中选择一个不同的端口",
     "notice_ms_account": "注意：您使用的是 Microsoft 帐户，因此需要输入您的帐户密码。",
 
     "pairing_form_password_desc": "选择一个用户并输入其密码。您的所有数据均以加密形式存储在手机上，不会与任何人共享。",
