@@ -50,6 +50,7 @@ Form {
                         ListElement { text: "Auto"; val: "auto" }
                         ListElement { text: "English"; val: "en" }
                         ListElement { text: "Deutsch"; val: "de" }
+                        ListElement { text: "Chinese (Simplified)"; val: "zh_CN" }
                     }
                     textRole: 'text'
                     currentIndex: {

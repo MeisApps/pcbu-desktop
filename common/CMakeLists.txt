@@ -107,6 +107,8 @@ add_library(pcbu_common
         src/utils/AppInfo.h
         src/utils/RestClient.cpp
         src/utils/RestClient.h
+        src/utils/LocaleHelper.cpp
+        src/utils/LocaleHelper.h
         ${PLATFORM_SRC}
 )
 target_include_directories(pcbu_common PUBLIC

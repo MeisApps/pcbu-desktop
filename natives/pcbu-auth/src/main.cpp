@@ -1,6 +1,7 @@
 #include <iostream>
 #include <unistd.h>
 
+#include "storage/LoggingSystem.h"
 #include "platform/PlatformHelper.h"
 #include "handler/UnlockHandler.h"
 #include "handler/I18n.h"

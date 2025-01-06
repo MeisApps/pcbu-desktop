@@ -68,20 +68,21 @@ PairingStep PairingForm::GetNextStep() {
 
 void PairingForm::UpdateStepForm(QObject *viewLoader, QObject *window) {
     // Pairing server
-    if(m_PairingServer)
+    if(m_PairingServer) {
         m_PairingServer->Stop();
-    if(m_CurrentStep == PairingStep::QR_SCAN) {
-        m_EncKey = StringUtils::RandomString(64);
-        auto serverData = PairingServerData();
-        serverData.userName = m_PairingData.userName.toStdString();
-        serverData.password = m_PairingData.password.toStdString();
-        serverData.encKey = m_EncKey;
-        serverData.method = PairingMethodUtils::FromString(m_PairingData.pairingMethod.toStdString());
-        serverData.macAddress = NetworkHelper::GetSavedNetworkInterface().macAddress;
-        serverData.btAddress = m_PairingData.bluetoothAddress.toStdString();
-        m_PairingServer->Start(serverData);
-    } else {
-        m_EncKey = {};
+        if(m_CurrentStep == PairingStep::QR_SCAN) {
+            m_EncKey = StringUtils::RandomString(64);
+            auto serverData = PairingServerData();
+            serverData.userName = m_PairingData.userName.toStdString();
+            serverData.password = m_PairingData.password.toStdString();
+            serverData.encKey = m_EncKey;
+            serverData.method = PairingMethodUtils::FromString(m_PairingData.pairingMethod.toStdString());
+            serverData.macAddress = NetworkHelper::GetSavedNetworkInterface().macAddress;
+            serverData.btAddress = m_PairingData.bluetoothAddress.toStdString();
+            m_PairingServer->Start(serverData);
+        } else {
+            m_EncKey = {};
+        }
     }
 
     // Bluetooth scanner
@@ -147,6 +148,14 @@ void PairingForm::UpdateStepForm(QObject *viewLoader, QObject *window) {
 void PairingForm::Show(QObject *viewLoader, QObject *window) {
     if(!ServiceInstaller::IsInstalled()) {
         QMetaObject::invokeMethod(window, "showErrorMessage", Q_ARG(QVariant, QString::fromUtf8(I18n::Get("error_pairing_not_installed"))));
+        return;
+    }
+    try {
+        m_PairingServer.reset();
+        m_PairingServer = std::make_unique<PairingServer>();
+    } catch(const std::exception& ex) {
+        spdlog::error("Error initializing pairing server: {}", ex.what());
+        QMetaObject::invokeMethod(window, "showErrorMessage", Q_ARG(QVariant, QString::fromUtf8(I18n::Get("error_server_init"))));
         return;
     }
 

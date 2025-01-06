@@ -1,68 +1,74 @@
 #include "I18n.h"
 
-#include <filesystem>
-#include <fstream>
-#include <sstream>
+#include <map>
 
-#include "storage/AppSettings.h"
+#include "utils/LocaleHelper.h"
 
-#ifdef _WIN32
-#pragma warning(disable : 4244)
-#include <Windows.h>
-#endif
+const std::map<std::string, std::string> g_EnLangMap = {
+        {"initializing", "Initializing..."},
+        {"password", "Password"},
+        {"error_unknown", "Unknown Error."},
+        {"error_pam", "Error: Could not get PAM info."},
+        {"error_not_paired", "Error: User {} is not paired."},
+        {"error_invalid_user", "Error: Invalid user."},
+        {"error_start_handler", "Error: Could not start socket."},
+        {"error_password", "Invalid password."},
+        {"enter_password", "Please enter your password."},
+        {"wait_network", "Waiting for network connection..."},
+        {"wait_key_press", "Press any key or click."},
+        {"wait_client_phone_connect", "Connecting to phone..."},
+        {"wait_server_phone_connect", "Waiting for connection from phone..."},
+        {"wait_phone_unlock", "Use phone to unlock..."},
+        {"unlock_success", "Success."},
+        {"unlock_canceled", "Canceled."},
+        {"unlock_timeout", "Timeout."},
+        {"unlock_error_connect", "Could not connect to phone."},
+        {"unlock_error_time", "Error: Time on PC does not match phone time."},
+        {"unlock_error_data", "Error: Invalid data received."},
+        {"unlock_error_not_paired", "Error: Not paired on phone."},
+        {"unlock_error_app", "Unknown app error. Please contact support."},
+        {"unlock_error_unknown", "Unknown error. Please contact support."}
+};
+const std::map<std::string, std::string> g_DeLangMap = {
+        {"initializing", "Initialisiere..."},
+        {"password", "Passwort"},
+        {"error_unknown", "Unbekannter Fehler."},
+        {"error_pam", "Fehler: Konnte PAM Infos nicht holen."},
+        {"error_not_paired", "Fehler: Benutzer {} ist nicht gepairt."},
+        {"error_invalid_user", "Fehler: Ungültiger Benutzer."},
+        {"error_start_handler", "Fehler: Konnte Socket nicht starten."},
+        {"error_password", "Ungültiges Passwort."},
+        {"enter_password", "Gib bitte dein Passwort ein."},
+        {"wait_network", "Warte auf Netzwerkverbindung..."},
+        {"wait_key_press", "Drücke eine beliebige Taste."},
+        {"wait_client_phone_connect", "Verbinde mit Telefon..."},
+        {"wait_server_phone_connect", "Warte auf Verbindung von Telefon..."},
+        {"wait_phone_unlock", "Verwende Telefon, um zu entsperren..."},
+        {"unlock_success", "Erfolg."},
+        {"unlock_canceled", "Abgebrochen."},
+        {"unlock_timeout", "Zeit abgelaufen."},
+        {"unlock_error_connect", "Verbindung zum Telefon fehlgeschlagen."},
+        {"unlock_error_time", "Fehler: Zeit auf PC stimmt nicht mit Telefon Zeit überein."},
+        {"unlock_error_data", "Fehler: Ungültige Daten empfangen."},
+        {"unlock_error_not_paired", "Fehler: Nicht gepairt auf Telefon."},
+        {"unlock_error_app", "Unbekannter App Fehler. Bitte Support kontaktieren."},
+        {"unlock_error_unknown", "Unbekannter Fehler. Bitte Support kontaktieren."}
+};
 
-int I18n::m_Locale = -1;
-
-void I18n::FindLocale() {
-    auto settingsLang = AppSettings::Get().language;
-    if(settingsLang != "auto") {
-        if(settingsLang == "de_DE")
-            m_Locale = 1;
-        else if(settingsLang == "zh_CN")
-            m_Locale = 2;
-        else
-            m_Locale = 0;
-        return;
+std::string I18n::Get(const std::string &key) {
+    std::map<std::string, std::string> langMap{};
+    switch (LocaleHelper::GetUserLocale()) {
+        case LocaleHelper::Locale::GERMAN:
+            langMap = g_DeLangMap;
+            break;
+        case LocaleHelper::Locale::ENGLISH:
+        default:
+            langMap = g_EnLangMap;
+            break;
     }
-
-#ifdef _WIN32
-    LCID lcid = GetThreadLocale();
-    wchar_t name[LOCALE_NAME_MAX_LENGTH];
-    if (LCIDToLocaleName(lcid, name, LOCALE_NAME_MAX_LENGTH, 0) == 0) {
-        m_Locale = 0;
-        return;
+    if(!langMap.count(key)) {
+        spdlog::warn("Missing I18n key {}.", key);
+        return key;
     }
-
-    auto ws = std::wstring(name);
-    auto locale = std::string(ws.begin(), ws.end());
-#else
-    std::string locale;
-    if(std::filesystem::exists("/etc/locale.conf")) {
-        std::ifstream is_file("/etc/locale.conf");
-        std::string line;
-        while(std::getline(is_file, line)) {
-            std::istringstream is_line(line);
-            std::string key;
-            if(std::getline(is_line, key, '=')) {
-                std::string value;
-                if(std::getline(is_line, value)) {
-                    if(key == "LANG") {
-                        locale = value;
-                        break;
-                    }
-                }
-            }
-        }
-    } else {
-        auto lang = setlocale(LC_ALL, nullptr);
-        locale = std::string(lang);
-    }
-#endif
-
-    if(locale.starts_with("de"))
-        m_Locale = 1;
-    else if(locale.starts_with("zh"))
-        m_Locale = 2;
-    else
-        m_Locale = 0;
+    return langMap[key];
 }

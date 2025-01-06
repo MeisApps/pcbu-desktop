@@ -68,6 +68,7 @@
     "error_invalid_user": "The specified user could not be found.",
     "error_invalid_user_or_no_password": "The specified user could not be found or does not have a password set. Please set one in Windows settings.",
     "error_invalid_user_or_incorrect_password": "The username or password is incorrect.",
+    "error_server_init": "Failed to initialize the pairing server. Please choose a different port in settings.",
     "notice_ms_account": "Note: You are using a Microsoft account, so you need to enter your account password.",
 
     "pairing_form_password_desc": "Select a user and enter their password. All your data is stored encrypted on your phone and will not be shared with anyone.",

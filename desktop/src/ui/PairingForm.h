@@ -72,7 +72,7 @@ private:
     bool m_IsBluetoothScanRunning{};
     std::thread m_BluetoothScanThread{};
     std::thread m_BluetoothPairThread{};
-    std::unique_ptr<PairingServer> m_PairingServer = std::make_unique<PairingServer>();
+    std::unique_ptr<PairingServer> m_PairingServer = nullptr;
 };
 
 #endif //PCBU_DESKTOP_PAIRINGFORM_H
