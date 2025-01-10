@@ -1,5 +1,6 @@
 #include "PairingServer.h"
 
+#include "handler/I18n.h"
 #include "platform/PlatformHelper.h"
 #include "platform/NetworkHelper.h"
 #include "storage/AppSettings.h"
@@ -77,9 +78,9 @@ void PairingServer::Accept() {
         try {
             auto initPacket = PacketPairInit::FromJson({data.begin(), data.end()});
             if(!initPacket.has_value())
-                throw std::runtime_error("Failed parsing packet.");
+                throw std::runtime_error(I18n::Get("error_pairing_packet_parse"));
             if(AppInfo::CompareVersion(AppInfo::GetProtocolVersion(), initPacket->protoVersion) != 0)
-                throw std::runtime_error("App version is incompatible with desktop version.");
+                throw std::runtime_error(I18n::Get("error_protocol_mismatch"));
 
             auto device = PairedDevice();
             device.pairingId = CryptUtils::Sha256(PlatformHelper::GetDeviceUUID() + initPacket->deviceUUID + m_ServerData.userName);
@@ -116,7 +117,7 @@ void PairingServer::Accept() {
         } catch(const std::exception& ex) {
             spdlog::error("Pairing server error: {}", ex.what());
             auto respPacket = PacketPairResponse();
-            respPacket.errMsg = fmt::format("Error during pairing on PC: {}", ex.what());
+            respPacket.errMsg = ex.what();
             WritePacket(respPacket.ToJson().dump());
         }
         try {
