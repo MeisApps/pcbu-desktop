@@ -8,7 +8,7 @@
 #include "utils/StringUtils.h"
 
 #ifdef WINDOWS
-#include <boost/process/windows.hpp>
+#include <boost/process/v1/windows.hpp>
 
 #define SHELL_NAME "cmd.exe"
 #define SHELL_CMD_ARG "/c"
