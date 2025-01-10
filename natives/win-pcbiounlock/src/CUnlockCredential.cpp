@@ -12,6 +12,7 @@
 
 #include <unknwn.h>
 #include "guid.h"
+#include "utils/StringUtils.h"
 
 CUnlockCredential::CUnlockCredential():
     _cRef(1),
@@ -133,10 +134,11 @@ void CUnlockCredential::SetUnlockData(const UnlockResult& result)
 
 void CUnlockCredential::UpdateMessage(const std::string& message)
 {
+    if(_rgFieldStrings[SFI_MESSAGE])
+        CoTaskMemFree(_rgFieldStrings[SFI_MESSAGE]);
     SHStrDupW(StringUtils::ToWideString(message).c_str(), &_rgFieldStrings[SFI_MESSAGE]);
-    if (_pCredProvCredentialEvents) {
+    if (_pCredProvCredentialEvents)
         _pCredProvCredentialEvents->SetFieldString(this, SFI_MESSAGE, _rgFieldStrings[SFI_MESSAGE]);
-    }
 }
 
 // LogonUI calls this in order to give us a callback in case we need to notify it of anything.
@@ -148,9 +150,8 @@ HRESULT CUnlockCredential::Advise(_In_ ICredentialProviderCredentialEvents *pcpc
     }
 
     auto result = pcpce->QueryInterface(IID_PPV_ARGS(&_pCredProvCredentialEvents));
-    if (_pCredProvCredentialEvents) {
+    if (_pCredProvCredentialEvents)
         _pCredProvCredentialEvents->SetFieldString(this, SFI_MESSAGE, _rgFieldStrings[SFI_MESSAGE]);
-    }
     return result;
 }
 
@@ -537,12 +538,6 @@ struct REPORT_RESULT_STATUS_INFO
     CREDENTIAL_PROVIDER_STATUS_ICON cpsi;
 };
 
-static const REPORT_RESULT_STATUS_INFO s_rgLogonStatusInfo[] =
-{
-    { STATUS_LOGON_FAILURE, 0, StringUtils::ToWideString(I18n::Get("error_password")), CPSI_ERROR, },
-    { STATUS_ACCOUNT_RESTRICTION, STATUS_ACCOUNT_DISABLED, StringUtils::ToWideString(I18n::Get("error_account_disabled")), CPSI_WARNING },
-};
-
 // ReportResult is completely optional.  Its purpose is to allow a credential to customize the string
 // and the icon displayed in the case of a logon failure.  For example, we have chosen to
 // customize the error shown in the case of bad username/password and in the case of the account
@@ -555,13 +550,18 @@ HRESULT CUnlockCredential::ReportResult(NTSTATUS ntsStatus,
     *ppwszOptionalStatusText = nullptr;
     *pcpsiOptionalStatusIcon = CPSI_NONE;
 
+    REPORT_RESULT_STATUS_INFO rgLogonStatusInfo[] =
+    {
+        { STATUS_LOGON_FAILURE, 0, StringUtils::ToWideString(I18n::Get("error_password")), CPSI_ERROR, },
+        { STATUS_ACCOUNT_RESTRICTION, STATUS_ACCOUNT_DISABLED, StringUtils::ToWideString(I18n::Get("error_account_disabled")), CPSI_WARNING },
+    };
     _unlockResult = UnlockResult(UnlockState::UNKNOWN);
     DWORD dwStatusInfo = (DWORD)-1;
 
     // Look for a match on status and substatus.
-    for (DWORD i = 0; i < ARRAYSIZE(s_rgLogonStatusInfo); i++)
+    for (DWORD i = 0; i < ARRAYSIZE(rgLogonStatusInfo); i++)
     {
-        if (s_rgLogonStatusInfo[i].ntsStatus == ntsStatus && s_rgLogonStatusInfo[i].ntsSubstatus == ntsSubstatus)
+        if (rgLogonStatusInfo[i].ntsStatus == ntsStatus && rgLogonStatusInfo[i].ntsSubstatus == ntsSubstatus)
         {
             dwStatusInfo = i;
             break;
@@ -570,9 +570,9 @@ HRESULT CUnlockCredential::ReportResult(NTSTATUS ntsStatus,
 
     if ((DWORD)-1 != dwStatusInfo)
     {
-        if (SUCCEEDED(SHStrDupW(s_rgLogonStatusInfo[dwStatusInfo].pwzMessage.c_str(), ppwszOptionalStatusText)))
+        if (SUCCEEDED(SHStrDupW(rgLogonStatusInfo[dwStatusInfo].pwzMessage.c_str(), ppwszOptionalStatusText)))
         {
-            *pcpsiOptionalStatusIcon = s_rgLogonStatusInfo[dwStatusInfo].cpsi;
+            *pcpsiOptionalStatusIcon = rgLogonStatusInfo[dwStatusInfo].cpsi;
         }
     }
 
