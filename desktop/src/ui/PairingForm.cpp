@@ -33,6 +33,15 @@ QUrl PairingForm::GetQRImage() {
     return {QString::fromUtf8(qrSvg.c_str())};
 }
 
+QString PairingForm::GetPairingCode() {
+    auto qrStr = PairingQRData(NetworkHelper::GetSavedNetworkInterface().ipAddress,
+                                AppSettings::Get().pairingServerPort,
+                                PairingMethodUtils::FromString(m_PairingData.pairingMethod.toStdString()),
+                                m_EncKey).ToJson().dump();
+    auto codeStr = StringUtils::WithSeperators(StringUtils::ToBase32String(qrStr), "-", 5);
+    return QString::fromUtf8(codeStr);
+}
+
 bool PairingForm::HasBluetooth() {
     return BluetoothHelper::IsAvailable();
 }

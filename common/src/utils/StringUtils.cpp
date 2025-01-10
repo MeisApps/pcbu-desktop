@@ -1,6 +1,8 @@
 #include "StringUtils.h"
 
+#include <cstdint>
 #include <boost/algorithm/hex.hpp>
+#include <boost/algorithm/string.hpp>
 #include <openssl/rand.h>
 
 #ifdef WINDOWS
@@ -77,10 +79,35 @@ std::string StringUtils::RandomString(size_t len) {
     return result;
 }
 
+std::string StringUtils::WithSeperators(const std::string& str, const std::string& seperator, uint32_t groupSize) {
+    std::vector<std::string> chunks{};
+    for (size_t i = 0; i < str.size(); i += groupSize)
+        chunks.push_back(str.substr(i, groupSize));
+    return boost::algorithm::join(chunks, seperator);
+}
+
 std::string StringUtils::ToHexString(const std::vector<uint8_t> &data) {
     std::string hex;
     boost::algorithm::hex(data.begin(), data.end(), std::back_inserter(hex));
     return hex;
+}
+
+std::string StringUtils::ToBase32String(const std::string& str) {
+    const std::string BASE32_ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+    std::string encodedStr{};
+    uint32_t buffer{};
+    uint32_t bitsLeft{};
+    for (uint8_t c : str) {
+        buffer = (buffer << 8) | c;
+        bitsLeft += 8;
+        while (bitsLeft >= 5) {
+            encodedStr += BASE32_ALPHABET[(buffer >> (bitsLeft - 5)) & 0x1F];
+            bitsLeft -= 5;
+        }
+    }
+    if (bitsLeft > 0)
+        encodedStr += BASE32_ALPHABET[(buffer << (5 - bitsLeft)) & 0x1F];
+    return encodedStr;
 }
 
 #ifdef WINDOWS

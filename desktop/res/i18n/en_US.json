@@ -47,6 +47,7 @@
     "download": "Download",
     "ignore": "Ignore",
     "manual_enter": "Enter manually",
+    "pairing_code": "Pairing code",
 
     "install": "Install",
     "uninstall": "Uninstall",
@@ -75,7 +76,7 @@
     "pairing_form_method_desc": "Select a communication method.",
     "pairing_form_bt_select_desc": "Open Bluetooth settings on your phone and scan for devices. Then wait until your phone appears in this list and select it.",
     "pairing_form_bt_pair_desc": "Please complete the Bluetooth pairing process on your phone and operating system.",
-    "pairing_form_qr_desc": "Open the app on your phone and scan the QR code to pair.",
+    "pairing_form_qr_desc": "Open the app on your phone and scan the QR code to pair. Alternatively, you can also enter the pairing code in the app.",
     "pairing_method_tcp_select": "Use TCP/IP",
     "pairing_method_bt_select": "Use Bluetooth",
     "pairing_method_tcp_desc": "Recommended for desktop PCs or notebooks only used at home.",

@@ -28,6 +28,24 @@ StepForm {
                     height: 0
                 }
             }
+            ColumnLayout {
+                Layout.preferredWidth: 100
+                Layout.fillHeight: true
+                Layout.leftMargin: 20
+                Label {
+                    text: '%1:'.arg(QI18n.Get('pairing_code'))
+                    font.pointSize: 12
+                    verticalAlignment: Text.AlignVCenter
+                }
+                ScrollView {
+                    Layout.fillWidth: true
+                    TextArea {
+                        readOnly: true
+                        wrapMode: Text.Wrap
+                        text: PairingForm.GetPairingCode()
+                    }
+                }
+            }
         }
     }
 }
