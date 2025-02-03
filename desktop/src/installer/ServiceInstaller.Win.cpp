@@ -8,6 +8,7 @@
 #include "storage/AppSettings.h"
 #include "storage/PairedDevicesStorage.h"
 #include "utils/ResourceHelper.h"
+#include "utils/StringUtils.h"
 
 #define LIB_MODULE_FILE "win-pcbiounlock.dll"
 #define CRED_PROVIDER_NAME "win-pcbiounlock"
@@ -15,8 +16,8 @@
 #define APP_FIREWALL_RULE_NAME "PC Bio Unlock"
 
 std::filesystem::path ServiceInstaller_GetSysDir() {
-    CHAR sysDir[MAX_PATH]{};
-    if(GetSystemDirectoryA(sysDir, sizeof(sysDir)) > 0)
+    wchar_t sysDir[MAX_PATH]{};
+    if(GetSystemDirectoryW(sysDir, sizeof(sysDir)) > 0)
         return sysDir;
     return "C:\\Windows\\System32";
 }
@@ -62,9 +63,9 @@ void ServiceInstaller::Install() {
     if(!result)
         throw std::runtime_error(I18n::Get("error_registry_add"));
 
-    CHAR exePath[MAX_PATH]{};
-    GetModuleFileNameA(nullptr, exePath, MAX_PATH);
-    if(std::filesystem::exists(exePath)) {
+    wchar_t wExePath[MAX_PATH]{};
+    if(GetModuleFileNameW(nullptr, wExePath, MAX_PATH) > 0 && std::filesystem::exists(wExePath)) {
+        auto exePath = StringUtils::FromWideString(wExePath);
         m_Logger("Removing old firewall rules...");
         WinFirewallHelper::RemoveAllRulesForProgram(exePath);
         m_Logger("Adding Windows firewall rule...");
