@@ -6,7 +6,6 @@
 
 #include "shell/Shell.h"
 #include "utils/AppInfo.h"
-#include "utils/I18n.h"
 #include "utils/RestClient.h"
 
 #ifdef APPLE

@@ -156,7 +156,7 @@ void PairingForm::UpdateStepForm(QObject *viewLoader, QObject *window) {
 
 void PairingForm::Show(QObject *viewLoader, QObject *window) {
     if(!ServiceInstaller::IsInstalled()) {
-        QMetaObject::invokeMethod(window, "showErrorMessage", Q_ARG(QVariant, QString::fromUtf8(I18n::Get("error_pairing_not_installed"))));
+        QMetaObject::invokeMethod(window, "showErrorMessage", Q_ARG(QVariant, QString::fromUtf8(QtI18n::Get("error_pairing_not_installed"))));
         return;
     }
     try {
@@ -164,7 +164,7 @@ void PairingForm::Show(QObject *viewLoader, QObject *window) {
         m_PairingServer = std::make_unique<PairingServer>();
     } catch(const std::exception& ex) {
         spdlog::error("Error initializing pairing server: {}", ex.what());
-        QMetaObject::invokeMethod(window, "showErrorMessage", Q_ARG(QVariant, QString::fromUtf8(I18n::Get("error_server_init"))));
+        QMetaObject::invokeMethod(window, "showErrorMessage", Q_ARG(QVariant, QString::fromUtf8(QtI18n::Get("error_server_init"))));
         return;
     }
 
@@ -189,12 +189,12 @@ void PairingForm::OnNextClicked(QObject *viewLoader, QObject *window) {
     if(m_CurrentStep == PairingStep::USER_PASSWORD_SELECT) {
 #ifdef WINDOWS
         if(StringUtils::Split(m_PairingData.userName.toStdString(), "\\").size() != 2) {
-            QMetaObject::invokeMethod(window, "showErrorMessage", Q_ARG(QVariant, QString::fromUtf8(I18n::Get("error_win_invalid_user"))));
+            QMetaObject::invokeMethod(window, "showErrorMessage", Q_ARG(QVariant, QString::fromUtf8(QtI18n::Get("error_win_invalid_user"))));
             return;
         }
 #endif
         if(!PlatformHelper::HasUserPassword(m_PairingData.userName.toStdString())) {
-            auto errorStr = m_PairingData.isManualUserName ? I18n::Get("error_invalid_user_or_no_password") : I18n::Get("error_user_no_password");
+            auto errorStr = m_PairingData.isManualUserName ? QtI18n::Get("error_invalid_user_or_no_password") : QtI18n::Get("error_user_no_password");
             QMetaObject::invokeMethod(window, "showErrorMessage", Q_ARG(QVariant, QString::fromUtf8(errorStr)));
             return;
         }
@@ -202,13 +202,13 @@ void PairingForm::OnNextClicked(QObject *viewLoader, QObject *window) {
         std::string errorStr{};
         switch (loginResult) {
             case PlatformLoginResult::INVALID_USER:
-                errorStr = I18n::Get("error_invalid_user");
+                errorStr = QtI18n::Get("error_invalid_user");
                 break;
             case PlatformLoginResult::INVALID_PASSWORD:
-                errorStr = m_PairingData.isManualUserName ? I18n::Get("error_invalid_user_or_incorrect_password") : I18n::Get("error_incorrect_password");
+                errorStr = m_PairingData.isManualUserName ? QtI18n::Get("error_invalid_user_or_incorrect_password") : QtI18n::Get("error_incorrect_password");
                 break;
             case PlatformLoginResult::ACCOUNT_LOCKED:
-                errorStr = I18n::Get("error_win_account_locked");
+                errorStr = QtI18n::Get("error_win_account_locked");
                 break;
             case PlatformLoginResult::SUCCESS:
                 break;
