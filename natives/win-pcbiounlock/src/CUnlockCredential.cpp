@@ -11,6 +11,7 @@
 #include "CUnlockCredential.h"
 
 #include <unknwn.h>
+#include <ShlObj_core.h>
 #include "guid.h"
 #include "utils/StringUtils.h"
 
@@ -276,12 +277,27 @@ HRESULT CUnlockCredential::GetBitmapValue(DWORD dwFieldID, _Outptr_result_nullon
         }
         else
         {
-            hr = HRESULT_FROM_WIN32(GetLastError());
-            hbmp = (HBITMAP)LoadImageW(nullptr, L"C:\\ProgramData\\Microsoft\\User Account Pictures\\user.bmp", IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE);
-            if(hbmp != nullptr)
+            wchar_t szPath[MAX_PATH]{};
+            hr = SHGetFolderPathW(nullptr, CSIDL_COMMON_APPDATA, nullptr, 0, szPath);
+            if(hr == S_OK)
             {
-                hr = S_OK;
-                *phbmp = hbmp;
+                if(PathAppendW(szPath, L"Microsoft\\User Account Pictures\\user.bmp"))
+                {
+                    hbmp = (HBITMAP)LoadImageW(nullptr, szPath, IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE);
+                    if(hbmp != nullptr)
+                    {
+                        hr = S_OK;
+                        *phbmp = hbmp;
+                    }
+                    else
+                    {
+                        hr = HRESULT_FROM_WIN32(GetLastError());
+                    }
+                }
+                else
+                {
+                    hr = E_INVALIDARG;
+                }
             }
         }
     }

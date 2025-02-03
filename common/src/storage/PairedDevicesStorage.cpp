@@ -61,7 +61,7 @@ void PairedDevicesStorage::RemoveDevice(const std::string &pairingId) {
 std::vector<PairedDevice> PairedDevicesStorage::GetDevices() {
     std::vector<PairedDevice> result{};
     try {
-        auto filePath = AppSettings::BASE_DIR / DEVICES_FILE_NAME;
+        auto filePath = AppSettings::GetBaseDir() / DEVICES_FILE_NAME;
 #ifdef WINDOWS
         ProtectFile(filePath.string(), false);
 #endif
@@ -107,10 +107,10 @@ void PairedDevicesStorage::SaveDevices(const std::vector<PairedDevice> &devices)
                     {"cloudToken", device.cloudToken}};
             devicesJson.emplace_back(deviceJson);
         }
-
-        if(!std::filesystem::exists(AppSettings::BASE_DIR))
-            Shell::CreateDir(AppSettings::BASE_DIR);
-        auto filePath = AppSettings::BASE_DIR / DEVICES_FILE_NAME;
+        auto baseDir = AppSettings::GetBaseDir();
+        if(!std::filesystem::exists(baseDir))
+            Shell::CreateDir(baseDir);
+        auto filePath = baseDir / DEVICES_FILE_NAME;
         ProtectFile(filePath.string(), false);
         auto jsonStr = devicesJson.dump();
         Shell::WriteBytes(filePath, {jsonStr.begin(), jsonStr.end()});
@@ -152,14 +152,15 @@ void PairedDevicesStorage::ProtectFile(const std::string &filePath, bool protect
 #ifdef WINDOWS
 bool PairedDevicesStorage::ModifyFileAccess(const std::string& filePath, const std::string& sid, bool deny) {
     PSID pSid{};
-    if (!ConvertStringSidToSidA(sid.c_str(), &pSid)) {
+    if (!ConvertStringSidToSidW(StringUtils::ToWideString(sid).c_str(), &pSid)) {
         spdlog::error("Failed to convert SID. (Code={})", GetLastError());
         return false;
     }
 
+    auto filePathStr = StringUtils::ToWideString(filePath);
     PACL pOldDACL{};
     PSECURITY_DESCRIPTOR pSD{};
-    DWORD dwRes = GetNamedSecurityInfoA(filePath.c_str(), SE_FILE_OBJECT, DACL_SECURITY_INFORMATION,
+    DWORD dwRes = GetNamedSecurityInfoW(filePathStr.c_str(), SE_FILE_OBJECT, DACL_SECURITY_INFORMATION,
             nullptr, nullptr, &pOldDACL, nullptr, &pSD);
     if (dwRes != ERROR_SUCCESS) {
         spdlog::error("GetNamedSecurityInfo() failed. (Code={})", dwRes);
@@ -167,13 +168,13 @@ bool PairedDevicesStorage::ModifyFileAccess(const std::string& filePath, const s
         return false;
     }
 
-    EXPLICIT_ACCESS ea{};
+    EXPLICIT_ACCESS_W ea{};
     ea.grfAccessPermissions = GENERIC_ALL;
     ea.grfAccessMode = deny ? DENY_ACCESS : GRANT_ACCESS;
     ea.grfInheritance = SUB_CONTAINERS_AND_OBJECTS_INHERIT;
     ea.Trustee.TrusteeForm = TRUSTEE_IS_SID;
     ea.Trustee.TrusteeType = TRUSTEE_IS_GROUP;
-    ea.Trustee.ptstrName = (LPTSTR)pSid;
+    ea.Trustee.ptstrName = (LPWCH)pSid;
     bool aceExists = false;
     ACL_SIZE_INFORMATION aclSizeInfo{};
     if (GetAclInformation(pOldDACL, &aclSizeInfo, sizeof(ACL_SIZE_INFORMATION), AclSizeInformation)) {
@@ -197,7 +198,7 @@ bool PairedDevicesStorage::ModifyFileAccess(const std::string& filePath, const s
 
     PACL pNewDACL{};
     if (!aceExists) {
-        dwRes = SetEntriesInAclA(1, &ea, pOldDACL, &pNewDACL);
+        dwRes = SetEntriesInAclW(1, &ea, pOldDACL, &pNewDACL);
         if (dwRes != ERROR_SUCCESS) {
             spdlog::error("SetEntriesInAcl() failed. (Code={})", dwRes);
             if (pSD) LocalFree(pSD);
@@ -207,7 +208,7 @@ bool PairedDevicesStorage::ModifyFileAccess(const std::string& filePath, const s
     } else {
         pNewDACL = pOldDACL;
     }
-    dwRes = SetNamedSecurityInfoA((LPSTR)filePath.c_str(), SE_FILE_OBJECT, DACL_SECURITY_INFORMATION,
+    dwRes = SetNamedSecurityInfoW((LPWSTR)filePathStr.c_str(), SE_FILE_OBJECT, DACL_SECURITY_INFORMATION,
                                   nullptr, nullptr, pNewDACL, nullptr);
     if (dwRes != ERROR_SUCCESS) {
         spdlog::error("SetNamedSecurityInfo() failed. (Code={})", dwRes);
