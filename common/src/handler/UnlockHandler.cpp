@@ -36,7 +36,7 @@ UnlockResult UnlockHandler::GetResult(const std::string& authUser, const std::st
         BaseUnlockConnection *connection{};
         switch (device.pairingMethod) {
             case PairingMethod::TCP:
-                connection = new TCPUnlockClient(device.ipAddress, 43298, device);
+                connection = new TCPUnlockClient(device.ipAddress, device.serverPort, device);
                 break;
             case PairingMethod::BLUETOOTH:
                 connection = new BTUnlockClient(device.bluetoothAddress, device);

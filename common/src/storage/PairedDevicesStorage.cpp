@@ -81,6 +81,11 @@ std::vector<PairedDevice> PairedDevicesStorage::GetDevices() {
             device.ipAddress = entry["ipAddress"];
             device.bluetoothAddress = entry["bluetoothAddress"];
             device.cloudToken = entry["cloudToken"];
+            try {
+                device.serverPort = entry["serverPort"];
+            } catch(...) {
+                device.serverPort = 43298;
+            }
             result.emplace_back(device);
         }
     } catch (const std::exception& ex) {
@@ -103,6 +108,7 @@ void PairedDevicesStorage::SaveDevices(const std::vector<PairedDevice> &devices)
                     {"encryptionKey", device.encryptionKey},
 
                     {"ipAddress", device.ipAddress},
+                    {"serverPort", device.serverPort},
                     {"bluetoothAddress", device.bluetoothAddress},
                     {"cloudToken", device.cloudToken}};
             devicesJson.emplace_back(deviceJson);
