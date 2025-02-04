@@ -44,6 +44,7 @@ set(Boost_INCLUDE_DIRS
         "${CMAKE_CURRENT_SOURCE_DIR}/deps/boost/libs/date_time/include"
         "${CMAKE_CURRENT_SOURCE_DIR}/deps/boost/libs/exception/include"
         "${CMAKE_CURRENT_SOURCE_DIR}/deps/boost/libs/filesystem/include"
+        "${CMAKE_CURRENT_SOURCE_DIR}/deps/boost/libs/move/include"
         "${CMAKE_CURRENT_SOURCE_DIR}/deps/boost/libs/numeric/conversion/include"
         "${CMAKE_CURRENT_SOURCE_DIR}/deps/boost/libs/process/include"
         "${CMAKE_CURRENT_SOURCE_DIR}/deps/boost/libs/range/include"

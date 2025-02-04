@@ -51,7 +51,7 @@ void PairingServer::Stop() {
         m_IOService.stop();
         if(m_AcceptThread.joinable())
             m_AcceptThread.join();
-        m_IOService.reset();
+        m_IOService.restart();
         m_Acceptor = boostnet::tcp::acceptor(m_IOService, boostnet::tcp::endpoint(boostnet::tcp::v4(), AppSettings::Get().pairingServerPort));
         m_Socket = boostnet::tcp::socket(m_IOService);
     } catch(const std::exception& ex) {
