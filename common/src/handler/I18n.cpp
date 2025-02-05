@@ -67,6 +67,8 @@ const std::map<std::string, std::string> g_ZhLangMap = {
         {"error_invalid_user", "错误：无效用户。"},
         {"error_start_handler", "错误：无法启动套接字。"},
         {"error_password", "密码错误。"},
+        {"error_protocol_mismatch", "您的应用程序版本与桌面应用程序版本不兼容。请确保两者都是最新版本。"},
+        {"error_pairing_packet_parse", "无法解析配对数据。请确保桌面和移动应用程序都是最新版本。"},
         {"enter_password", "请输入密码。"},
         {"wait_network", "等待网络连接..."},
         {"wait_key_press", "按任意键或点击。"},
