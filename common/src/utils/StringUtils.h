@@ -15,7 +15,9 @@ public:
     static std::string ToLower(const std::string& str);
 
     static std::string RandomString(size_t len);
+    static std::string WithSeperators(const std::string& str, const std::string& seperator, uint32_t groupSize);
     static std::string ToHexString(const std::vector<uint8_t>& data);
+    static std::string ToBase32String(const std::string& str);
 
 #ifdef WINDOWS
     static std::wstring ToWideString(const std::string& string);

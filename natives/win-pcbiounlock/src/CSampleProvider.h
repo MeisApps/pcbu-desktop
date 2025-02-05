@@ -14,11 +14,9 @@
 #include <WinSock2.h>
 #include <windows.h>
 #include <strsafe.h>
-#include <new>
 
 #include "CUnlockCredential.h"
 #include "CUnlockListener.h"
-#include "handler/UnlockHandler.h"
 
 class CSampleProvider : public ICredentialProvider,
                         public ICredentialProviderSetUserArray
@@ -72,6 +70,7 @@ class CSampleProvider : public ICredentialProvider,
     friend HRESULT CSample_CreateInstance(_In_ REFIID riid, _Outptr_ void** ppv);
 
 public:
+    void AddFieldDescriptor(DWORD id, CREDENTIAL_PROVIDER_FIELD_TYPE type, const std::string& label, GUID guid = {});
     void UpdateCredsStatus() const;
 
   protected:
@@ -86,6 +85,7 @@ public:
     HRESULT _EnumerateEmptyTileCredential();
 private:
     long                                    _cRef;            // Used for reference counting.
+    std::vector<CREDENTIAL_PROVIDER_FIELD_DESCRIPTOR> _rgCredProvFieldDescriptors;
     std::vector<CUnlockCredential *>                      _pCredentials;
     bool                                    _fRecreateEnumeratedCredentials;
     CREDENTIAL_PROVIDER_USAGE_SCENARIO      _cpus;

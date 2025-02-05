@@ -22,7 +22,7 @@ struct PCBUAppStorage {
 
 class AppSettings {
 public:
-    static const std::filesystem::path BASE_DIR;
+    static std::filesystem::path GetBaseDir();
 
     static PCBUAppStorage Get();
     static void Save(const PCBUAppStorage& storage);

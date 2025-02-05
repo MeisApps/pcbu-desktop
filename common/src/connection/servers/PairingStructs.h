@@ -1,15 +1,16 @@
 #ifndef PCBU_DESKTOP_PAIRINGSTRUCTS_H
 #define PCBU_DESKTOP_PAIRINGSTRUCTS_H
 
-#include <string>
+#include <nlohmann/json.hpp>
 
-#include "storage/PairedDevicesStorage.h"
+#include "storage/PairingMethod.h"
 
 struct PacketPairInit { // From phone
     std::string protoVersion{};
     std::string deviceUUID{};
     std::string deviceName{};
     std::string ipAddress{};
+    uint16_t serverPort{};
     std::string cloudToken{};
 
     static std::optional<PacketPairInit> FromJson(const std::string& jsonStr) {
@@ -20,6 +21,7 @@ struct PacketPairInit { // From phone
             packet.deviceUUID = json["deviceUUID"];
             packet.deviceName = json["deviceName"];
             packet.ipAddress = json["ipAddress"];
+            packet.serverPort = json["serverPort"];
             packet.cloudToken = json["cloudToken"];
             return packet;
         } catch(...) {}

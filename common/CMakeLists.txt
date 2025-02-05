@@ -20,6 +20,7 @@ if(WIN32)
             Wtsapi32
             Bthprops
             ole32
+            Shell32
     )
     set(PLATFORM_SRC
             src/connection/clients/BTUnlockClient.cpp

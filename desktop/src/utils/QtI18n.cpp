@@ -1,11 +1,11 @@
-#include "I18n.h"
+#include "QtI18n.h"
 
 #include <nlohmann/json.hpp>
 
 #include "ResourceHelper.h"
 #include "utils/LocaleHelper.h"
 
-std::string I18n::Get(const std::string &key) {
+std::string QtI18n::Get(const std::string &key) {
     try {
         std::string i18nPath{};
         switch (LocaleHelper::GetUserLocale()) {
@@ -28,4 +28,3 @@ std::string I18n::Get(const std::string &key) {
     }
     return key;
 }
-

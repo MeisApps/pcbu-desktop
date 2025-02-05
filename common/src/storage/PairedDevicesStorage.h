@@ -15,6 +15,7 @@ struct PairedDevice {
     std::string encryptionKey{};
 
     std::string ipAddress{};
+    uint16_t serverPort{};
     std::string bluetoothAddress{};
     std::string cloudToken{};
 };

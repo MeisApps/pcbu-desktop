@@ -8,14 +8,24 @@
 #include "utils/AppInfo.h"
 
 #ifdef WINDOWS
-const std::filesystem::path AppSettings::BASE_DIR = {"C:\\ProgramData\\PCBioUnlock"};
-#else
-const std::filesystem::path AppSettings::BASE_DIR = {"/etc/pc-bio-unlock"};
+#include <spdlog/fmt/xchar.h>
+#include <ShlObj_core.h>
 #endif
+
+std::filesystem::path AppSettings::GetBaseDir() {
+#ifdef WINDOWS
+    wchar_t szPath[MAX_PATH]{};
+    if(SHGetFolderPathW(nullptr, CSIDL_COMMON_APPDATA, nullptr, 0, szPath) == S_OK)
+        return fmt::format(L"{}\\PCBioUnlock", szPath);
+    return "C:\\ProgramData\\PCBioUnlock";
+#else
+    return {"/etc/pc-bio-unlock"};
+#endif
+}
 
 PCBUAppStorage AppSettings::Get() {
     try {
-        auto jsonData = Shell::ReadBytes(BASE_DIR / SETTINGS_FILE_NAME);
+        auto jsonData = Shell::ReadBytes(GetBaseDir() / SETTINGS_FILE_NAME);
         auto json = nlohmann::json::parse(jsonData);
         auto settings = PCBUAppStorage();
         settings.installedVersion = json["installedVersion"];
@@ -63,10 +73,11 @@ void AppSettings::Save(const PCBUAppStorage &storage) {
                 {"waitForKeyPress", storage.waitForKeyPress},
                 {"isManualUnlockEnabled", storage.isManualUnlockEnabled},
         };
-        if(!std::filesystem::exists(BASE_DIR))
-            Shell::CreateDir(BASE_DIR);
+        auto baseDir = GetBaseDir();
+        if(!std::filesystem::exists(baseDir))
+            Shell::CreateDir(baseDir);
         auto jsonStr = json.dump();
-        Shell::WriteBytes(BASE_DIR / SETTINGS_FILE_NAME, {jsonStr.begin(), jsonStr.end()});
+        Shell::WriteBytes(baseDir / SETTINGS_FILE_NAME, {jsonStr.begin(), jsonStr.end()});
     } catch (const std::exception& ex) {
         spdlog::error("Failed writing app storage: {}", ex.what());
     }

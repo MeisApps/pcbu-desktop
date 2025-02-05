@@ -23,7 +23,7 @@ private:
     void WritePacket(const std::string& dataStr);
     void WritePacket(const std::vector<uint8_t>& data);
 
-    boost::asio::io_service m_IOService{};
+    boost::asio::io_context m_IOService{};
     boostnet::tcp::acceptor m_Acceptor;
     boostnet::tcp::socket m_Socket;
 

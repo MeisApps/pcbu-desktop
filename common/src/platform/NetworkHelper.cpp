@@ -152,10 +152,10 @@ std::vector<NetworkInterface> NetworkHelper::GetLocalNetInterfaces() {
 
 std::string NetworkHelper::GetHostName() {
 #ifdef WINDOWS
-    char computerName[MAX_COMPUTERNAME_LENGTH + 1];
+    wchar_t computerName[MAX_COMPUTERNAME_LENGTH + 1];
     DWORD size = sizeof(computerName) / sizeof(computerName[0]);
-    if (GetComputerNameA(computerName, &size))
-        return {computerName};
+    if (GetComputerNameW(computerName, &size))
+        return StringUtils::FromWideString(computerName);
     spdlog::error("Failed to get computer name.");
     return {};
 #elif defined(LINUX) || defined(APPLE)

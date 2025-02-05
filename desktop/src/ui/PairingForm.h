@@ -52,6 +52,7 @@ public:
     Q_INVOKABLE void SetData(const PairingAssistantModel& data);
 
     Q_INVOKABLE QUrl GetQRImage();
+    Q_INVOKABLE QString GetPairingCode();
     Q_INVOKABLE bool HasBluetooth();
 
 public slots:

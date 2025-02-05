@@ -16,11 +16,13 @@
 #include "CUnlockCredential.h"
 #include "guid.h"
 
-#include <spdlog/spdlog.h>
+#include "storage/LoggingSystem.h"
 #include "storage/PairedDevicesStorage.h"
+#include "utils/StringUtils.h"
 
 CSampleProvider::CSampleProvider() :
     _cRef(1),
+    _rgCredProvFieldDescriptors(),
     _pCredProviderUserArray(nullptr),
     _pCredProvEvents(nullptr),
     _upAdviseContext(0),
@@ -29,6 +31,12 @@ CSampleProvider::CSampleProvider() :
 {
     DllAddRef();
     LoggingSystem::Init("module");
+
+    AddFieldDescriptor(SFI_TILEIMAGE, CPFT_TILE_IMAGE, "Image", CPFG_CREDENTIAL_PROVIDER_LOGO);
+    AddFieldDescriptor(SFI_USERNAME, CPFT_SMALL_TEXT, "Username");
+    AddFieldDescriptor(SFI_MESSAGE, CPFT_SMALL_TEXT, "Message");
+    AddFieldDescriptor(SFI_PASSWORD, CPFT_PASSWORD_TEXT, I18n::Get("password"));
+    AddFieldDescriptor(SFI_SUBMIT_BUTTON, CPFT_SUBMIT_BUTTON, "Submit");
 }
 
 CSampleProvider::~CSampleProvider()
@@ -41,8 +49,16 @@ CSampleProvider::~CSampleProvider()
         _pCredProviderUserArray->Release();
         _pCredProviderUserArray = nullptr;
     }
+    for(auto& desc : _rgCredProvFieldDescriptors)
+        CoTaskMemFree(desc.pszLabel);
     DllRelease();
     LoggingSystem::Destroy();
+}
+
+void CSampleProvider::AddFieldDescriptor(DWORD id, CREDENTIAL_PROVIDER_FIELD_TYPE type, const std::string& label, GUID guid) {
+    LPWSTR labelCopy{};
+    SHStrDupW(StringUtils::ToWideString(label).c_str(), &labelCopy);
+    _rgCredProvFieldDescriptors.emplace_back(id, type, labelCopy, guid);
 }
 
 // SetUsageScenario is the provider's cue that it's going to be asked for tiles
@@ -149,10 +165,10 @@ HRESULT CSampleProvider::GetFieldDescriptorAt(
 {
     HRESULT hr;
     // Verify dwIndex is a valid field.
-    if ((dwIndex < SFI_NUM_FIELDS) && ppcpfd)
+    if ((dwIndex < _rgCredProvFieldDescriptors.size()) && ppcpfd)
     {
         *ppcpfd = nullptr;
-        hr = FieldDescriptorCoAllocCopy(s_rgCredProvFieldDescriptors[dwIndex], ppcpfd);
+        hr = FieldDescriptorCoAllocCopy(_rgCredProvFieldDescriptors[dwIndex], ppcpfd);
     }
     else
     {
@@ -280,7 +296,7 @@ HRESULT CSampleProvider::_EnumerateCredentials()
                             auto cred = new(std::nothrow) CUnlockCredential();
                             if(cred != nullptr)
                             {
-                                hr = cred->Initialize(_cpus, s_rgCredProvFieldDescriptors, s_rgFieldStatePairs, pCredUser, this, userDomain);
+                                hr = cred->Initialize(_cpus, _rgCredProvFieldDescriptors.data(), s_rgFieldStatePairs, pCredUser, this, userDomain);
                                 if (FAILED(hr))
                                 {
                                     spdlog::error("Failed to initialize credential.");

@@ -4,6 +4,7 @@
 #include "handler/UnlockHandler.h"
 #include "platform/NetworkHelper.h"
 #include "storage/AppSettings.h"
+#include "utils/StringUtils.h"
 
 void CUnlockListener::Initialize(CREDENTIAL_PROVIDER_USAGE_SCENARIO cpus,  CSampleProvider *pCredentialProvider, CUnlockCredential *pCredential, const std::wstring& userDomain)
 {

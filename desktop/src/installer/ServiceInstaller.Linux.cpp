@@ -40,9 +40,9 @@ std::vector<ServiceSetting> ServiceInstaller::GetSettings() {
             || IsProgramInstalled(KDE_NAME)
             || IsProgramInstalled(LIGHTDM_NAME)
             || IsProgramInstalled(CINNAMON_NAME);
-    return {{"sudo", I18n::Get("service_setting_sudo"), PAMHelper::HasConfigEntry("sudo", PAM_CONFIG_ENTRY), IsProgramInstalled(SUDO_NAME)},
-            {"polkit", I18n::Get("service_setting_polkit"), PAMHelper::HasConfigEntry("polkit-1", PAM_CONFIG_ENTRY), IsProgramInstalled(POLKIT_NAME)},
-            {"login", I18n::Get("service_setting_login_manager"), isLoginEnabled, hasLoginManager}};
+    return {{"sudo", QtI18n::Get("service_setting_sudo"), PAMHelper::HasConfigEntry("sudo", PAM_CONFIG_ENTRY), IsProgramInstalled(SUDO_NAME)},
+            {"polkit", QtI18n::Get("service_setting_polkit"), PAMHelper::HasConfigEntry("polkit-1", PAM_CONFIG_ENTRY), IsProgramInstalled(POLKIT_NAME)},
+            {"login", QtI18n::Get("service_setting_login_manager"), isLoginEnabled, hasLoginManager}};
 }
 
 void ServiceInstaller::ApplySettings(const std::vector<ServiceSetting> &settings, bool useDefault) {
@@ -83,10 +83,10 @@ void ServiceInstaller::Install() {
     auto exePath = EXE_MODULE_DIR / EXE_MODULE_FILE;
     auto result = Shell::WriteBytes(EXE_MODULE_DIR / EXE_MODULE_FILE, nativeExe);
     if(!result)
-        throw std::runtime_error(I18n::Get("error_file_write", exePath.string()));
+        throw std::runtime_error(QtI18n::Get("error_file_write", exePath.string()));
     result = Shell::RunCommand(fmt::format("chmod +x {0} && chmod u+s {0}", exePath.string())).exitCode == 0;
     if(!result)
-        throw std::runtime_error(I18n::Get("error_exec_setuid", exePath.string()));
+        throw std::runtime_error(QtI18n::Get("error_exec_setuid", exePath.string()));
 
     m_Logger("Copying PAM module...");
     Shell::CreateDir("/lib/security");
@@ -97,7 +97,7 @@ void ServiceInstaller::Install() {
         auto pamPath = pamDir / PAM_MODULE_FILE;
         result = Shell::WriteBytes(pamPath, pamModule);
         if(!result)
-            throw std::runtime_error(I18n::Get("error_file_write", pamPath.string()));
+            throw std::runtime_error(QtI18n::Get("error_file_write", pamPath.string()));
     }
 
     auto settings = AppSettings::Get();
@@ -105,14 +105,14 @@ void ServiceInstaller::Install() {
         m_Logger("Adding firewall rules (ufw)...");
         result = Shell::RunCommand(fmt::format("ufw allow {}/tcp", settings.pairingServerPort)).exitCode == 0;
         if(!result)
-            m_Logger(I18n::Get("warning_firewall_rule_add", "ufw"));
+            m_Logger(QtI18n::Get("warning_firewall_rule_add", "ufw"));
     }
     if(IsProgramInstalled(FIREWALLD_NAME)) {
         m_Logger("Adding firewall rules (firewalld)...");
         result = Shell::RunCommand(fmt::format("firewall-cmd --zone=public --add-port={}/tcp --permanent", settings.pairingServerPort)).exitCode == 0 &&
                 Shell::RunCommand("firewall-cmd --reload").exitCode == 0;
         if(!result)
-            m_Logger(I18n::Get("warning_firewall_rule_add", "firewalld"));
+            m_Logger(QtI18n::Get("warning_firewall_rule_add", "firewalld"));
     }
     if(IsProgramInstalled(SELINUX_NAME)) {
         m_Logger("Installing SELinux policy...");
@@ -121,7 +121,7 @@ void ServiceInstaller::Install() {
         Shell::WriteBytes(tmpPath, policyData);
         result = Shell::RunCommand(fmt::format("semodule -i \"{}\"", tmpPath.string())).exitCode == 0;
         if(!result)
-            throw std::runtime_error(I18n::Get("error_selinux_policy_install"));
+            throw std::runtime_error(QtI18n::Get("error_selinux_policy_install"));
         Shell::RemoveFile(tmpPath);
     }
     m_Logger("Done.");
@@ -132,7 +132,7 @@ void ServiceInstaller::Uninstall() {
     auto exePath = EXE_MODULE_DIR / EXE_MODULE_FILE;
     auto result = Shell::RemoveFile(exePath);
     if(!result)
-        throw std::runtime_error(I18n::Get("error_file_remove", exePath.string()));
+        throw std::runtime_error(QtI18n::Get("error_file_remove", exePath.string()));
 
     m_Logger("Removing PAM module...");
     for(const auto& pamDir : PAM_MODULE_DIRS) {
@@ -141,7 +141,7 @@ void ServiceInstaller::Uninstall() {
             continue;
         result = Shell::RemoveFile(pamPath);
         if(!result)
-            throw std::runtime_error(I18n::Get("error_file_remove", pamPath.string()));
+            throw std::runtime_error(QtI18n::Get("error_file_remove", pamPath.string()));
     }
 
     auto settings = AppSettings::Get();
@@ -149,20 +149,20 @@ void ServiceInstaller::Uninstall() {
         m_Logger("Removing firewall rules (ufw)...");
         result = Shell::RunCommand(fmt::format("ufw delete allow {}/tcp", settings.pairingServerPort)).exitCode == 0;
         if(!result)
-            m_Logger(I18n::Get("warning_firewall_rule_remove", "ufw"));
+            m_Logger(QtI18n::Get("warning_firewall_rule_remove", "ufw"));
     }
     if(IsProgramInstalled(FIREWALLD_NAME)) {
         m_Logger("Removing firewall rules (firewalld)...");
         result = Shell::RunCommand(fmt::format("firewall-cmd --zone=public --remove-port={}/tcp --permanent", settings.pairingServerPort)).exitCode == 0 &&
                 Shell::RunCommand("firewall-cmd --reload").exitCode == 0;
         if(!result)
-            m_Logger(I18n::Get("warning_firewall_rule_remove", "firewalld"));
+            m_Logger(QtI18n::Get("warning_firewall_rule_remove", "firewalld"));
     }
     if(IsProgramInstalled(SELINUX_NAME)) {
         m_Logger("Removing SELinux policy...");
         result = Shell::RunCommand("semodule -r pcbu_auth_policy").exitCode == 0;
         if(!result)
-            throw std::runtime_error(I18n::Get("error_selinux_policy_uninstall"));
+            throw std::runtime_error(QtI18n::Get("error_selinux_policy_uninstall"));
     }
     m_Logger("Done.");
 }

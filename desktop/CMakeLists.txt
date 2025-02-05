@@ -119,8 +119,8 @@ qt_add_executable(pcbu_desktop
 
         src/main.cpp
         src/installer/ServiceInstaller.h
-        src/utils/I18n.cpp
-        src/utils/I18n.h
+        src/utils/QtI18n.cpp
+        src/utils/QtI18n.h
         src/utils/QRUtils.cpp
         src/utils/QRUtils.h
         src/utils/ResourceHelper.cpp
@@ -147,6 +147,8 @@ target_link_libraries(pcbu_desktop PRIVATE
 set_target_properties(pcbu_desktop PROPERTIES
         WIN32_EXECUTABLE TRUE
         MACOSX_BUNDLE TRUE
+        MACOSX_BUNDLE_GUI_IDENTIFIER com.meisapps.PCBioUnlock
+        MACOSX_BUNDLE_INFO_PLIST ${CMAKE_SOURCE_DIR}/pkg/mac/Info.plist
 )
 install(TARGETS pcbu_desktop
         BUNDLE  DESTINATION .
