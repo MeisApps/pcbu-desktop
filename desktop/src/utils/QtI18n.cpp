@@ -12,6 +12,9 @@ std::string QtI18n::Get(const std::string &key) {
             case LocaleHelper::Locale::GERMAN:
                 i18nPath = ":/res/i18n/de_DE.json";
                 break;
+            case LocaleHelper::Locale::CHINESE_SIMPLIFIED:
+                i18nPath = ":/res/i18n/zh_CN.json";
+                break;
             case LocaleHelper::Locale::ENGLISH:
             default:
                 i18nPath = ":/res/i18n/en_US.json";

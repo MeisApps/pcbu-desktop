@@ -5,5 +5,6 @@
         <file>icons/icon.png</file>
         <file>i18n/en_US.json</file>
         <file>i18n/de_DE.json</file>
+        <file>i18n/zh_CN.json</file>
     </qresource>
 </RCC>
