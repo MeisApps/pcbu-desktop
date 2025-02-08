@@ -79,7 +79,7 @@ jobs:
             pkg/build/PCBioUnlock-Setup-arm64.exe
 
   build-linux-x64:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
         with:
@@ -95,14 +95,11 @@ jobs:
             pkg/build/PCBioUnlock-x64.AppImage
 
   build-linux-arm64:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
     steps:
       - uses: actions/checkout@v4
         with:
           submodules: recursive
-
-      - name: Install QEMU + binfmt
-        run: sudo apt-get update && sudo apt-get install -y binfmt-support qemu-user-static
 
       - name: Build docker
         run: bash -c "cd ${{github.workspace}}/pkg/linux && chmod +x docker-build.sh && ARCH=arm64 ./docker-build.sh"
