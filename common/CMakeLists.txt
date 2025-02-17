@@ -79,8 +79,6 @@ add_library(pcbu_common
         src/connection/servers/BTUnlockServer.h
         src/connection/servers/TCPUnlockServer.cpp
         src/connection/servers/TCPUnlockServer.h
-        src/handler/I18n.h
-        src/handler/I18n.cpp
         src/handler/KeyScanner.h
         src/handler/KeyScanner.cpp
         src/handler/UnlockHandler.h
@@ -110,6 +108,8 @@ add_library(pcbu_common
         src/utils/RestClient.h
         src/utils/LocaleHelper.cpp
         src/utils/LocaleHelper.h
+        src/utils/I18n.cpp
+        src/utils/I18n.h
         ${PLATFORM_SRC}
 )
 target_include_directories(pcbu_common PUBLIC
@@ -126,3 +126,27 @@ target_link_libraries(pcbu_common PUBLIC
         Boost::filesystem
         ${PLATFORM_LIBS}
 )
+
+function(embed_json TARGET JSON_FILE VARIABLE_PREFIX)
+        get_filename_component(JSON_NAME ${JSON_FILE} NAME_WE)
+        set(GENERATED_HEADER ${CMAKE_CURRENT_SOURCE_DIR}/src/generated/${VARIABLE_PREFIX}.h)
+
+        file(READ ${JSON_FILE} JSON_CONTENT)
+        file(WRITE ${GENERATED_HEADER}
+"#ifndef ${VARIABLE_PREFIX}_H
+#define ${VARIABLE_PREFIX}_H
+#include <nlohmann/json.hpp>
+
+inline const nlohmann::json ${VARIABLE_PREFIX}_DATA = nlohmann::json::parse(R\"json(${JSON_CONTENT})json\");
+#endif
+")
+        message(STATUS "Generated JSON header: ${GENERATED_HEADER}")
+
+        add_custom_target(generate_json_header_${VARIABLE_PREFIX} DEPENDS ${GENERATED_HEADER})
+        target_sources(${TARGET} PRIVATE ${GENERATED_HEADER})
+        add_dependencies(${TARGET} generate_json_header_${VARIABLE_PREFIX})
+endfunction()
+
+embed_json(pcbu_common res/en_US.json LANG_EN_US)
+embed_json(pcbu_common res/de_DE.json LANG_DE_DE)
+embed_json(pcbu_common res/zh_CN.json LANG_ZH_CN)

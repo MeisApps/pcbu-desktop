@@ -5,7 +5,7 @@
 #include <functional>
 #include <spdlog/spdlog.h>
 
-#include "utils/QtI18n.h"
+#include "utils/I18n.h"
 #if defined(LINUX) || defined(APPLE)
 #include "PAMHelper.h"
 #endif

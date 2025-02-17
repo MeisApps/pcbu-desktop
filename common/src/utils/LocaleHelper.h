@@ -1,6 +1,8 @@
 #ifndef LOCALEHELPER_H
 #define LOCALEHELPER_H
 
+#include <string>
+
 class LocaleHelper {
 public:
     enum class Locale {
@@ -10,6 +12,7 @@ public:
     };
 
     static Locale GetUserLocale();
+    static std::string ToString(Locale locale);
 
 private:
     LocaleHelper() = default;

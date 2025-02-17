@@ -1,5 +1,5 @@
-#ifndef PAM_PCBIOUNLOCK_I18N_H
-#define PAM_PCBIOUNLOCK_I18N_H
+#ifndef I18N_H
+#define I18N_H
 
 #include <spdlog/spdlog.h>
 
@@ -16,4 +16,4 @@ private:
     I18n() = default;
 };
 
-#endif //PAM_PCBIOUNLOCK_I18N_H
+#endif //I18N_H

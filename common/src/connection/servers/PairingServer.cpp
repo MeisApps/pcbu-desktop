@@ -1,12 +1,12 @@
 #include "PairingServer.h"
 
-#include "handler/I18n.h"
 #include "platform/PlatformHelper.h"
 #include "platform/NetworkHelper.h"
 #include "storage/AppSettings.h"
 #include "storage/PairedDevicesStorage.h"
 #include "utils/AppInfo.h"
 #include "utils/CryptUtils.h"
+#include "utils/I18n.h"
 
 PairingServer::PairingServer()
     : m_Acceptor(m_IOService, boostnet::tcp::endpoint(boostnet::tcp::v4(), AppSettings::Get().pairingServerPort)),

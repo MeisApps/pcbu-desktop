@@ -6,5 +6,6 @@ cmake-build-release
 cmake-nvim-debug
 cmake-nvim-release
 pkg/build
+common/src/generated
 desktop/res/natives
 compile_commands.json

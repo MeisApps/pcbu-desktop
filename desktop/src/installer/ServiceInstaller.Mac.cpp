@@ -17,8 +17,8 @@ ServiceInstaller::ServiceInstaller(const std::function<void(const std::string &)
 }
 
 std::vector<ServiceSetting> ServiceInstaller::GetSettings() {
-    return {{"sudo", QtI18n::Get("service_setting_sudo"), PAMHelper::HasConfigEntry("sudo", PAM_CONFIG_ENTRY), true},
-            {"macOS", QtI18n::Get("service_setting_macos"), PAMHelper::HasConfigEntry("authorization", PAM_CONFIG_ENTRY), false}};
+    return {{"sudo", I18n::Get("service_setting_sudo"), PAMHelper::HasConfigEntry("sudo", PAM_CONFIG_ENTRY), true},
+            {"macOS", I18n::Get("service_setting_macos"), PAMHelper::HasConfigEntry("authorization", PAM_CONFIG_ENTRY), false}};
 }
 
 void ServiceInstaller::ApplySettings(const std::vector<ServiceSetting> &settings, bool useDefault) {
@@ -44,10 +44,10 @@ void ServiceInstaller::Install() {
     auto exePath = EXE_MODULE_DIR / EXE_MODULE_FILE;
     auto result = Shell::WriteBytes(exePath, nativeExe);
     if(!result)
-        throw std::runtime_error(QtI18n::Get("error_file_write", exePath.string()));
+        throw std::runtime_error(I18n::Get("error_file_write", exePath.string()));
     result = Shell::RunCommand(fmt::format("chmod +x {0} && chmod u+s {0}", exePath.string())).exitCode == 0;
     if(!result)
-        throw std::runtime_error(QtI18n::Get("error_exec_setuid", exePath.string()));
+        throw std::runtime_error(I18n::Get("error_exec_setuid", exePath.string()));
 
     m_Logger("Copying PAM module...");
     Shell::CreateDir(PAM_MODULE_DIR);
@@ -55,7 +55,7 @@ void ServiceInstaller::Install() {
     auto pamPath = PAM_MODULE_DIR / PAM_MODULE_FILE;
     result = Shell::WriteBytes(pamPath, pamModule);
     if(!result)
-        throw std::runtime_error(QtI18n::Get("error_file_write", pamPath.string()));
+        throw std::runtime_error(I18n::Get("error_file_write", pamPath.string()));
     // ToDo: Firewall echo "pass in proto tcp from any to any port 43295" | sudo pfctl -ef -
     m_Logger("Done.");
 }
@@ -65,13 +65,13 @@ void ServiceInstaller::Uninstall() {
     auto exePath = EXE_MODULE_DIR / EXE_MODULE_FILE;
     auto result = Shell::RemoveFile(exePath);
     if(!result)
-        throw std::runtime_error(QtI18n::Get("error_file_remove", exePath.string()));
+        throw std::runtime_error(I18n::Get("error_file_remove", exePath.string()));
 
     m_Logger("Removing PAM module...");
     auto pamPath = PAM_MODULE_DIR / PAM_MODULE_FILE;
     result = Shell::RemoveFile(pamPath);
     if(!result)
-        throw std::runtime_error(QtI18n::Get("error_file_remove", pamPath.string()));
+        throw std::runtime_error(I18n::Get("error_file_remove", pamPath.string()));
     m_Logger("Done.");
 }
 

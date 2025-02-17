@@ -119,8 +119,6 @@ qt_add_executable(pcbu_desktop
 
         src/main.cpp
         src/installer/ServiceInstaller.h
-        src/utils/QtI18n.cpp
-        src/utils/QtI18n.h
         src/utils/QRUtils.cpp
         src/utils/QRUtils.h
         src/utils/ResourceHelper.cpp
