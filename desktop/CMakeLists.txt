@@ -21,6 +21,7 @@ elseif(APPLE)
 endif()
 
 find_package(Qt6 COMPONENTS Core Gui Quick QuickControls2 REQUIRED)
+qt_policy(SET QTP0004 NEW)
 
 if(WIN32)
     add_compile_definitions(WINDOWS _WIN32_WINNT=0x0A00)
