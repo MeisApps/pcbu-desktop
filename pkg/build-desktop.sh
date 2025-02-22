@@ -82,9 +82,12 @@ elif [[ "$PLATFORM" == "linux" ]]; then
   chmod +x appimage_dir/usr/bin/run-app.sh
 
   export QML_SOURCES_PATHS=../../desktop/qml
-  export EXTRA_QT_MODULES=svg;
+  export EXTRA_QT_MODULES=svg
+  ./linuxdeploy-$LINUX_ARCH.AppImage --appdir appimage_dir --plugin checkrt --desktop-file ../linux/PCBioUnlock.desktop
   wget "https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-$LINUX_ARCH.AppImage" && chmod +x ./linuxdeploy-plugin-qt-$LINUX_ARCH.AppImage
-  ./linuxdeploy-$LINUX_ARCH.AppImage --appdir appimage_dir --plugin qt --plugin checkrt --output appimage --desktop-file ../linux/PCBioUnlock.desktop
+  ./linuxdeploy-plugin-qt-$LINUX_ARCH.AppImage --appdir appimage_dir
+  rm ./linuxdeploy-plugin-qt-$LINUX_ARCH.AppImage
+  ./linuxdeploy-$LINUX_ARCH.AppImage --appdir appimage_dir --plugin checkrt --output appimage --desktop-file ../linux/PCBioUnlock.desktop
   mv PC_Bio_Unlock*.AppImage PCBioUnlock.AppImage
   chmod +x PCBioUnlock.AppImage
 elif [[ "$PLATFORM" == "mac" ]]; then
@@ -100,8 +103,10 @@ elif [[ "$PLATFORM" == "mac" ]]; then
   ln -s /Applications dmg_dir/Applications
 
   if [[ "$CI_BUILD" == "1" ]]; then
-    echo "Killing XProtect..."; sudo pkill -9 XProtect >/dev/null || true;
-    echo "Waiting for XProtect..."; while pgrep XProtect; do sleep 3; done;
+    echo "Killing XProtect..."
+    sudo pkill -9 XProtect >/dev/null || true
+    echo "Waiting for XProtect..."
+    while pgrep XProtect; do sleep 3; done
   fi
   hdiutil create -volname "PC Bio Unlock" -srcfolder dmg_dir/ -ov -format UDZO ./PCBioUnlock-$ARCH.dmg
 fi
