@@ -24,7 +24,7 @@ bool MainWindow::IsPaired() {
 QString MainWindow::GetInstalledVersion() {
     auto installedVersion = AppSettings::Get().installedVersion;
     if(installedVersion.empty())
-        return QString::fromUtf8(QtI18n::Get("installed_version_none"));
+        return QString::fromUtf8(I18n::Get("installed_version_none"));
     return QString::fromUtf8(installedVersion);
 }
 
@@ -37,29 +37,29 @@ QString MainWindow::GetLicenseText() {
 
 bool MainWindow::PerformStartupChecks(QObject *viewLoader, QObject *window) {
     if(!Shell::IsRunningAsAdmin()) {
-        QMetaObject::invokeMethod(window, "showFatalErrorMessage", Q_ARG(QVariant, QString::fromUtf8(QtI18n::Get("error_not_admin"))));
+        QMetaObject::invokeMethod(window, "showFatalErrorMessage", Q_ARG(QVariant, QString::fromUtf8(I18n::Get("error_not_admin"))));
         return false;
     }
 #if defined(LINUX) || defined(APPLE)
     if(Shell::RunUserCommand("which bash").exitCode != 0) {
-        QMetaObject::invokeMethod(window, "showFatalErrorMessage", Q_ARG(QVariant, QString::fromUtf8(QtI18n::Get("error_unix_missing_dep", "bash"))));
+        QMetaObject::invokeMethod(window, "showFatalErrorMessage", Q_ARG(QVariant, QString::fromUtf8(I18n::Get("error_unix_missing_dep", "bash"))));
         return false;
     }
 #ifdef LINUX
     if(Shell::RunUserCommand("test -f /etc/shadow").exitCode != 0) {
-        QMetaObject::invokeMethod(window, "showFatalErrorMessage", Q_ARG(QVariant, QString::fromUtf8(QtI18n::Get("error_unix_missing_dep", "Shadow file"))));
+        QMetaObject::invokeMethod(window, "showFatalErrorMessage", Q_ARG(QVariant, QString::fromUtf8(I18n::Get("error_unix_missing_dep", "Shadow file"))));
         return false;
     }
     if(!PlatformHelper::HasNativeLibrary("libcrypt.so.1")) {
-        QMetaObject::invokeMethod(window, "showFatalErrorMessage", Q_ARG(QVariant, QString::fromUtf8(QtI18n::Get("error_unix_missing_dep", "libcrypt.so.1 (libxcrypt-compat)"))));
+        QMetaObject::invokeMethod(window, "showFatalErrorMessage", Q_ARG(QVariant, QString::fromUtf8(I18n::Get("error_unix_missing_dep", "libcrypt.so.1 (libxcrypt-compat)"))));
         return false;
     }
     if(!PlatformHelper::HasNativeLibrary("libcrypto.so.3") || !PlatformHelper::HasNativeLibrary("libssl.so.3")) {
-        QMetaObject::invokeMethod(window, "showFatalErrorMessage", Q_ARG(QVariant, QString::fromUtf8(QtI18n::Get("error_unix_missing_dep", "OpenSSL 3"))));
+        QMetaObject::invokeMethod(window, "showFatalErrorMessage", Q_ARG(QVariant, QString::fromUtf8(I18n::Get("error_unix_missing_dep", "OpenSSL 3"))));
         return false;
     }
     if(!PlatformHelper::HasNativeLibrary("libbluetooth.so") && !PlatformHelper::HasNativeLibrary("libbluetooth.so.3")) {
-        QMetaObject::invokeMethod(window, "showFatalErrorMessage", Q_ARG(QVariant, QString::fromUtf8(QtI18n::Get("error_unix_missing_dep", "libbluetooth"))));
+        QMetaObject::invokeMethod(window, "showFatalErrorMessage", Q_ARG(QVariant, QString::fromUtf8(I18n::Get("error_unix_missing_dep", "libbluetooth"))));
         return false;
     }
 #endif
@@ -78,7 +78,7 @@ void MainWindow::OnInstallClicked(QObject *window) {
     if(m_LoadingThread.joinable())
         m_LoadingThread.join();
     m_LoadingThread = std::thread([window]() {
-        QMetaObject::invokeMethod(window, "showLoadingScreen", Q_ARG(QVariant, QString::fromUtf8(QtI18n::Get("please_wait"))));
+        QMetaObject::invokeMethod(window, "showLoadingScreen", Q_ARG(QVariant, QString::fromUtf8(I18n::Get("please_wait"))));
         auto logCallback = [window](const std::string& str){
             spdlog::info(str);
             QMetaObject::invokeMethod(window, "appendLoadingOutput", Q_ARG(QVariant, QString::fromUtf8(str)));
@@ -93,10 +93,10 @@ void MainWindow::OnInstallClicked(QObject *window) {
                 installer.ApplySettings(installer.GetSettings(), true);
             }
             AppSettings::SetInstalledVersion(ServiceInstaller::IsInstalled());
-            QMetaObject::invokeMethod(window, "finishLoadingScreen", Q_ARG(QVariant, QString::fromUtf8(QtI18n::Get("success"))));
+            QMetaObject::invokeMethod(window, "finishLoadingScreen", Q_ARG(QVariant, QString::fromUtf8(I18n::Get("success"))));
         } catch(const std::exception& ex) {
             logCallback(ex.what());
-            QMetaObject::invokeMethod(window, "finishLoadingScreen", Q_ARG(QVariant, QString::fromUtf8(QtI18n::Get("error"))));
+            QMetaObject::invokeMethod(window, "finishLoadingScreen", Q_ARG(QVariant, QString::fromUtf8(I18n::Get("error"))));
         }
     });
 }
@@ -105,7 +105,7 @@ void MainWindow::OnReinstallClicked(QObject *window) {
     if(m_LoadingThread.joinable())
         m_LoadingThread.join();
     m_LoadingThread = std::thread([window]() {
-        QMetaObject::invokeMethod(window, "showLoadingScreen", Q_ARG(QVariant, QString::fromUtf8(QtI18n::Get("please_wait"))));
+        QMetaObject::invokeMethod(window, "showLoadingScreen", Q_ARG(QVariant, QString::fromUtf8(I18n::Get("please_wait"))));
         auto logCallback = [window](const std::string& str){
             spdlog::info(str);
             QMetaObject::invokeMethod(window, "appendLoadingOutput", Q_ARG(QVariant, QString::fromUtf8(str)));
@@ -117,10 +117,10 @@ void MainWindow::OnReinstallClicked(QObject *window) {
             installer.Install();
             installer.ApplySettings(installer.GetSettings(), false);
             AppSettings::SetInstalledVersion(true);
-            QMetaObject::invokeMethod(window, "finishLoadingScreen", Q_ARG(QVariant, QString::fromUtf8(QtI18n::Get("success"))));
+            QMetaObject::invokeMethod(window, "finishLoadingScreen", Q_ARG(QVariant, QString::fromUtf8(I18n::Get("success"))));
         } catch(const std::exception& ex) {
             logCallback(ex.what());
-            QMetaObject::invokeMethod(window, "finishLoadingScreen", Q_ARG(QVariant, QString::fromUtf8(QtI18n::Get("error"))));
+            QMetaObject::invokeMethod(window, "finishLoadingScreen", Q_ARG(QVariant, QString::fromUtf8(I18n::Get("error"))));
         }
     });
 }

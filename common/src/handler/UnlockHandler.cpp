@@ -1,6 +1,5 @@
 #include "UnlockHandler.h"
 
-#include "I18n.h"
 #include "KeyScanner.h"
 #include "connection/clients/TCPUnlockClient.h"
 #include "connection/clients/BTUnlockClient.h"

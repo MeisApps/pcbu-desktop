@@ -66,3 +66,16 @@ LocaleHelper::Locale LocaleHelper::GetUserLocale() {
         return Locale::GERMAN;
     return Locale::ENGLISH;
 }
+
+std::string LocaleHelper::ToString(Locale locale) {
+    switch(locale) {
+        case Locale::ENGLISH:
+            return "English";
+        case Locale::GERMAN:
+            return "German";
+        case Locale::CHINESE_SIMPLIFIED:
+            return "Chinese (Simplified)";
+        default:
+            return "Unknown";
+    }
+}

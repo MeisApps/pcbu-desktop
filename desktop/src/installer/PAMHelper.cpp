@@ -3,7 +3,7 @@
 #include <spdlog/spdlog.h>
 
 #include "shell/Shell.h"
-#include "utils/QtI18n.h"
+#include "utils/I18n.h"
 #include "utils/StringUtils.h"
 
 #define PAM_CONFIG_DIR std::filesystem::path("/etc/pam.d/")
@@ -71,7 +71,7 @@ void PAMHelper::AddToConfig(const std::string &configName, const std::string &en
         else
             fileStr = fmt::format(PAM_CONFIG_GEN_COMMON, entry, PAM_CONFIG_GEN_ENTRY);
         if(!Shell::WriteBytes(configPath, {fileStr.begin(), fileStr.end()}))
-            throw std::runtime_error(QtI18n::Get("error_file_write", configPath.string()));
+            throw std::runtime_error(I18n::Get("error_file_write", configPath.string()));
 
         if(!hasCommonAuth && !hasSystemAuth)
             m_Logger("Unknown PAM configuration. Please report on GitHub.");
@@ -88,7 +88,7 @@ void PAMHelper::RemoveFromConfig(const std::string &configName, const std::strin
     if(IsConfigGenerated(configPath)) {
         m_Logger(fmt::format("Removing generated configuration {}...", configName));
         if(!Shell::RemoveFile(configPath))
-            throw std::runtime_error(QtI18n::Get("error_file_remove", configPath.string()));
+            throw std::runtime_error(I18n::Get("error_file_remove", configPath.string()));
     } else {
         RemoveEntryFromFile(configPath, entry);
     }
@@ -115,7 +115,7 @@ void PAMHelper::AddEntryToFile(const std::filesystem::path& filePath, const std:
         }
     }
     if(!Shell::WriteBytes(filePath, {resultStr.begin(), resultStr.end()}))
-        throw std::runtime_error(QtI18n::Get("error_file_write", filePath.string()));
+        throw std::runtime_error(I18n::Get("error_file_write", filePath.string()));
 }
 
 void PAMHelper::RemoveEntryFromFile(const std::filesystem::path& filePath, const std::string& entry) {
@@ -128,5 +128,5 @@ void PAMHelper::RemoveEntryFromFile(const std::filesystem::path& filePath, const
         if(line != entry)
             resultStr.append(line + '\n');
     if(!Shell::WriteBytes(filePath, {resultStr.begin(), resultStr.end()}))
-        throw std::runtime_error(QtI18n::Get("error_file_write", filePath.string()));
+        throw std::runtime_error(I18n::Get("error_file_write", filePath.string()));
 }
