@@ -1,0 +1,5 @@
+BasedOnStyle: LLVM
+ColumnLimit: 150
+AllowShortFunctionsOnASingleLine: Empty
+SpaceBeforeParens: Never
+IndentCaseLabels: true
