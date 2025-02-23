@@ -1,9 +1,15 @@
 #include "AppInfo.h"
 
 #include "StringUtils.h"
+#include "generated/commit.h"
+
+#include <spdlog/spdlog.h>
 
 std::string AppInfo::GetVersion() {
-    return "2.1.0";
+    std::string version = "2.1.0";
+    if(PCBU_DEBUG || GIT_BRANCH != "main")
+        version += fmt::format("-{}-{}", GIT_BRANCH, GIT_COMMIT_HASH);
+    return version;
 }
 
 std::string AppInfo::GetProtocolVersion() {
@@ -28,8 +34,10 @@ std::string AppInfo::GetArchitecture() {
 
 int AppInfo::CompareVersion(const std::string &thisVersion, const std::string &otherVersion) {
     try {
-        auto thisParts = StringUtils::Split(thisVersion, ".");
-        auto otherParts = StringUtils::Split(otherVersion, ".");
+        auto thisStr = StringUtils::Split(thisVersion, "-")[0];
+        auto otherStr = StringUtils::Split(otherVersion, "-")[0];
+        auto thisParts = StringUtils::Split(thisStr, ".");
+        auto otherParts = StringUtils::Split(otherStr, ".");
         std::vector<int> thisVersions{}, otherVersions{};
         for (const auto& part : thisParts)
             thisVersions.push_back(std::stoi(part));

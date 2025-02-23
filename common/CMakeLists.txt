@@ -7,6 +7,7 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 find_package(Threads REQUIRED)
 find_package(OpenSSL 3 REQUIRED)
 
+add_compile_definitions("PCBU_DEBUG=$<CONFIG:Debug>")
 add_compile_definitions(TARGET_ARCH="${TARGET_ARCH}")
 if(WIN32)
     add_compile_definitions(WINDOWS _WIN32_WINNT=0x0A00)
@@ -129,26 +130,47 @@ target_link_libraries(pcbu_common PUBLIC
         ${PLATFORM_LIBS}
 )
 
+# Commit header
+set(COMMIT_HEADER_FILE "${CMAKE_CURRENT_SOURCE_DIR}/src/generated/commit.h")
+cmake_path(GET CMAKE_CURRENT_SOURCE_DIR PARENT_PATH PCBU_ROOT)
+add_custom_command(
+    OUTPUT ${COMMIT_HEADER_FILE}
+    COMMAND sh -c "echo '#ifndef PCBU_COMMIT_H' > ${COMMIT_HEADER_FILE} && \
+                echo '#define PCBU_COMMIT_H' >> ${COMMIT_HEADER_FILE} && \
+                echo '#include <string_view>' >> ${COMMIT_HEADER_FILE} && \
+                echo 'constexpr std::string_view GIT_COMMIT_HASH = \"'$(git rev-parse --short HEAD)'\";' >> ${COMMIT_HEADER_FILE} && \
+                echo 'constexpr std::string_view GIT_BRANCH = \"'$(git rev-parse --abbrev-ref HEAD)'\";' >> ${COMMIT_HEADER_FILE} && \
+                echo '#endif' >> ${COMMIT_HEADER_FILE}"
+    WORKING_DIRECTORY ${PCBU_ROOT}
+    DEPENDS ${PCBU_ROOT}/.git/index
+    COMMENT "Updating commit hash"
+    VERBATIM
+)
+add_custom_target(update_commit DEPENDS ${COMMIT_HEADER_FILE})
+add_dependencies(pcbu_common update_commit)
+
+# Json headers
 function(embed_json TARGET JSON_FILE VARIABLE_PREFIX)
         get_filename_component(JSON_NAME ${JSON_FILE} NAME_WE)
         set(GENERATED_HEADER ${CMAKE_CURRENT_SOURCE_DIR}/src/generated/${VARIABLE_PREFIX}.h)
-
-        file(READ ${JSON_FILE} JSON_CONTENT)
-        file(WRITE ${GENERATED_HEADER}
-"#ifndef ${VARIABLE_PREFIX}_H
-#define ${VARIABLE_PREFIX}_H
-#include <nlohmann/json.hpp>
-
-inline const nlohmann::json ${VARIABLE_PREFIX}_DATA = nlohmann::json::parse(R\"json(${JSON_CONTENT})json\");
-#endif
-")
-        message(STATUS "Generated JSON header: ${GENERATED_HEADER}")
-
+        file(MAKE_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/src/generated)
+        add_custom_command(
+                OUTPUT ${GENERATED_HEADER}
+                COMMAND sh -c "echo '#ifndef PCBU_${VARIABLE_PREFIX}_H' > ${GENERATED_HEADER} && \
+                        echo '#define PCBU_${VARIABLE_PREFIX}_H' >> ${GENERATED_HEADER} && \
+                        echo '#include <nlohmann/json.hpp>' >> ${GENERATED_HEADER} && \
+                        echo 'inline const nlohmann::json ${VARIABLE_PREFIX}_DATA = nlohmann::json::parse(R\"json(' >> ${GENERATED_HEADER} && \
+                        cat ${JSON_FILE} >> ${GENERATED_HEADER} && \
+                        echo ')json\");' >> ${GENERATED_HEADER} && \
+                        echo '#endif' >> ${GENERATED_HEADER}"
+                WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+                DEPENDS ${JSON_FILE}
+                COMMENT "Generating JSON header: ${GENERATED_HEADER}"
+                VERBATIM
+        )
         add_custom_target(generate_json_header_${VARIABLE_PREFIX} DEPENDS ${GENERATED_HEADER})
-        target_sources(${TARGET} PRIVATE ${GENERATED_HEADER})
         add_dependencies(${TARGET} generate_json_header_${VARIABLE_PREFIX})
 endfunction()
-
 embed_json(pcbu_common res/en_US.json LANG_EN_US)
 embed_json(pcbu_common res/de_DE.json LANG_DE_DE)
 embed_json(pcbu_common res/zh_CN.json LANG_ZH_CN)
