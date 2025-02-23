@@ -6,8 +6,6 @@ elif [[ "$OSTYPE" == "darwin"* ]]; then
   PLATFORM=mac
 elif [[ "$OSTYPE" == "msys" ]]; then
   PLATFORM=win
-  WIN_QT_PATH="/c/Qt/6.8.2/msvc2022_64"
-  WIN_MT_PATH="/c/Program Files (x86)/Windows Kits/10/bin/10.0.22621.0/x64/mt.exe"
 else
   echo 'Could not detect OS.'
   exit 1
@@ -27,7 +25,12 @@ if [ -z "$QT_BASE_DIR" ]; then
   echo 'QT_BASE_DIR is not set.'
   exit 1
 fi
+
 BUILD_CORES=3
+if [[ "$PLATFORM" == "win" ]]; then
+  WIN_QT_PATH="$(cygpath -u "$QT_BASE_DIR")/msvc2022_64"
+  WIN_MT_PATH="/c/Program Files (x86)/Windows Kits/10/bin/10.0.22621.0/x64/mt.exe"
+fi
 
 # Build
 mkdir build || true
