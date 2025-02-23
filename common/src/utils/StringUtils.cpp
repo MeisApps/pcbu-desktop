@@ -59,6 +59,18 @@ std::string StringUtils::ToLower(const std::string &str) {
   return result;
 }
 
+std::string StringUtils::Truncate(const std::string &str, uint32_t maxLen, const std::string &ellipsis) {
+  auto result = str;
+  if(str.length() > maxLen) {
+    if(maxLen > ellipsis.length()) {
+      return result.substr(0, maxLen - ellipsis.length()) + ellipsis;
+    } else {
+      return result.substr(0, maxLen);
+    }
+  }
+  return result;
+}
+
 std::string StringUtils::RandomString(size_t len) {
   const std::string charset = "abcdefghijklmnopqrstuvwxyz"
                               "ABCDEFGHIJKLMNOPQRSTUVWXYZ"

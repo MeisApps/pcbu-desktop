@@ -13,6 +13,7 @@ public:
   static std::string RTrim(const std::string &str);
   static std::string Trim(const std::string &str);
   static std::string ToLower(const std::string &str);
+  static std::string Truncate(const std::string &str, uint32_t maxLen, const std::string &ellipsis = "...");
 
   static std::string RandomString(size_t len);
   static std::string WithSeperators(const std::string &str, const std::string &seperator, uint32_t groupSize);

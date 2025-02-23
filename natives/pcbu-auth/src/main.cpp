@@ -2,18 +2,45 @@
 
 #include "handler/UnlockHandler.h"
 #include "platform/PlatformHelper.h"
+#include "shell/Shell.h"
 #include "storage/LoggingSystem.h"
+#include "utils/StringUtils.h"
+
+std::string GetServiceName() {
+  const auto fallback = fmt::format("PID {}", getppid());
+#ifdef LINUX
+  auto cmdline = Shell::ReadBytes(fmt::format("/proc/{}/cmdline", getppid()));
+  if(cmdline.empty())
+    return fallback;
+  auto first = true;
+  auto start = reinterpret_cast<const char *>(cmdline.data());
+  auto end = start + cmdline.size();
+  std::ostringstream result{};
+  while(start < end) {
+    std::string_view str(start);
+    if(!str.empty()) {
+      if(!first)
+        result << " ";
+      result << str;
+      first = false;
+    }
+    start += str.size() + 1;
+  }
+  return StringUtils::Truncate(result.str(), 256);
+#else
+  return fallback; // ToDo: macOS
+#endif
+}
 
 int runMain(int argc, char *argv[]) {
-  if(argc != 3) {
+  if(argc != 2) {
     printf("Invalid parameters.\n");
     return -1;
   }
   auto userName = argv[1];
-  auto serviceName = argv[2];
   std::function<void(const std::string &)> printMessage = [](const std::string &s) { printf("%s\n", s.c_str()); };
   auto handler = UnlockHandler(printMessage);
-  auto result = handler.GetResult(userName, serviceName);
+  auto result = handler.GetResult(userName, GetServiceName());
   if(result.state == UnlockState::SUCCESS) {
     if(strcmp(userName, result.device.userName.c_str()) == 0) {
       if(PlatformHelper::CheckLogin(userName, result.password) == PlatformLoginResult::SUCCESS) {

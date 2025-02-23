@@ -11,7 +11,7 @@
 #define PCBU_AUTH_PATH "/usr/local/sbin/pcbu_auth"
 
 static int print_pam(struct pam_conv *conv, const std::string &message) {
-  struct pam_message msg{};
+  struct pam_message msg {};
   struct pam_response *resp = nullptr;
   const struct pam_message *pMsg = &msg;
   if(!conv)
@@ -41,7 +41,6 @@ int pam_sm_authenticate(pam_handle_t *pamh, int flags, int argc, const char **ar
 
   std::vector<std::string> args{};
   args.emplace_back(userName);
-  args.emplace_back(serviceName);
   try {
     boost::process::ipstream outStream{};
     boost::process::child proc(PCBU_AUTH_PATH, args, boost::process::std_out > outStream);
