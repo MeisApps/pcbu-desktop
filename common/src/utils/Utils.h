@@ -6,12 +6,11 @@
 
 class Utils {
 public:
-    static bool IsBigEndian();
-    static int64_t GetCurrentTimeMs();
+  static bool IsBigEndian();
+  static int64_t GetCurrentTimeMs();
 
 private:
-    Utils() = default;
+  Utils() = default;
 };
 
-
-#endif //PCBU_DESKTOP_UTILS_H
+#endif // PCBU_DESKTOP_UTILS_H

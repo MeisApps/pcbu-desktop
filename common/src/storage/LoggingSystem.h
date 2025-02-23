@@ -5,13 +5,12 @@
 
 class LoggingSystem {
 public:
-    static void Init(const std::string& logName, bool printToConsole = true);
-    static void Destroy();
+  static void Init(const std::string &logName, bool printToConsole = true);
+  static void Destroy();
 
 private:
-    LoggingSystem() = default;
-    static std::string g_LogName;
+  LoggingSystem() = default;
+  static std::string g_LogName;
 };
 
-
-#endif //PCBU_DESKTOP_LOGGINGSYSTEM_H
+#endif // PCBU_DESKTOP_LOGGINGSYSTEM_H

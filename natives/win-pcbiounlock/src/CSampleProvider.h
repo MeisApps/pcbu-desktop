@@ -12,84 +12,75 @@
 #include <string>
 
 #include <WinSock2.h>
-#include <windows.h>
 #include <strsafe.h>
+#include <windows.h>
 
 #include "CUnlockCredential.h"
 #include "CUnlockListener.h"
 
-class CSampleProvider : public ICredentialProvider,
-                        public ICredentialProviderSetUserArray
-{
-  public:
-    // IUnknown
-    IFACEMETHODIMP_(ULONG) AddRef()
-    {
-        return ++_cRef;
+class CSampleProvider : public ICredentialProvider, public ICredentialProviderSetUserArray {
+public:
+  // IUnknown
+  IFACEMETHODIMP_(ULONG) AddRef() {
+    return ++_cRef;
+  }
+
+  IFACEMETHODIMP_(ULONG) Release() {
+    long cRef = --_cRef;
+    if(!cRef) {
+      delete this;
     }
+    return cRef;
+  }
 
-    IFACEMETHODIMP_(ULONG) Release()
-    {
-        long cRef = --_cRef;
-        if (!cRef)
-        {
-            delete this;
-        }
-        return cRef;
-    }
-
-    IFACEMETHODIMP QueryInterface(_In_ REFIID riid, _COM_Outptr_ void **ppv)
-    {
-        static const QITAB qit[] =
-        {
-            QITABENT(CSampleProvider, ICredentialProvider), // IID_ICredentialProvider
-            QITABENT(CSampleProvider, ICredentialProviderSetUserArray), // IID_ICredentialProviderSetUserArray
-            {0},
-        };
-        return QISearch(this, qit, riid, ppv);
-    }
-
-  public:
-    IFACEMETHODIMP SetUsageScenario(CREDENTIAL_PROVIDER_USAGE_SCENARIO cpus, DWORD dwFlags);
-    IFACEMETHODIMP SetSerialization(_In_ CREDENTIAL_PROVIDER_CREDENTIAL_SERIALIZATION const *pcpcs);
-
-    IFACEMETHODIMP Advise(_In_ ICredentialProviderEvents *pcpe, _In_ UINT_PTR upAdviseContext);
-    IFACEMETHODIMP UnAdvise();
-
-    IFACEMETHODIMP GetFieldDescriptorCount(_Out_ DWORD *pdwCount);
-    IFACEMETHODIMP GetFieldDescriptorAt(DWORD dwIndex,  _Outptr_result_nullonfailure_ CREDENTIAL_PROVIDER_FIELD_DESCRIPTOR **ppcpfd);
-
-    IFACEMETHODIMP GetCredentialCount(_Out_ DWORD *pdwCount,
-                                      _Out_ DWORD *pdwDefault,
-                                      _Out_ BOOL *pbAutoLogonWithDefault);
-    IFACEMETHODIMP GetCredentialAt(DWORD dwIndex,
-                                   _Outptr_result_nullonfailure_ ICredentialProviderCredential **ppcpc);
-
-    IFACEMETHODIMP SetUserArray(_In_ ICredentialProviderUserArray *users);
-
-    friend HRESULT CSample_CreateInstance(_In_ REFIID riid, _Outptr_ void** ppv);
+  IFACEMETHODIMP QueryInterface(_In_ REFIID riid, _COM_Outptr_ void **ppv) {
+    static const QITAB qit[] = {
+        QITABENT(CSampleProvider, ICredentialProvider),             // IID_ICredentialProvider
+        QITABENT(CSampleProvider, ICredentialProviderSetUserArray), // IID_ICredentialProviderSetUserArray
+        {0},
+    };
+    return QISearch(this, qit, riid, ppv);
+  }
 
 public:
-    void AddFieldDescriptor(DWORD id, CREDENTIAL_PROVIDER_FIELD_TYPE type, const std::string& label, GUID guid = {});
-    void UpdateCredsStatus() const;
+  IFACEMETHODIMP SetUsageScenario(CREDENTIAL_PROVIDER_USAGE_SCENARIO cpus, DWORD dwFlags);
+  IFACEMETHODIMP SetSerialization(_In_ CREDENTIAL_PROVIDER_CREDENTIAL_SERIALIZATION const *pcpcs);
 
-  protected:
-    CSampleProvider();
-    __override ~CSampleProvider();
+  IFACEMETHODIMP Advise(_In_ ICredentialProviderEvents *pcpe, _In_ UINT_PTR upAdviseContext);
+  IFACEMETHODIMP UnAdvise();
 
-  private:
-    void _ReleaseEnumeratedCredentials();
-    void _CreateEnumeratedCredentials();
-    HRESULT _EnumerateEmpty();
-    HRESULT _EnumerateCredentials();
-    HRESULT _EnumerateEmptyTileCredential();
+  IFACEMETHODIMP GetFieldDescriptorCount(_Out_ DWORD *pdwCount);
+  IFACEMETHODIMP GetFieldDescriptorAt(DWORD dwIndex, _Outptr_result_nullonfailure_ CREDENTIAL_PROVIDER_FIELD_DESCRIPTOR **ppcpfd);
+
+  IFACEMETHODIMP GetCredentialCount(_Out_ DWORD *pdwCount, _Out_ DWORD *pdwDefault, _Out_ BOOL *pbAutoLogonWithDefault);
+  IFACEMETHODIMP GetCredentialAt(DWORD dwIndex, _Outptr_result_nullonfailure_ ICredentialProviderCredential **ppcpc);
+
+  IFACEMETHODIMP SetUserArray(_In_ ICredentialProviderUserArray *users);
+
+  friend HRESULT CSample_CreateInstance(_In_ REFIID riid, _Outptr_ void **ppv);
+
+public:
+  void AddFieldDescriptor(DWORD id, CREDENTIAL_PROVIDER_FIELD_TYPE type, const std::string &label, GUID guid = {});
+  void UpdateCredsStatus() const;
+
+protected:
+  CSampleProvider();
+  __override ~CSampleProvider();
+
 private:
-    long                                    _cRef;            // Used for reference counting.
-    std::vector<CREDENTIAL_PROVIDER_FIELD_DESCRIPTOR> _rgCredProvFieldDescriptors;
-    std::vector<CUnlockCredential *>                      _pCredentials;
-    bool                                    _fRecreateEnumeratedCredentials;
-    CREDENTIAL_PROVIDER_USAGE_SCENARIO      _cpus;
-    ICredentialProviderUserArray            *_pCredProviderUserArray;
-    ICredentialProviderEvents               *_pCredProvEvents;
-    UINT_PTR                                _upAdviseContext;       // Used to tell our owner who we are when asking to
+  void _ReleaseEnumeratedCredentials();
+  void _CreateEnumeratedCredentials();
+  HRESULT _EnumerateEmpty();
+  HRESULT _EnumerateCredentials();
+  HRESULT _EnumerateEmptyTileCredential();
+
+private:
+  long _cRef; // Used for reference counting.
+  std::vector<CREDENTIAL_PROVIDER_FIELD_DESCRIPTOR> _rgCredProvFieldDescriptors;
+  std::vector<CUnlockCredential *> _pCredentials;
+  bool _fRecreateEnumeratedCredentials;
+  CREDENTIAL_PROVIDER_USAGE_SCENARIO _cpus;
+  ICredentialProviderUserArray *_pCredProviderUserArray;
+  ICredentialProviderEvents *_pCredProvEvents;
+  UINT_PTR _upAdviseContext; // Used to tell our owner who we are when asking to
 };

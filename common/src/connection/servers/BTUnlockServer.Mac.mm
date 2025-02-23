@@ -1,18 +1,15 @@
 #include "BTUnlockServer.h"
 
-BTUnlockServer::BTUnlockServer(const PairedDevice &device)
-        : BaseUnlockConnection(device) {
+BTUnlockServer::BTUnlockServer(const PairedDevice &device) : BaseUnlockConnection(device) {
 #warning Not implemented.
 }
 
 bool BTUnlockServer::Start() {
-    return false;
+  return false;
 }
 
-void BTUnlockServer::Stop() {
-
-}
+void BTUnlockServer::Stop() {}
 
 void BTUnlockServer::PerformAuthFlow(SOCKET socket) {
-    BaseUnlockConnection::PerformAuthFlow(socket);
+  BaseUnlockConnection::PerformAuthFlow(socket);
 }

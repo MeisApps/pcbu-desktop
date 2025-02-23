@@ -8,22 +8,22 @@
 
 class BTUnlockServer : public BaseUnlockConnection {
 public:
-    explicit BTUnlockServer(const PairedDevice &device);
+  explicit BTUnlockServer(const PairedDevice &device);
 
-    bool Start() override;
-    void Stop() override;
+  bool Start() override;
+  void Stop() override;
 
 protected:
-    void PerformAuthFlow(SOCKET socket) override;
+  void PerformAuthFlow(SOCKET socket) override;
 
 private:
-    void AcceptThread();
-    void ClientThread(SOCKET clientSocket);
+  void AcceptThread();
+  void ClientThread(SOCKET clientSocket);
 
-    SOCKET m_ServerSocket;
-    std::vector<SOCKET> m_ClientSockets{};
-    std::vector<std::thread> m_ClientThreads{};
+  SOCKET m_ServerSocket;
+  std::vector<SOCKET> m_ClientSockets{};
+  std::vector<std::thread> m_ClientThreads{};
 };
 
 #endif
-#endif //PCBU_DESKTOP_BTUNLOCKSERVER_H
+#endif // PCBU_DESKTOP_BTUNLOCKSERVER_H

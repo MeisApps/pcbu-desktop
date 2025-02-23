@@ -5,11 +5,10 @@
 
 class QRUtils {
 public:
-    static std::string GenerateSVG(const std::string& text);
+  static std::string GenerateSVG(const std::string &text);
 
 private:
-    QRUtils() = default;
+  QRUtils() = default;
 };
 
-
-#endif //PCBU_DESKTOP_QRUTILS_H
+#endif // PCBU_DESKTOP_QRUTILS_H

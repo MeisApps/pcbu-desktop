@@ -5,15 +5,15 @@
 
 class BTUnlockServer : public BaseUnlockConnection {
 public:
-    explicit BTUnlockServer(const PairedDevice &device);
+  explicit BTUnlockServer(const PairedDevice &device);
 
-    bool Start() override;
-    void Stop() override;
+  bool Start() override;
+  void Stop() override;
 
 protected:
-    void PerformAuthFlow(SOCKET socket) override;
+  void PerformAuthFlow(SOCKET socket) override;
 
 private:
 };
 
-#endif //PCBU_DESKTOP_BTUNLOCKSERVER_MAC_H
+#endif // PCBU_DESKTOP_BTUNLOCKSERVER_MAC_H

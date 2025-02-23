@@ -1,79 +1,72 @@
 #ifndef PCBU_DESKTOP_PAIRINGFORM_H
 #define PCBU_DESKTOP_PAIRINGFORM_H
 
-#include <stack>
 #include <QObject>
 #include <QtQmlIntegration>
+#include <stack>
 
 #include "connection/servers/PairingServer.h"
 #include "platform/NetworkHelper.h"
 
-enum class PairingStep {
-    USER_PASSWORD_SELECT,
-    METHOD_SELECT,
-    BLUETOOTH_DEVICE_SELECT,
-    BLUETOOTH_PAIRING,
-    QR_SCAN,
-    NONE
-};
+enum class PairingStep { USER_PASSWORD_SELECT, METHOD_SELECT, BLUETOOTH_DEVICE_SELECT, BLUETOOTH_PAIRING, QR_SCAN, NONE };
 
 struct PairingAssistantModel {
-    Q_GADGET
+  Q_GADGET
 public:
-    QString userName{};
-    QString password{};
-    bool isManualUserName{};
-    QString pairingMethod{};
-    QString bluetoothAddress{};
-    Q_PROPERTY(QString userName MEMBER userName)
-    Q_PROPERTY(QString password MEMBER password)
-    Q_PROPERTY(bool isManualUserName MEMBER isManualUserName)
-    Q_PROPERTY(QString pairingMethod MEMBER pairingMethod)
-    Q_PROPERTY(QString bluetoothAddress MEMBER bluetoothAddress)
+  QString userName{};
+  QString password{};
+  bool isManualUserName{};
+  QString pairingMethod{};
+  QString bluetoothAddress{};
+  Q_PROPERTY(QString userName MEMBER userName)
+  Q_PROPERTY(QString password MEMBER password)
+  Q_PROPERTY(bool isManualUserName MEMBER isManualUserName)
+  Q_PROPERTY(QString pairingMethod MEMBER pairingMethod)
+  Q_PROPERTY(QString bluetoothAddress MEMBER bluetoothAddress)
 };
 
 struct BluetoothDeviceModel {
-    Q_GADGET
+  Q_GADGET
 public:
-    QString name{};
-    QString address{};
-    Q_PROPERTY(QString name MEMBER name)
-    Q_PROPERTY(QString address MEMBER address)
+  QString name{};
+  QString address{};
+  Q_PROPERTY(QString name MEMBER name)
+  Q_PROPERTY(QString address MEMBER address)
 };
 
 class PairingForm : public QObject {
-    Q_OBJECT
-    QML_ELEMENT
-    QML_SINGLETON
+  Q_OBJECT
+  QML_ELEMENT
+  QML_SINGLETON
 public:
-    ~PairingForm() override;
+  ~PairingForm() override;
 
-    Q_INVOKABLE PairingAssistantModel GetData();
-    Q_INVOKABLE void SetData(const PairingAssistantModel& data);
+  Q_INVOKABLE PairingAssistantModel GetData();
+  Q_INVOKABLE void SetData(const PairingAssistantModel &data);
 
-    Q_INVOKABLE QUrl GetQRImage();
-    Q_INVOKABLE QString GetPairingCode();
-    Q_INVOKABLE bool HasBluetooth();
+  Q_INVOKABLE QUrl GetQRImage();
+  Q_INVOKABLE QString GetPairingCode();
+  Q_INVOKABLE bool HasBluetooth();
 
 public slots:
-    void OnBackClicked(QObject *viewLoader, QObject *window);
-    void OnNextClicked(QObject *viewLoader, QObject *window);
-    void Show(QObject *viewLoader, QObject *window);
+  void OnBackClicked(QObject *viewLoader, QObject *window);
+  void OnNextClicked(QObject *viewLoader, QObject *window);
+  void Show(QObject *viewLoader, QObject *window);
 
 private:
-    PairingStep GetNextStep();
-    void UpdateStepForm(QObject *viewLoader, QObject *window);
+  PairingStep GetNextStep();
+  void UpdateStepForm(QObject *viewLoader, QObject *window);
 
-    PairingStep m_CurrentStep{};
-    std::stack<PairingStep> m_StepStack{};
+  PairingStep m_CurrentStep{};
+  std::stack<PairingStep> m_StepStack{};
 
-    std::string m_EncKey{};
-    PairingAssistantModel m_PairingData{};
+  std::string m_EncKey{};
+  PairingAssistantModel m_PairingData{};
 
-    bool m_IsBluetoothScanRunning{};
-    std::thread m_BluetoothScanThread{};
-    std::thread m_BluetoothPairThread{};
-    std::unique_ptr<PairingServer> m_PairingServer = nullptr;
+  bool m_IsBluetoothScanRunning{};
+  std::thread m_BluetoothScanThread{};
+  std::thread m_BluetoothPairThread{};
+  std::unique_ptr<PairingServer> m_PairingServer = nullptr;
 };
 
-#endif //PCBU_DESKTOP_PAIRINGFORM_H
+#endif // PCBU_DESKTOP_PAIRINGFORM_H

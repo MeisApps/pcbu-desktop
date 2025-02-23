@@ -5,22 +5,21 @@
 #include <vector>
 
 struct NetworkInterface {
-    std::string ifName{};
-    std::string ipAddress{};
-    std::string macAddress{};
+  std::string ifName{};
+  std::string ipAddress{};
+  std::string macAddress{};
 };
 
 class NetworkHelper {
 public:
-    static std::vector<NetworkInterface> GetLocalNetInterfaces();
-    static std::string GetHostName();
-    static bool HasLANConnection();
+  static std::vector<NetworkInterface> GetLocalNetInterfaces();
+  static std::string GetHostName();
+  static bool HasLANConnection();
 
-    static NetworkInterface GetSavedNetworkInterface();
+  static NetworkInterface GetSavedNetworkInterface();
 
 private:
-    NetworkHelper() = default;
+  NetworkHelper() = default;
 };
 
-
-#endif //PCBU_DESKTOP_NETWORKHELPER_H
+#endif // PCBU_DESKTOP_NETWORKHELPER_H

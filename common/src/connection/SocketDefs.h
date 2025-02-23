@@ -4,10 +4,15 @@
 #ifdef WINDOWS
 #include <WinSock2.h>
 
-#define read(x, y, z) recv(x, (char*)y, z, 0)
+#define read(x, y, z) recv(x, (char *)y, z, 0)
 #define write(x, y, z) send(x, y, z, 0)
 
-#define WSA_STARTUP WSADATA wsa{}; if (WSAStartup(MAKEWORD(2, 2), &wsa) != 0) { spdlog::error("WSAStartup failed."); return false; }
+#define WSA_STARTUP                                                                                                                                  \
+  WSADATA wsa{};                                                                                                                                     \
+  if(WSAStartup(MAKEWORD(2, 2), &wsa) != 0) {                                                                                                        \
+    spdlog::error("WSAStartup failed.");                                                                                                             \
+    return false;                                                                                                                                    \
+  }
 
 #define SOCKET_INVALID INVALID_SOCKET
 #define SOCKET_ERROR_TRY_AGAIN WSAEWOULDBLOCK // WOULDBLOCK on Windows
@@ -20,12 +25,16 @@
 #define SOCKET_ERROR_HOST_UNREACHABLE WSAEHOSTUNREACH
 #define SOCKET_ERROR_NET_UNREACHABLE WSAENETUNREACH
 #define SOCKET_LAST_ERROR WSAGetLastError()
-#define SOCKET_CLOSE(x) if(x != SOCKET_INVALID) { closesocket(x); x = SOCKET_INVALID; }
+#define SOCKET_CLOSE(x)                                                                                                                              \
+  if(x != SOCKET_INVALID) {                                                                                                                          \
+    closesocket(x);                                                                                                                                  \
+    x = SOCKET_INVALID;                                                                                                                              \
+  }
 #else
-#include <unistd.h>
-#include <sys/socket.h>
-#include <sys/fcntl.h>
 #include <netinet/in.h>
+#include <sys/fcntl.h>
+#include <sys/socket.h>
+#include <unistd.h>
 
 #define WSA_STARTUP
 
@@ -40,7 +49,11 @@
 #define SOCKET_ERROR_HOST_UNREACHABLE EHOSTUNREACH
 #define SOCKET_ERROR_NET_UNREACHABLE ENETUNREACH
 #define SOCKET_LAST_ERROR errno
-#define SOCKET_CLOSE(x) if(x != SOCKET_INVALID) { close(x); x = SOCKET_INVALID; }
+#define SOCKET_CLOSE(x)                                                                                                                              \
+  if(x != SOCKET_INVALID) {                                                                                                                          \
+    close(x);                                                                                                                                        \
+    x = SOCKET_INVALID;                                                                                                                              \
+  }
 #endif
 
-#endif //PCBU_DESKTOP_SOCKETDEFS_H
+#endif // PCBU_DESKTOP_SOCKETDEFS_H

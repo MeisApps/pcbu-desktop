@@ -5,15 +5,14 @@
 
 class I18n {
 public:
-    template<typename ...T>
-    static std::string Get(const std::string& key, T&&... args) {
-        return fmt::format(fmt::runtime(Get(key)), args...);
-    }
+  template <typename... T> static std::string Get(const std::string &key, T &&...args) {
+    return fmt::format(fmt::runtime(Get(key)), args...);
+  }
 
-    static std::string Get(const std::string& key);
+  static std::string Get(const std::string &key);
 
 private:
-    I18n() = default;
+  I18n() = default;
 };
 
-#endif //I18N_H
+#endif // I18N_H

@@ -5,16 +5,16 @@
 
 class AppInfo {
 public:
-    static std::string GetVersion();
-    static std::string GetProtocolVersion();
+  static std::string GetVersion();
+  static std::string GetProtocolVersion();
 
-    static std::string GetOperatingSystem();
-    static std::string GetArchitecture();
+  static std::string GetOperatingSystem();
+  static std::string GetArchitecture();
 
-    static int CompareVersion(const std::string& thisVersion, const std::string& otherVersion);
+  static int CompareVersion(const std::string &thisVersion, const std::string &otherVersion);
 
 private:
-    AppInfo() = default;
+  AppInfo() = default;
 };
 
-#endif //PCBU_DESKTOP_APPINFO_H
+#endif // PCBU_DESKTOP_APPINFO_H

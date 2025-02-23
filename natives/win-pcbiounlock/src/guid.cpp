@@ -7,5 +7,5 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 //
 
-#include <initguid.h>
 #include "guid.h"
+#include <initguid.h>

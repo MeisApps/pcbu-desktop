@@ -5,11 +5,10 @@
 
 class WinFirewallHelper {
 public:
-    static bool RemoveAllRulesForProgram(const std::string& exePath);
+  static bool RemoveAllRulesForProgram(const std::string &exePath);
 
 private:
-    WinFirewallHelper() = default;
+  WinFirewallHelper() = default;
 };
 
-
-#endif //PCBU_DESKTOP_WINFIREWALLHELPER_H
+#endif // PCBU_DESKTOP_WINFIREWALLHELPER_H

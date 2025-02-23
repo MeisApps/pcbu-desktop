@@ -10,33 +10,28 @@ typedef unsigned long long SOCKET;
 #define SOCKET int
 #endif
 
-enum class PacketError {
-    UNKNOWN,
-    NONE,
-    CLOSED_CONNECTION,
-    TIMEOUT
-};
+enum class PacketError { UNKNOWN, NONE, CLOSED_CONNECTION, TIMEOUT };
 
 struct Packet {
-    PacketError error{};
-    std::vector<uint8_t> data{};
+  PacketError error{};
+  std::vector<uint8_t> data{};
 };
 
 class BaseConnection {
 public:
-    virtual bool IsServer();
+  virtual bool IsServer();
 
 protected:
-    BaseConnection() = default;
+  BaseConnection() = default;
 
-    static bool SetSocketBlocking(SOCKET socket, bool isBlocking);
-    static bool SetSocketRWTimeout(SOCKET socket, uint32_t secs);
+  static bool SetSocketBlocking(SOCKET socket, bool isBlocking);
+  static bool SetSocketRWTimeout(SOCKET socket, uint32_t secs);
 
-    static Packet ReadPacket(SOCKET socket);
-    static PacketError WritePacket(SOCKET socket, const std::vector<uint8_t>& data);
+  static Packet ReadPacket(SOCKET socket);
+  static PacketError WritePacket(SOCKET socket, const std::vector<uint8_t> &data);
 
 private:
-    static PacketError GetPacketError(int result, int error);
+  static PacketError GetPacketError(int result, int error);
 };
 
-#endif //PCBU_DESKTOP_BASECONNECTION_H
+#endif // PCBU_DESKTOP_BASECONNECTION_H

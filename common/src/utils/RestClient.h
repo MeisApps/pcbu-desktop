@@ -6,10 +6,10 @@
 
 class RestClient {
 public:
-    static std::string CheckForUpdates(const std::string& product, const std::string& platform);
+  static std::string CheckForUpdates(const std::string &product, const std::string &platform);
 
 private:
-    RestClient() = default;
+  RestClient() = default;
 };
 
-#endif //PCBU_DESKTOP_RESTCLIENT_H
+#endif // PCBU_DESKTOP_RESTCLIENT_H

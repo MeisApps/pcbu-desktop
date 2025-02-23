@@ -8,18 +8,18 @@
 
 class BTUnlockClient : public BaseUnlockConnection {
 public:
-    BTUnlockClient(const std::string& deviceAddress, const PairedDevice& device);
+  BTUnlockClient(const std::string &deviceAddress, const PairedDevice &device);
 
-    bool Start() override;
-    void Stop() override;
+  bool Start() override;
+  void Stop() override;
 
 private:
-    void ConnectThread();
+  void ConnectThread();
 
-    int m_Channel;
-    SOCKET m_ClientSocket;
-    std::string m_DeviceAddress;
+  int m_Channel;
+  SOCKET m_ClientSocket;
+  std::string m_DeviceAddress;
 };
 
 #endif
-#endif //PAM_PCBIOUNLOCK_BTUNLOCKCLIENT_H
+#endif // PAM_PCBIOUNLOCK_BTUNLOCKCLIENT_H

@@ -5,17 +5,17 @@
 
 class LocaleHelper {
 public:
-    enum class Locale {
-        ENGLISH,
-        GERMAN,
-        CHINESE_SIMPLIFIED,
-    };
+  enum class Locale {
+    ENGLISH,
+    GERMAN,
+    CHINESE_SIMPLIFIED,
+  };
 
-    static Locale GetUserLocale();
-    static std::string ToString(Locale locale);
+  static Locale GetUserLocale();
+  static std::string ToString(Locale locale);
 
 private:
-    LocaleHelper() = default;
+  LocaleHelper() = default;
 };
 
 #endif

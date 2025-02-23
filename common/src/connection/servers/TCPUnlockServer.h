@@ -5,22 +5,22 @@
 
 class TCPUnlockServer : public BaseUnlockConnection {
 public:
-    TCPUnlockServer();
+  TCPUnlockServer();
 
-    bool IsServer() override;
-    bool Start() override;
-    void Stop() override;
+  bool IsServer() override;
+  bool Start() override;
+  void Stop() override;
 
 protected:
-    void PerformAuthFlow(SOCKET socket) override;
+  void PerformAuthFlow(SOCKET socket) override;
 
 private:
-    void AcceptThread();
-    void ClientThread(SOCKET clientSocket);
+  void AcceptThread();
+  void ClientThread(SOCKET clientSocket);
 
-    SOCKET m_ServerSocket;
-    std::vector<SOCKET> m_ClientSockets{};
-    std::vector<std::thread> m_ClientThreads{};
+  SOCKET m_ServerSocket;
+  std::vector<SOCKET> m_ClientSockets{};
+  std::vector<std::thread> m_ClientThreads{};
 };
 
-#endif //PCBU_DESKTOP_TCPUNLOCKSERVER_H
+#endif // PCBU_DESKTOP_TCPUNLOCKSERVER_H
