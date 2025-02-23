@@ -79,12 +79,11 @@ void ServiceInstaller::Install() {
 
     auto logonUiPath = ServiceInstaller_GetSysDir() / "LogonUI.exe";
     m_Logger("Removing old firewall rules for LogonUI...");
-    WinFirewallHelper::RemoveAllRulesForProgram(logonUiPath);
+    WinFirewallHelper::RemoveAllRulesForProgram(logonUiPath.string());
     m_Logger("Adding Windows firewall rule for LogonUI...");
-    result = Shell::RunCommand(fmt::format(R"(netsh advfirewall firewall add rule name="{0}" dir=in program="{1}" profile=any action=allow)", LOGONUI_FIREWALL_RULE_NAME, logonUiPath)).exitCode == 0;
+    result = Shell::RunCommand(fmt::format(R"(netsh advfirewall firewall add rule name="{0}" dir=in program="{1}" profile=any action=allow)", LOGONUI_FIREWALL_RULE_NAME, logonUiPath.string())).exitCode == 0;
     if(!result)
         m_Logger(I18n::Get("warning_firewall_rule_add", "Windows Firewall (LogonUI)"));
-
 
     m_Logger("Setting default credential provider...");
     for(auto device : PairedDevicesStorage::GetDevices()) {
