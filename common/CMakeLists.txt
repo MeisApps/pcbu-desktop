@@ -151,25 +151,42 @@ add_dependencies(pcbu_common update_commit)
 
 # Json headers
 function(embed_json TARGET JSON_FILE VARIABLE_PREFIX)
-        get_filename_component(JSON_PATH ${JSON_FILE} ABSOLUTE)
-        set(GENERATED_HEADER ${CMAKE_CURRENT_SOURCE_DIR}/src/generated/${VARIABLE_PREFIX}.h)
-        file(MAKE_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/src/generated)
+    get_filename_component(JSON_PATH ${JSON_FILE} ABSOLUTE)
+    set(GENERATED_HEADER ${CMAKE_CURRENT_SOURCE_DIR}/src/generated/${VARIABLE_PREFIX}.h)
+    file(MAKE_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/src/generated)
+    if(APPLE)
         add_custom_command(
-                OUTPUT ${GENERATED_HEADER}
-                COMMAND sh -c "echo '#ifndef PCBU_${VARIABLE_PREFIX}_H' > ${GENERATED_HEADER} && \
+            OUTPUT ${GENERATED_HEADER}
+            COMMAND sh -c "echo '#ifndef PCBU_${VARIABLE_PREFIX}_H' > ${GENERATED_HEADER} && \
+                        echo '#define PCBU_${VARIABLE_PREFIX}_H' >> ${GENERATED_HEADER} && \
+                        echo '#include <nlohmann/json.hpp>' >> ${GENERATED_HEADER} && \
+                        echo 'inline const nlohmann::json ${VARIABLE_PREFIX}_DATA = nlohmann::json::parse(R\"json(' >> ${GENERATED_HEADER} && \
+                        cat ${JSON_PATH} >> ${GENERATED_HEADER} && \
+                        echo ')json\");' >> ${GENERATED_HEADER} && \
+                        echo '#endif' >> ${GENERATED_HEADER}"
+            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+            DEPENDS ${JSON_PATH}
+            COMMENT "Generating JSON header: ${GENERATED_HEADER}"
+            VERBATIM
+        )
+    else()
+        add_custom_command(
+            OUTPUT ${GENERATED_HEADER}
+            COMMAND sh -c "echo '#ifndef PCBU_${VARIABLE_PREFIX}_H' > ${GENERATED_HEADER} && \
                         echo '#define PCBU_${VARIABLE_PREFIX}_H' >> ${GENERATED_HEADER} && \
                         echo '#include <nlohmann/json.hpp>' >> ${GENERATED_HEADER} && \
                         echo -e 'inline const nlohmann::json ${VARIABLE_PREFIX}_DATA = nlohmann::json::parse(R\\x22json(' >> ${GENERATED_HEADER} && \
                         cat ${JSON_PATH} >> ${GENERATED_HEADER} && \
                         echo -e ')json\\x22);' >> ${GENERATED_HEADER} && \
                         echo '#endif' >> ${GENERATED_HEADER}"
-                WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-                DEPENDS ${JSON_PATH}
-                COMMENT "Generating JSON header: ${GENERATED_HEADER}"
-                VERBATIM
+            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+            DEPENDS ${JSON_PATH}
+            COMMENT "Generating JSON header: ${GENERATED_HEADER}"
+            VERBATIM
         )
-        add_custom_target(generate_json_header_${VARIABLE_PREFIX} DEPENDS ${GENERATED_HEADER})
-        add_dependencies(${TARGET} generate_json_header_${VARIABLE_PREFIX})
+    endif()
+    add_custom_target(generate_json_header_${VARIABLE_PREFIX} DEPENDS ${GENERATED_HEADER})
+    add_dependencies(${TARGET} generate_json_header_${VARIABLE_PREFIX})
 endfunction()
 embed_json(pcbu_common res/en_US.json LANG_EN_US)
 embed_json(pcbu_common res/de_DE.json LANG_DE_DE)
