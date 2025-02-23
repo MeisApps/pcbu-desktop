@@ -6,6 +6,8 @@ elif [[ "$OSTYPE" == "darwin"* ]]; then
   PLATFORM=mac
 elif [[ "$OSTYPE" == "msys" ]]; then
   PLATFORM=win
+  WIN_QT_PATH="/c/Qt/6.8.2/msvc2022_64"
+  WIN_MT_PATH="/c/Program Files (x86)/Windows Kits/10/bin/10.0.22621.0/x64/mt.exe"
 else
   echo 'Could not detect OS.'
   exit 1
@@ -20,40 +22,41 @@ else
   echo 'Invalid architecture.'
   exit 1
 fi
+
 if [ -z "$QT_BASE_DIR" ]; then
   echo 'QT_BASE_DIR is not set.'
   exit 1
 fi
+BUILD_CORES=3
 
 # Build
 mkdir build || true
 cd build
 if [[ "$PLATFORM" == "win" ]]; then
   cmake ../../ -DCMAKE_BUILD_TYPE=Release -DTARGET_ARCH=$ARCH -DQT_BASE_DIR=$QT_BASE_DIR -G "Visual Studio 17 2022" -A $VS_ARCH -DCMAKE_GENERATOR_PLATFORM=$VS_ARCH -DMSVC_STATIC_LINK=1
-  cmake --build . --target "win-pcbiounlock" --config Release -- /maxcpucount:3
+  cmake --build . --target "win-pcbiounlock" --config Release -- /maxcpucount:$BUILD_CORES
 
   rm -Rf ./*
   cmake ../../ -DCMAKE_BUILD_TYPE=Release -DTARGET_ARCH=$ARCH -DQT_BASE_DIR=$QT_BASE_DIR -G "Visual Studio 17 2022" -A $VS_ARCH -DCMAKE_GENERATOR_PLATFORM=$VS_ARCH
-  cmake --build . --target "pcbu_desktop" --config Release -- /maxcpucount:3
+  cmake --build . --target "pcbu_desktop" --config Release -- /maxcpucount:$BUILD_CORES
 else
   cmake ../../ -DCMAKE_BUILD_TYPE=Release -DTARGET_ARCH=$ARCH -DQT_BASE_DIR=$QT_BASE_DIR
-  cmake --build . --target "pcbu_auth" --config Release -- -j3
-  cmake --build . --target "pam_pcbiounlock" --config Release -- -j3
-  cmake --build . --target "pcbu_desktop" --config Release -- -j3
+  cmake --build . --target "pcbu_auth" --config Release -- -j$BUILD_CORES
+  cmake --build . --target "pam_pcbiounlock" --config Release -- -j$BUILD_CORES
+  cmake --build . --target "pcbu_desktop" --config Release -- -j$BUILD_CORES
 fi
 
 # Package
 if [[ "$PLATFORM" == "win" ]]; then
   mkdir -p installer_dir || true
   cp desktop/Release/pcbu_desktop.exe installer_dir/
-  "/c/Program Files (x86)/Windows Kits/10/bin/10.0.22621.0/x64/mt.exe" -manifest ../win/requireAdmin.manifest -outputresource:installer_dir/pcbu_desktop.exe
-
-  "/c/Qt/6.8.2/msvc2022_64/bin/windeployqt" --qmldir ../../desktop/qml installer_dir/pcbu_desktop.exe
+  "$WIN_MT_PATH" -manifest ../win/requireAdmin.manifest -outputresource:installer_dir/pcbu_desktop.exe
+  "$WIN_QT_PATH/bin/windeployqt" --qmldir ../../desktop/qml installer_dir/pcbu_desktop.exe
   if [[ "$ARCH" == "arm64" ]]; then # ToDo: Workaround for no windeployqt on arm64
     find "installer_dir/" -type f -name "*.dll" | while read -r dll_file; do
       file_name=$(basename "$dll_file")
       if [[ "$file_name" != "D3Dcompiler_47.dll" ]] && [[ "$file_name" != "opengl32sw.dll" ]]; then
-        replacement_file=$(find "/c/Qt/6.8.2/msvc2022_arm64/" -type f -name "$file_name" | head -n 1)
+        replacement_file=$(find "$WIN_QT_PATH" -type f -name "$file_name" | head -n 1)
         if [ -f "$replacement_file" ]; then
           echo "Replacing $dll_file with $replacement_file"
           cp "$replacement_file" "$dll_file"
