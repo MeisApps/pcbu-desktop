@@ -93,7 +93,8 @@
   "error_invalid_user_input": "The specified user could not be found.",
   "error_invalid_user_or_no_password": "The specified user could not be found or does not have a password set. Please set one in Windows settings.",
   "error_invalid_user_or_incorrect_password": "The username or password is incorrect.",
-  "error_server_init": "Failed to initialize the pairing server. Please choose a different port in settings.",
+  "error_pairing_server_init": "Failed to initialize the pairing server. Please choose a different port in settings.",
+  "error_unlock_server_init": "Failed to initialize the unlock server. Please choose a different port in settings.",
   "error_not_admin": "Please run the app as admin/root.",
   "notice_ms_account": "Note: You are using a Microsoft account, so you need to enter your account password.",
 
@@ -103,8 +104,10 @@
   "pairing_form_bt_pair_desc": "Please complete the Bluetooth pairing process on your phone and operating system.",
   "pairing_form_qr_desc": "Open the app on your phone and scan the QR code to pair. Alternatively, you can also enter the pairing code in the app.",
   "pairing_method_tcp_select": "Use TCP/IP",
+  "pairing_method_udp_select": "Use UDP",
   "pairing_method_bt_select": "Use Bluetooth",
-  "pairing_method_tcp_desc": "Recommended for desktop PCs or notebooks only used at home.",
+  "pairing_method_tcp_desc": "Recommended for desktop PCs or notebooks only used at home. Requires periodic re-pairing unless a static IP is set.",
+  "pairing_method_udp_desc": "Alternative to TCP. Works on any local network. Unlock prompts may take longer to appear, but doesn't require re-pairing.",
   "pairing_method_bt_desc": "Recommended for mobile notebooks or tablets. May be unreliable depending on your Bluetooth adapter.",
 
   "service_setting_wait_for_key": "Wait for key press at login",

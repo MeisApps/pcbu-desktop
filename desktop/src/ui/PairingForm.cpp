@@ -164,7 +164,7 @@ void PairingForm::Show(QObject *viewLoader, QObject *window) {
         m_PairingServer = std::make_unique<PairingServer>();
     } catch(const std::exception& ex) {
         spdlog::error("Error initializing pairing server: {}", ex.what());
-        QMetaObject::invokeMethod(window, "showErrorMessage", Q_ARG(QVariant, QString::fromUtf8(I18n::Get("error_server_init"))));
+        QMetaObject::invokeMethod(window, "showErrorMessage", Q_ARG(QVariant, QString::fromUtf8(I18n::Get("error_pairing_server_init"))));
         return;
     }
 

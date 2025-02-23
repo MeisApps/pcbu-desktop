@@ -1,6 +1,7 @@
 #ifndef PCBU_DESKTOP_PAIREDDEVICESSTORAGE_H
 #define PCBU_DESKTOP_PAIREDDEVICESSTORAGE_H
 
+#include <cstdint>
 #include <optional>
 #include <string>
 #include <vector>
@@ -15,7 +16,8 @@ struct PairedDevice {
     std::string encryptionKey{};
 
     std::string ipAddress{};
-    uint16_t serverPort{};
+    uint16_t tcpPort{};
+    uint16_t udpPort{};
     std::string bluetoothAddress{};
     std::string cloudToken{};
 };

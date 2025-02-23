@@ -1,12 +1,12 @@
 #include "UnlockHandler.h"
 
 #include "KeyScanner.h"
+#include "connection/UDPBroadcaster.h"
 #include "connection/clients/TCPUnlockClient.h"
 #include "connection/clients/BTUnlockClient.h"
 #include "connection/servers/TCPUnlockServer.h"
 #include "platform/NetworkHelper.h"
 #include "storage/AppSettings.h"
-#include "utils/RestClient.h"
 
 #ifdef WINDOWS
 #include <Windows.h>
@@ -28,30 +28,38 @@ UnlockResult UnlockHandler::GetResult(const std::string& authUser, const std::st
     auto settings = AppSettings::Get();
     auto netIf = NetworkHelper::GetSavedNetworkInterface();
     auto devices = PairedDevicesStorage::GetDevicesForUser(authUser);
-    auto enableManualUnlock = settings.isManualUnlockEnabled;
+    auto hasTCPServer = false;
 
+    UDPBroadcaster *broadcastClient{};
     std::vector<BaseUnlockConnection *> connections{};
     for(const auto& device : devices) {
         BaseUnlockConnection *connection{};
         switch (device.pairingMethod) {
             case PairingMethod::TCP:
-                connection = new TCPUnlockClient(device.ipAddress, device.serverPort, device);
+                connection = new TCPUnlockClient(device.ipAddress, device.tcpPort, device);
                 break;
             case PairingMethod::BLUETOOTH:
                 connection = new BTUnlockClient(device.bluetoothAddress, device);
                 break;
+            case PairingMethod::UDP: {
+                if(broadcastClient == nullptr)
+                    broadcastClient = new UDPBroadcaster();
+                broadcastClient->AddDevice(device.pairingId, device.udpPort);
+            }
             case PairingMethod::CLOUD_TCP:
-                enableManualUnlock = true;
+                hasTCPServer = true;
                 continue;
             default: {
                 spdlog::error("Invalid pairing method.");
                 continue;
             }
         }
-        connection->SetUnlockInfo(authUser, authProgram);
-        connections.emplace_back(connection);
+        if(connection != nullptr) {
+            connection->SetUnlockInfo(authUser, authProgram);
+            connections.emplace_back(connection);
+        }
     }
-    if(!devices.empty() && enableManualUnlock) {
+    if(!devices.empty() && settings.isManualUnlockEnabled || hasTCPServer) {
         auto server = new TCPUnlockServer();
         server->SetUnlockInfo(authUser, authProgram);
         connections.emplace_back(server);
@@ -70,6 +78,7 @@ UnlockResult UnlockHandler::GetResult(const std::string& authUser, const std::st
     std::mutex mutex{};
     std::condition_variable cv{};
     auto numServers = connections.size();
+    threads.reserve(numServers);
     for (auto connection : connections) {
         threads.emplace_back([this, connection, numServers, isRunning, &currentResult, &completed, &cv, &mutex]() {
             auto serverResult = RunServer(connection, &currentResult, isRunning);
@@ -85,6 +94,11 @@ UnlockResult UnlockHandler::GetResult(const std::string& authUser, const std::st
         });
     }
 
+    // UDP Broadcast
+    if(broadcastClient) {
+        broadcastClient->Start();
+    }
+
     // Wait
     std::unique_lock lock(mutex);
     cv.wait(lock, [&] {
@@ -93,6 +107,10 @@ UnlockResult UnlockHandler::GetResult(const std::string& authUser, const std::st
     auto result = currentResult.load();
 
     // Cleanup
+    if(broadcastClient) {
+        broadcastClient->Stop();
+        delete broadcastClient;
+    }
     for (auto& thread : threads) {
         if (thread.joinable())
             thread.join();

@@ -14,6 +14,7 @@
 #define CRED_PROVIDER_NAME "win-pcbiounlock"
 #define CRED_PROVIDER_GUID "{74A23DE2-B81D-46EC-E129-CD32507ED716}"
 #define APP_FIREWALL_RULE_NAME "PC Bio Unlock"
+#define LOGONUI_FIREWALL_RULE_NAME "LogonUI (PC Bio Unlock)"
 
 std::filesystem::path ServiceInstaller_GetSysDir() {
     wchar_t sysDir[MAX_PATH]{};
@@ -66,15 +67,24 @@ void ServiceInstaller::Install() {
     wchar_t wExePath[MAX_PATH]{};
     if(GetModuleFileNameW(nullptr, wExePath, MAX_PATH) > 0 && std::filesystem::exists(wExePath)) {
         auto exePath = StringUtils::FromWideString(wExePath);
-        m_Logger("Removing old firewall rules...");
+        m_Logger("Removing old firewall rules for PC Bio Unlock...");
         WinFirewallHelper::RemoveAllRulesForProgram(exePath);
-        m_Logger("Adding Windows firewall rule...");
+        m_Logger("Adding Windows firewall rule for PC Bio Unlock...");
         result = Shell::RunCommand(fmt::format(R"(netsh advfirewall firewall add rule name="{0}" dir=in program="{1}" profile=any action=allow)", APP_FIREWALL_RULE_NAME, exePath)).exitCode == 0;
         if(!result)
-            m_Logger(I18n::Get("warning_firewall_rule_add", "Windows Firewall"));
+            m_Logger(I18n::Get("warning_firewall_rule_add", "Windows Firewall (PC Bio Unlock)"));
     } else {
         m_Logger("Warning: App path not found. Skipped adding firewall rule.");
     }
+
+    auto logonUiPath = ServiceInstaller_GetSysDir() / "LogonUI.exe";
+    m_Logger("Removing old firewall rules for LogonUI...");
+    WinFirewallHelper::RemoveAllRulesForProgram(logonUiPath);
+    m_Logger("Adding Windows firewall rule for LogonUI...");
+    result = Shell::RunCommand(fmt::format(R"(netsh advfirewall firewall add rule name="{0}" dir=in program="{1}" profile=any action=allow)", LOGONUI_FIREWALL_RULE_NAME, logonUiPath)).exitCode == 0;
+    if(!result)
+        m_Logger(I18n::Get("warning_firewall_rule_add", "Windows Firewall (LogonUI)"));
+
 
     m_Logger("Setting default credential provider...");
     for(auto device : PairedDevicesStorage::GetDevices()) {
@@ -97,9 +107,12 @@ void ServiceInstaller::Uninstall() {
     if(!result)
         throw std::runtime_error(I18n::Get("error_registry_remove"));
 
-    m_Logger("Removing Windows firewall rule...");
+    m_Logger("Removing Windows firewall rules...");
     result = Shell::RunCommand(fmt::format(R"(netsh advfirewall firewall delete rule name="{0}")", APP_FIREWALL_RULE_NAME)).exitCode == 0;
     if(!result)
-        m_Logger(I18n::Get("warning_firewall_rule_remove", "Windows Firewall"));
+        m_Logger(I18n::Get("warning_firewall_rule_remove", "Windows Firewall (PC Bio Unlock)"));
+    result = Shell::RunCommand(fmt::format(R"(netsh advfirewall firewall delete rule name="{0}")", LOGONUI_FIREWALL_RULE_NAME)).exitCode == 0;
+    if(!result)
+        m_Logger(I18n::Get("warning_firewall_rule_remove", "Windows Firewall (LogonUI)"));
     m_Logger("Done.");
 }

@@ -70,6 +70,8 @@ add_library(pcbu_common
         src/connection/BaseConnection.h
         src/connection/BaseUnlockConnection.h
         src/connection/BaseUnlockConnection.cpp
+        src/connection/UDPBroadcaster.cpp
+        src/connection/UDPBroadcaster.h
         src/connection/clients/TCPUnlockClient.h
         src/connection/clients/TCPUnlockClient.cpp
         src/connection/clients/BTUnlockClient.h

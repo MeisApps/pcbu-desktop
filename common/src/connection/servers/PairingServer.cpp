@@ -90,7 +90,8 @@ void PairingServer::Accept() {
             device.encryptionKey = m_ServerData.encKey;
 
             device.ipAddress = initPacket->ipAddress;
-            device.serverPort = initPacket->serverPort;
+            device.tcpPort = initPacket->tcpPort;
+            device.udpPort = initPacket->udpPort;
             device.bluetoothAddress = m_ServerData.btAddress;
             device.cloudToken = initPacket->cloudToken;
 

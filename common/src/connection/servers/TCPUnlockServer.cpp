@@ -79,7 +79,7 @@ void TCPUnlockServer::AcceptThread() {
     address.sin_port = htons(settings.unlockServerPort);
     if (bind(m_ServerSocket, (struct sockaddr *)&address, sizeof(address)) < 0) {
         spdlog::error("bind() failed. (Code={})", SOCKET_LAST_ERROR);
-        m_UnlockState = UnlockState::UNK_ERROR;
+        m_UnlockState = UnlockState::PORT_ERROR;
         goto threadEnd;
     }
     if (listen(m_ServerSocket, 3) < 0) {
@@ -88,7 +88,7 @@ void TCPUnlockServer::AcceptThread() {
         goto threadEnd;
     }
 
-    spdlog::info("Server started on port '{}'.", settings.unlockServerPort);
+    spdlog::info("TCP server started on port '{}'.", settings.unlockServerPort);
     while (m_IsRunning) {
         SOCKET clientSocket;
         if ((clientSocket = accept(m_ServerSocket, (struct sockaddr *)&address, (socklen_t *)&addrLen)) == SOCKET_INVALID) {
@@ -113,6 +113,7 @@ void TCPUnlockServer::AcceptThread() {
         if(thread.joinable())
             thread.join();
     m_ClientThreads.clear();
+    spdlog::info("TCP server stopped.");
 }
 
 void TCPUnlockServer::ClientThread(SOCKET clientSocket) {
@@ -122,5 +123,5 @@ void TCPUnlockServer::ClientThread(SOCKET clientSocket) {
 
     m_HasConnection = false;
     SOCKET_CLOSE(clientSocket);
-    spdlog::info("TCP Client closed.");
+    spdlog::info("TCP client closed.");
 }

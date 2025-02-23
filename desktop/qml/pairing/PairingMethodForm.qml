@@ -30,7 +30,24 @@ StepForm {
                     checked: PairingForm.GetData().pairingMethod === methodStr
                 }
                 Label {
+                    Layout.preferredWidth: 500
+                    Layout.leftMargin: 40
                     text: QI18n.Get('pairing_method_tcp_desc')
+                    wrapMode: Label.WordWrap
+                }
+            }
+            ColumnLayout {
+                RadioButton {
+                    ButtonGroup.group: methodRadioGroup
+                    property string methodStr: 'UDP'
+                    text: QI18n.Get('pairing_method_udp_select')
+                    checked: PairingForm.GetData().pairingMethod === methodStr
+                }
+                Label {
+                    Layout.preferredWidth: 500
+                    Layout.leftMargin: 40
+                    text: QI18n.Get('pairing_method_udp_desc')
+                    wrapMode: Label.WordWrap
                 }
             }
             ColumnLayout {
@@ -42,7 +59,10 @@ StepForm {
                     checked: PairingForm.GetData().pairingMethod === methodStr
                 }
                 Label {
+                    Layout.preferredWidth: 500
+                    Layout.leftMargin: 40
                     text: QI18n.Get('pairing_method_bt_desc')
+                    wrapMode: Label.WordWrap
                 }
             }
             /*ColumnLayout {
@@ -53,7 +73,10 @@ StepForm {
                     checked: PairingForm.GetData().pairingMethod === methodStr
                 }
                 Label {
+                    Layout.preferredWidth: 500
+                    Layout.leftMargin: 40
                     text: QI18n.Get('pairing_method_cloud_tcp_desc')
+                    wrapMode: Label.WordWrap
                 }
             }*/
         }
