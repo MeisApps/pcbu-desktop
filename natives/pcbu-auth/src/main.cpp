@@ -2,34 +2,52 @@
 
 #include "handler/UnlockHandler.h"
 #include "platform/PlatformHelper.h"
-#include "shell/Shell.h"
 #include "storage/LoggingSystem.h"
 #include "utils/StringUtils.h"
 
+#ifdef LINUX
+#include "shell/Shell.h"
+#elif APPLE
+#include <sys/sysctl.h>
+#endif
+
 std::string GetServiceName() {
-  const auto fallback = fmt::format("PID {}", getppid());
+  auto fallback = fmt::format("PID {}", getppid());
+#if defined(LINUX) || defined(APPLE)
+  auto skipNum = 0;
 #ifdef LINUX
   auto cmdline = Shell::ReadBytes(fmt::format("/proc/{}/cmdline", getppid()));
+#elif APPLE
+  int mib[] = {CTL_KERN, KERN_PROCARGS2, getppid()};
+  size_t size{};
+  if(sysctl(mib, 3, nullptr, &size, nullptr, 0) == -1)
+    return fallback;
+  std::vector<char> cmdline(size);
+  if(sysctl(mib, 3, cmdline.data(), &size, nullptr, 0) == -1)
+    return fallback;
+  skipNum = 2;
+#endif
   if(cmdline.empty())
     return fallback;
-  auto first = true;
+  auto i = 0;
   auto start = reinterpret_cast<const char *>(cmdline.data());
   auto end = start + cmdline.size();
   std::ostringstream result{};
   while(start < end) {
     std::string_view str(start);
     if(!str.empty()) {
-      if(!first)
+      if(i > skipNum)
         result << " ";
-      result << str;
-      first = false;
+      if(i > skipNum - 1)
+        result << str;
+      i++;
     }
     start += str.size() + 1;
   }
-  return StringUtils::Truncate(result.str(), 256);
-#else
-  return fallback; // ToDo: macOS
+  auto resultStr = result.str();
+  return resultStr.empty() ? fallback : StringUtils::Truncate(resultStr, 256);
 #endif
+  return fallback;
 }
 
 int runMain(int argc, char *argv[]) {
