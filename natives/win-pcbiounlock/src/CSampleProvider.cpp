@@ -11,14 +11,16 @@
 // In this sample, we will display one tile that uses each of the nine
 // available UI controls.
 
+// clang-format off
+#include <initguid.h>
+
 #include "CSampleProvider.h"
 #include "CUnlockCredential.h"
 #include "guid.h"
-#include <initguid.h>
-
 #include "storage/LoggingSystem.h"
 #include "storage/PairedDevicesStorage.h"
 #include "utils/StringUtils.h"
+// clang-format on
 
 CSampleProvider::CSampleProvider()
     : _cRef(1), _rgCredProvFieldDescriptors(), _pCredProviderUserArray(nullptr), _pCredProvEvents(nullptr), _upAdviseContext(0),

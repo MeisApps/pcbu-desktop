@@ -8,11 +8,12 @@
 //
 // Standard dll required functions and class factory implementation.
 
+// clang-format off
+#include <windows.h>
+#include <unknwn.h>
 #include "Dll.h"
 #include "helpers.h"
-#include <WinSock2.h>
-#include <unknwn.h>
-#include <windows.h>
+// clang-format on
 
 static long g_cRef = 0;   // global dll reference count
 HINSTANCE g_hinst = NULL; // global dll hinstance

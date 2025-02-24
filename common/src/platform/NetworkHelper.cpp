@@ -10,12 +10,14 @@
 #include "utils/StringUtils.h"
 
 #ifdef WINDOWS
+// clang-format off
+#include <WinSock2.h>
+#include <ws2ipdef.h>
+#include <WS2tcpip.h>
 #include <Netlistmgr.h>
 #include <SensAPI.h>
-#include <WS2tcpip.h>
-#include <WinSock2.h>
 #include <iphlpapi.h>
-#include <ws2ipdef.h>
+// clang-format on
 #elif defined(LINUX) || defined(APPLE)
 #include <arpa/inet.h>
 #include <ifaddrs.h>

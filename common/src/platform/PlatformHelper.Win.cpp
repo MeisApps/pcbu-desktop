@@ -1,11 +1,13 @@
 #include "PlatformHelper.h"
 
-#include <LM.h>
+// clang-format off
 #include <Windows.h>
 #include <WtsApi32.h>
+#include <LM.h>
 #include <sddl.h>
 #include <spdlog/fmt/xchar.h>
 #include <spdlog/spdlog.h>
+// clang-format on
 
 #include "NetworkHelper.h"
 #include "shell/Shell.h"

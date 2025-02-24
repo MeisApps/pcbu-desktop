@@ -11,30 +11,30 @@
 
 #pragma once
 
-#include <WinSock2.h>
-
+// clang-format off
 #pragma warning(push)
-#pragma warning(disable : 28251)
+#pragma warning(disable: 28251)
 #include <credentialprovider.h>
 #include <ntsecapi.h>
 #pragma warning(pop)
 
 #define SECURITY_WIN32
-#include <intsafe.h>
 #include <security.h>
+#include <intsafe.h>
 
-#include <strsafe.h>
 #include <windows.h>
+#include <strsafe.h>
 
 #pragma warning(push)
-#pragma warning(disable : 4995)
+#pragma warning(disable: 4995)
 #include <shlwapi.h>
 #pragma warning(pop)
 
 #pragma warning(push)
-#pragma warning(disable : 28301)
+#pragma warning(disable: 28301)
 #include <wincred.h>
 #pragma warning(pop)
+// clang-format on
 
 // makes a copy of a field descriptor using CoTaskMemAlloc
 HRESULT FieldDescriptorCoAllocCopy(_In_ const CREDENTIAL_PROVIDER_FIELD_DESCRIPTOR &rcpfd,

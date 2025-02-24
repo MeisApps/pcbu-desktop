@@ -15,19 +15,19 @@
 
 #pragma once
 
+// clang-format off
 #include <string>
-
-#include <WinSock2.h>
-#include <propkey.h>
-#include <shlguid.h>
-#include <strsafe.h>
 #include <windows.h>
+#include <strsafe.h>
+#include <shlguid.h>
+#include <propkey.h>
 
+#include "common.h"
 #include "CUnlockListener.h"
 #include "Dll.h"
-#include "common.h"
-#include "handler/UnlockHandler.h"
 #include "resource.h"
+#include "handler/UnlockHandler.h"
+// clang-format on
 
 class CUnlockCredential : public ICredentialProviderCredential2, ICredentialProviderCredentialWithFieldOptions {
 public:

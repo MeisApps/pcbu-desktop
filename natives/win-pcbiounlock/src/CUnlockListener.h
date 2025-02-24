@@ -4,7 +4,6 @@
 #include <string>
 #include <thread>
 
-#include <WinSock2.h>
 #include <credentialprovider.h>
 
 class CSampleProvider;

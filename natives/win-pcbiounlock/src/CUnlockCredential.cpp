@@ -12,6 +12,7 @@
 
 #include "guid.h"
 #include "utils/StringUtils.h"
+
 #include <ShlObj_core.h>
 #include <unknwn.h>
 
