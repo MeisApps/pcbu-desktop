@@ -4,11 +4,10 @@
 #include "storage/AppSettings.h"
 
 #include <boost/asio.hpp>
-#include <chrono>
 #include <nlohmann/json.hpp>
 #include <spdlog/spdlog.h>
-#include <thread>
-#include <vector>
+
+constexpr int INTERVAL_SECS = 2;
 
 UDPBroadcaster::~UDPBroadcaster() {
   Stop();
@@ -38,7 +37,7 @@ void UDPBroadcaster::Start() {
     auto startTime = std::chrono::high_resolution_clock::now();
     while(m_IsRunning.load()) {
       auto diff = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::high_resolution_clock::now() - startTime).count();
-      if(diff >= 1) {
+      if(diff >= INTERVAL_SECS) {
         for(const auto &data : dataVec)
           socket.send_to(boost::asio::buffer(data.second.dump()), data.first);
         startTime = std::chrono::high_resolution_clock::now();
