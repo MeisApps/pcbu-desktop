@@ -1,12 +1,15 @@
 #include "TCPUnlockServer.h"
 
 #include "../SocketDefs.h"
+#include "handler/UnlockState.h"
 #include "storage/AppSettings.h"
 #include "storage/PairedDevicesStorage.h"
 
 #ifdef WINDOWS
 #include <Ws2tcpip.h>
 #endif
+
+constexpr int MAX_CLIENTS = 10;
 
 TCPUnlockServer::TCPUnlockServer() : BaseUnlockConnection() {
   m_ServerSocket = SOCKET_INVALID;
@@ -40,7 +43,7 @@ void TCPUnlockServer::Stop() {
 void TCPUnlockServer::PerformAuthFlow(SOCKET socket) {
   auto devicePacket = ReadPacket(socket);
   if(devicePacket.error != PacketError::NONE) {
-    spdlog::error("Packet error.");
+    spdlog::error("Packet error {}.", (int)devicePacket.error);
     return;
   }
   auto pairingId = std::string((const char *)devicePacket.data.data(), devicePacket.data.size());
@@ -54,9 +57,11 @@ void TCPUnlockServer::PerformAuthFlow(SOCKET socket) {
 }
 
 void TCPUnlockServer::AcceptThread() {
-  struct sockaddr_in address{};
+  struct sockaddr_in address {};
   socklen_t addrLen = sizeof(address);
   auto settings = AppSettings::Get();
+  auto clientSockets = std::vector<SOCKET>();
+  auto clientThreads = std::vector<std::thread>();
   spdlog::info("Starting TCP server...");
 
   if((m_ServerSocket = socket(AF_INET, SOCK_STREAM, 0)) == SOCKET_INVALID) {
@@ -86,12 +91,25 @@ void TCPUnlockServer::AcceptThread() {
     m_UnlockState = UnlockState::UNK_ERROR;
     goto threadEnd;
   }
+  if(!SetSocketBlocking(m_ServerSocket, false)) {
+    spdlog::error("Failed setting server socket to non-blocking mode. (Code={})", SOCKET_LAST_ERROR);
+    m_UnlockState = UnlockState::UNK_ERROR;
+    goto threadEnd;
+  }
 
   spdlog::info("TCP server started on port '{}'.", settings.unlockServerPort);
   while(m_IsRunning) {
+    if(clientSockets.size() >= MAX_CLIENTS) {
+      std::this_thread::sleep_for(std::chrono::milliseconds(50));
+      continue;
+    }
     SOCKET clientSocket;
     if((clientSocket = accept(m_ServerSocket, (struct sockaddr *)&address, (socklen_t *)&addrLen)) == SOCKET_INVALID) {
       auto err = SOCKET_LAST_ERROR;
+      if(err == SOCKET_ERROR_TRY_AGAIN || err == SOCKET_ERROR_WOULD_BLOCK) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        continue;
+      }
       if(err != SOCKET_ERROR_CONNECT_ABORTED)
         spdlog::error("accept() failed. (Code={})", err);
       break;
@@ -101,26 +119,30 @@ void TCPUnlockServer::AcceptThread() {
       m_UnlockState = UnlockState::UNK_ERROR;
       break;
     }
-    m_ClientThreads.emplace_back(&TCPUnlockServer::ClientThread, this, clientSocket);
+    clientSockets.emplace_back(clientSocket);
+    clientThreads.emplace_back(&TCPUnlockServer::ClientThread, this, clientSocket);
   }
 
 threadEnd:
   m_IsRunning = false;
-  m_HasConnection = false;
+  for(auto clientSocket : clientSockets) {
+    SOCKET_CLOSE(clientSocket);
+  }
   SOCKET_CLOSE(m_ServerSocket);
-  for(auto &thread : m_ClientThreads)
+  for(auto &thread : clientThreads)
     if(thread.joinable())
       thread.join();
-  m_ClientThreads.clear();
+  m_HasConnection = false;
   spdlog::info("TCP server stopped.");
 }
 
 void TCPUnlockServer::ClientThread(SOCKET clientSocket) {
   spdlog::info("TCP client connected.");
   m_HasConnection = true;
+  m_NumConnections++;
   PerformAuthFlow(clientSocket);
-
-  m_HasConnection = false;
+  m_NumConnections--;
+  m_HasConnection = m_NumConnections > 0;
   SOCKET_CLOSE(clientSocket);
   spdlog::info("TCP client closed.");
 }

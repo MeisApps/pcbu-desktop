@@ -19,8 +19,7 @@ private:
   void ClientThread(SOCKET clientSocket);
 
   SOCKET m_ServerSocket;
-  std::vector<SOCKET> m_ClientSockets{};
-  std::vector<std::thread> m_ClientThreads{};
+  std::atomic<int> m_NumConnections{};
 };
 
 #endif // PCBU_DESKTOP_TCPUNLOCKSERVER_H
