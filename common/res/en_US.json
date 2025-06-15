@@ -9,6 +9,7 @@
   "error_password": "Invalid password.",
   "error_protocol_mismatch": "Your app's version is incompatible with the desktop app's version. Please make sure that both are up-to-date.",
   "error_pairing_packet_parse": "Failed to parse pairing data. Please make sure that both the desktop and mobile app are up-to-date.",
+  "error_account_disabled": "Error: The Windows account is disabled.",
   "enter_password": "Please enter your password.",
   "wait_network": "Waiting for network connection...",
   "wait_key_press": "Press any key or click.",
