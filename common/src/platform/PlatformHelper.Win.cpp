@@ -215,6 +215,13 @@ bool PlatformHelper::SetDefaultCredProv(const std::string &userName, const std::
   auto userSid = PlatformHelper_GetSidFromUserName(userName);
   if(userSid.empty())
     return false;
-  return RegistryUtils::SetStringValue(HKEY_LOCAL_MACHINE, R"(SOFTWARE\Microsoft\Windows\CurrentVersion\Authentication\LogonUI\UserTile)", userSid,
-                                       provId);
+  auto result = RegistryUtils::SetStringValue(HKEY_LOCAL_MACHINE, R"(SOFTWARE\Microsoft\Windows\CurrentVersion\Authentication\LogonUI\UserTile)",
+                                              userSid, provId);
+  if(!result) {
+    if(RegistryUtils::CreateKey(HKEY_LOCAL_MACHINE, R"(SOFTWARE\Microsoft\Windows\CurrentVersion\Authentication\LogonUI\UserTile)")) {
+      result = RegistryUtils::SetStringValue(HKEY_LOCAL_MACHINE, R"(SOFTWARE\Microsoft\Windows\CurrentVersion\Authentication\LogonUI\UserTile)",
+                                             userSid, provId);
+    }
+  }
+  return result;
 }

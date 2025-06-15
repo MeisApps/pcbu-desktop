@@ -46,3 +46,14 @@ bool RegistryUtils::SetStringValue(HKEY hKeyParent, const std::string &subKey, c
   RegCloseKey(hKey);
   return true;
 }
+
+bool RegistryUtils::CreateKey(HKEY hKeyParent, const std::string &subKey) {
+  HKEY hKey;
+  LONG result = RegCreateKeyExA(hKeyParent, subKey.c_str(), 0, nullptr, 0, KEY_CREATE_SUB_KEY, nullptr, &hKey, nullptr);
+  if(result != ERROR_SUCCESS) {
+    spdlog::error("Failed to create registry key. (Status={})", result);
+    return false;
+  }
+  RegCloseKey(hKey);
+  return true;
+}

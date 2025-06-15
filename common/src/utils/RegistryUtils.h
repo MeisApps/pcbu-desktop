@@ -11,6 +11,8 @@ public:
   static std::optional<std::string> GetStringValue(HKEY hKeyParent, const std::string &subKey, const std::string &valueName);
   static bool SetStringValue(HKEY hKeyParent, const std::string &subKey, const std::string &valueName, const std::string &newValue);
 
+  static bool CreateKey(HKEY hKeyParent, const std::string &subKey);
+
 private:
   RegistryUtils() = default;
 };
