@@ -26,7 +26,7 @@ jobs:
           cache-key: 'vcpkg-x64'
 
       - name: Install Qt x64
-        uses: jurplel/install-qt-action@v3
+        uses: jurplel/install-qt-action@v4
         with:
           dir: 'C:/'
           version: '6.9.1'
@@ -64,22 +64,22 @@ jobs:
           cache-key: 'vcpkg-arm64'
 
       - name: Install Qt x64
-        uses: jurplel/install-qt-action@v3
+        uses: jurplel/install-qt-action@v4
         with:
           dir: 'C:/'
           version: '6.9.1'
-          host: 'windows'
+          host: 'windows_arm64'
           target: 'desktop'
           arch: 'win64_msvc2022_64'
           cache: 'true'
           cache-key-prefix: 'qt-x64'
 
       - name: Install Qt arm64
-        uses: jurplel/install-qt-action@v3
+        uses: jurplel/install-qt-action@v4
         with:
           dir: 'C:/'
           version: '6.9.1'
-          host: 'windows'
+          host: 'windows_arm64'
           target: 'desktop'
           arch: 'win64_msvc2022_arm64_cross_compiled'
           cache: 'true'
