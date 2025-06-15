@@ -29,6 +29,7 @@ fi
 BUILD_CORES=3
 if [[ "$PLATFORM" == "win" ]]; then
   WIN_QT_PATH="$(cygpath -u "$QT_BASE_DIR")/msvc2022_64"
+  WIN_QT_PATH_ARM64="$(cygpath -u "$QT_BASE_DIR")/msvc2022_arm64"
   WIN_MT_PATH="/c/Program Files (x86)/Windows Kits/10/bin/10.0.22621.0/x64/mt.exe"
 fi
 
@@ -59,7 +60,7 @@ if [[ "$PLATFORM" == "win" ]]; then
     find "installer_dir/" -type f -name "*.dll" | while read -r dll_file; do
       file_name=$(basename "$dll_file")
       if [[ "$file_name" != "D3Dcompiler_47.dll" ]] && [[ "$file_name" != "opengl32sw.dll" ]]; then
-        replacement_file=$(find "$WIN_QT_PATH" -type f -name "$file_name" | head -n 1)
+        replacement_file=$(find "$WIN_QT_PATH_ARM64" -type f -name "$file_name" | head -n 1)
         if [ -f "$replacement_file" ]; then
           echo "Replacing $dll_file with $replacement_file"
           cp "$replacement_file" "$dll_file"
