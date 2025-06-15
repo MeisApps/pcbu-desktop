@@ -6,7 +6,7 @@
 #include <spdlog/spdlog.h>
 
 std::string AppInfo::GetVersion() {
-  std::string version = "2.1.0";
+  std::string version = "2.2.0";
   if(PCBU_DEBUG || GIT_BRANCH != "main")
     version += fmt::format("-{}-{}", GIT_BRANCH, GIT_COMMIT_HASH);
   return version;
