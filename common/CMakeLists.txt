@@ -154,7 +154,7 @@ function(embed_json TARGET JSON_FILE VARIABLE_PREFIX)
     get_filename_component(JSON_PATH ${JSON_FILE} ABSOLUTE)
     set(GENERATED_HEADER ${CMAKE_CURRENT_SOURCE_DIR}/src/generated/${VARIABLE_PREFIX}.h)
     file(MAKE_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/src/generated)
-    if(APPLE)
+    if(LINUX OR APPLE)
         add_custom_command(
             OUTPUT ${GENERATED_HEADER}
             COMMAND sh -c "echo '#ifndef PCBU_${VARIABLE_PREFIX}_H' > ${GENERATED_HEADER} && \
