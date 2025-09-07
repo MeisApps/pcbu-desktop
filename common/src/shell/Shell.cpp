@@ -1,7 +1,7 @@
 #include "Shell.h"
 
 #include <boost/filesystem.hpp>
-#include <boost/process.hpp>
+#include <boost/process/v1.hpp>
 #include <fstream>
 #include <spdlog/spdlog.h>
 
@@ -49,14 +49,14 @@ ShellCmdResult Shell::RunCommand(const std::string &cmd) {
 }
 
 ShellCmdResult Shell::RunUserCommand(const std::string &cmd) {
-  boost::process::ipstream outStream{};
-  boost::process::ipstream errStream{};
+  boost::process::v1::ipstream outStream{};
+  boost::process::v1::ipstream errStream{};
 #ifdef WINDOWS
-  boost::process::child proc(fmt::format("{0} {1} \"{2}\"", SHELL_NAME, SHELL_CMD_ARG, cmd), boost::process::std_out > outStream,
-                             boost::process::std_err > errStream, boost::process::windows::create_no_window);
+  boost::process::v1::child proc(fmt::format("{0} {1} \"{2}\"", SHELL_NAME, SHELL_CMD_ARG, cmd), boost::process::v1::std_out > outStream,
+                                 boost::process::v1::std_err > errStream, boost::process::v1::windows::create_no_window);
 #else
-  boost::process::child proc(fmt::format("{0} {1} \"{2}\"", SHELL_NAME, SHELL_CMD_ARG, cmd), boost::process::std_out > outStream,
-                             boost::process::std_err > errStream);
+  boost::process::v1::child proc(fmt::format("{0} {1} \"{2}\"", SHELL_NAME, SHELL_CMD_ARG, cmd), boost::process::v1::std_out > outStream,
+                                 boost::process::v1::std_err > errStream);
 #endif
   std::string output{};
   std::string line{};
@@ -75,9 +75,9 @@ ShellCmdResult Shell::RunUserCommand(const std::string &cmd) {
 
 void Shell::SpawnCommand(const std::string &cmd) {
 #ifdef WINDOWS
-  boost::process::child proc(fmt::format("{0} {1} \"{2}\"", SHELL_NAME, SHELL_CMD_ARG, cmd), boost::process::windows::create_no_window);
+  boost::process::v1::child proc(fmt::format("{0} {1} \"{2}\"", SHELL_NAME, SHELL_CMD_ARG, cmd), boost::process::windows::create_no_window);
 #else
-  boost::process::child proc(fmt::format("{0} {1} \"{2}\"", SHELL_NAME, SHELL_CMD_ARG, cmd));
+  boost::process::v1::child proc(fmt::format("{0} {1} \"{2}\"", SHELL_NAME, SHELL_CMD_ARG, cmd));
 #endif
   proc.detach();
 }
