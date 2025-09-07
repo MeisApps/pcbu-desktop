@@ -29,7 +29,7 @@ jobs:
         uses: jurplel/install-qt-action@v3
         with:
           dir: 'C:/'
-          version: '6.9.1'
+          version: '6.9.2'
           host: 'windows'
           target: 'desktop'
           arch: 'win64_msvc2022_64'
@@ -37,7 +37,7 @@ jobs:
           cache-key-prefix: 'qt-x64'
 
       - name: Build x64
-        run: bash -c "cd pkg && chmod +x build-desktop.sh && ARCH=x64 QT_BASE_DIR=C:/Qt/6.9.1 ./build-desktop.sh"
+        run: bash -c "cd pkg && chmod +x build-desktop.sh && ARCH=x64 QT_BASE_DIR=C:/Qt/6.9.2 ./build-desktop.sh"
         env:
           VCPKG_ROOT: ${{github.workspace}}/vcpkg
 
@@ -47,36 +47,36 @@ jobs:
           files: |
             pkg/build/PCBioUnlock-Setup-x64.exe
 
-#      - name: vcpkg build arm64
-#        uses: johnwason/vcpkg-action@v6
-#        with:
-#          pkgs: openssl
-#          triplet: arm64-windows-static
-#          token: ${{ github.token }}
-#          github-binarycache: true
-#          cache-key: 'vcpkg-arm64'
-#
-#      - name: Install Qt arm64
-#        uses: jurplel/install-qt-action@v3
-#        with:
-#          dir: 'C:/'
-#          version: '6.9.1'
-#          host: 'windows'
-#          target: 'desktop'
-#          arch: 'win64_msvc2022_arm64_cross_compiled'
-#          cache: 'true'
-#          cache-key-prefix: 'qt-arm64'
-#
-#      - name: Build arm64
-#        run: bash -c "cd pkg && rm -Rf ./build/ && ARCH=arm64 QT_BASE_DIR=C:/Qt/6.9.1 ./build-desktop.sh"
-#        env:
-#          VCPKG_ROOT: ${{github.workspace}}/vcpkg
+      - name: vcpkg build arm64
+        uses: johnwason/vcpkg-action@v6
+        with:
+          pkgs: openssl
+          triplet: arm64-windows-static
+          token: ${{ github.token }}
+          github-binarycache: true
+          cache-key: 'vcpkg-arm64'
 
-#      - name: Upload arm64
-#        uses: softprops/action-gh-release@v2
-#        with:
-#          files: |
-#            pkg/build/PCBioUnlock-Setup-arm64.exe
+      - name: Install Qt arm64
+        uses: jurplel/install-qt-action@v3
+        with:
+          dir: 'C:/'
+          version: '6.9.2'
+          host: 'windows'
+          target: 'desktop'
+          arch: 'win64_msvc2022_arm64_cross_compiled'
+          cache: 'true'
+          cache-key-prefix: 'qt-arm64'
+
+      - name: Build arm64
+        run: bash -c "cd pkg && rm -Rf ./build/ && ARCH=arm64 QT_BASE_DIR=C:/Qt/6.9.2 ./build-desktop.sh"
+        env:
+          VCPKG_ROOT: ${{github.workspace}}/vcpkg
+
+      - name: Upload arm64
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            pkg/build/PCBioUnlock-Setup-arm64.exe
 
   build-linux-x64:
     runs-on: ubuntu-24.04
@@ -123,14 +123,14 @@ jobs:
         uses: jurplel/install-qt-action@v3
         with:
           dir: '/opt'
-          version: '6.9.1'
+          version: '6.9.2'
           host: 'mac'
           target: 'desktop'
           arch: 'clang_64'
           cache: 'true'
 
       - name: Build
-        run: bash -c "cd pkg && rm -Rf ./build/ && ARCH=arm64 QT_BASE_DIR=/opt/Qt/6.9.1 CI_BUILD=1 ./build-desktop.sh"
+        run: bash -c "cd pkg && rm -Rf ./build/ && ARCH=arm64 QT_BASE_DIR=/opt/Qt/6.9.2 CI_BUILD=1 ./build-desktop.sh"
 
       - name: Upload
         uses: softprops/action-gh-release@v2
