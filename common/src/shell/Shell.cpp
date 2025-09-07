@@ -75,7 +75,7 @@ ShellCmdResult Shell::RunUserCommand(const std::string &cmd) {
 
 void Shell::SpawnCommand(const std::string &cmd) {
 #ifdef WINDOWS
-  boost::process::v1::child proc(fmt::format("{0} {1} \"{2}\"", SHELL_NAME, SHELL_CMD_ARG, cmd), boost::process::windows::create_no_window);
+  boost::process::v1::child proc(fmt::format("{0} {1} \"{2}\"", SHELL_NAME, SHELL_CMD_ARG, cmd), boost::process::v1::windows::create_no_window);
 #else
   boost::process::v1::child proc(fmt::format("{0} {1} \"{2}\"", SHELL_NAME, SHELL_CMD_ARG, cmd));
 #endif
