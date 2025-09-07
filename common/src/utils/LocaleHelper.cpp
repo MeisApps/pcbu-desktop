@@ -18,6 +18,10 @@ LocaleHelper::Locale LocaleHelper::GetUserLocale() {
       return Locale::CHINESE_SIMPLIFIED;
     if(settingsLang == "de")
       return Locale::GERMAN;
+    if(settingsLang == "pt_PT")
+      return Locale::PORTUGUESE_PT;
+    if(settingsLang == "pt_BR")
+      return Locale::PORTUGUESE_BR;
     return Locale::ENGLISH;
   }
 
@@ -64,6 +68,10 @@ LocaleHelper::Locale LocaleHelper::GetUserLocale() {
     return Locale::CHINESE_SIMPLIFIED;
   else if(locale.starts_with("de"))
     return Locale::GERMAN;
+  else if(locale.starts_with("pt_pt"))
+    return Locale::PORTUGUESE_PT;
+  else if(locale.starts_with("pt_br"))
+    return Locale::PORTUGUESE_BR;
   return Locale::ENGLISH;
 }
 
@@ -75,6 +83,10 @@ std::string LocaleHelper::ToString(Locale locale) {
       return "German";
     case Locale::CHINESE_SIMPLIFIED:
       return "Chinese (Simplified)";
+    case Locale::PORTUGUESE_PT:
+      return "Portuguese";
+    case Locale::PORTUGUESE_BR:
+      return "Portuguese (Brazil)";
     default:
       return "Unknown";
   }

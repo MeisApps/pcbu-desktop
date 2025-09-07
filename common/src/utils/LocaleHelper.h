@@ -9,6 +9,8 @@ public:
     ENGLISH,
     GERMAN,
     CHINESE_SIMPLIFIED,
+    PORTUGUESE_PT,
+    PORTUGUESE_BR,
   };
 
   static Locale GetUserLocale();
