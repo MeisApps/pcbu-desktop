@@ -51,8 +51,8 @@ Form {
                         ListElement { text: "English"; val: "en" }
                         ListElement { text: "Deutsch"; val: "de" }
                         ListElement { text: "Chinese (Simplified)"; val: "zh_CN" }
-			ListElement { text: "Portuguese"; val: "pt_PT" }
-			ListElement { text: "Portuguese (Brazil)"; val: "pt_BR" }
+                        ListElement { text: "Portuguese"; val: "pt_PT" }
+                        ListElement { text: "Portuguese (Brazil)"; val: "pt_BR" }
                     }
                     textRole: 'text'
                     currentIndex: {
