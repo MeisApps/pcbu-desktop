@@ -7,7 +7,7 @@
 
 std::string AppInfo::GetVersion() {
   std::string version = "2.2.0";
-  if(PCBU_DEBUG || GIT_BRANCH != "main")
+  if(PCBU_DEBUG)
     version += fmt::format("-{}-{}", GIT_BRANCH, GIT_COMMIT_HASH);
   return version;
 }
