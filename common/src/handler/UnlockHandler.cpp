@@ -30,7 +30,7 @@ UnlockResult UnlockHandler::GetResult(const std::string &authUser, const std::st
   auto devices = PairedDevicesStorage::GetDevicesForUser(authUser);
   auto hasTCPServer = false;
 
-  UDPBroadcaster *broadcastClient{};
+  UDPBroadcaster *udpBroadcaster{};
   std::vector<BaseUnlockConnection *> connections{};
   for(const auto &device : devices) {
     BaseUnlockConnection *connection{};
@@ -41,10 +41,12 @@ UnlockResult UnlockHandler::GetResult(const std::string &authUser, const std::st
       case PairingMethod::BLUETOOTH:
         connection = new BTUnlockClient(device.bluetoothAddress, device);
         break;
+      case PairingMethod::MANUAL_UDP:
       case PairingMethod::UDP: {
-        if(broadcastClient == nullptr)
-          broadcastClient = new UDPBroadcaster();
-        broadcastClient->AddDevice(device.id, device.udpPort);
+        if(udpBroadcaster == nullptr)
+          udpBroadcaster = new UDPBroadcaster();
+        auto port = device.pairingMethod == PairingMethod::UDP ? device.udpPort : device.udpManualPort;
+        udpBroadcaster->AddDevice(device.id, port, device.pairingMethod == PairingMethod::MANUAL_UDP);
       }
       case PairingMethod::CLOUD_TCP:
         hasTCPServer = true;
@@ -95,8 +97,8 @@ UnlockResult UnlockHandler::GetResult(const std::string &authUser, const std::st
   }
 
   // UDP Broadcast
-  if(broadcastClient) {
-    broadcastClient->Start();
+  if(udpBroadcaster) {
+    udpBroadcaster->Start();
   }
 
   // Wait
@@ -105,9 +107,9 @@ UnlockResult UnlockHandler::GetResult(const std::string &authUser, const std::st
   auto result = currentResult.load();
 
   // Cleanup
-  if(broadcastClient) {
-    broadcastClient->Stop();
-    delete broadcastClient;
+  if(udpBroadcaster) {
+    udpBroadcaster->Stop();
+    delete udpBroadcaster;
   }
   for(auto &thread : threads) {
     if(thread.joinable())

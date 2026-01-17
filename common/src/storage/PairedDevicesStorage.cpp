@@ -78,20 +78,9 @@ std::vector<PairedDevice> PairedDevicesStorage::GetDevices() {
       device.ipAddress = entry["ipAddress"];
       device.bluetoothAddress = entry["bluetoothAddress"];
       device.cloudToken = entry["cloudToken"];
-      try {
-        device.tcpPort = entry["tcpPort"];
-      } catch(...) {
-        try {
-          device.tcpPort = entry["serverPort"];
-        } catch(...) {
-          device.tcpPort = 43298;
-        }
-      }
-      try {
-        device.udpPort = entry["udpPort"];
-      } catch(...) {
-        device.udpPort = 43299;
-      }
+      device.tcpPort = entry["tcpPort"];
+      device.udpPort = entry["udpPort"];
+      device.udpManualPort = entry["udpManualPort"];
       result.emplace_back(device);
     }
   } catch(const std::exception &ex) {
@@ -107,7 +96,6 @@ void PairedDevicesStorage::SaveDevices(const std::vector<PairedDevice> &devices)
     nlohmann::json devicesJson{};
     for(auto device : devices) {
 
-
       nlohmann::json deviceJson = {{"id", device.id},
                                    {"pairingMethod", PairingMethodUtils::ToString(device.pairingMethod)},
                                    {"deviceName", device.deviceName},
@@ -118,6 +106,7 @@ void PairedDevicesStorage::SaveDevices(const std::vector<PairedDevice> &devices)
                                    {"ipAddress", device.ipAddress},
                                    {"tcpPort", device.tcpPort},
                                    {"udpPort", device.udpPort},
+                                   {"udpManualPort", device.udpManualPort},
                                    {"bluetoothAddress", device.bluetoothAddress},
                                    {"cloudToken", device.cloudToken}};
       devicesJson.emplace_back(deviceJson);

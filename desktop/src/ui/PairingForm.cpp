@@ -48,6 +48,9 @@ PairingStep PairingForm::GetNextStep() {
   auto nextStep = PairingStep::USER_PASSWORD_SELECT;
   switch(m_CurrentStep) {
     case PairingStep::USER_PASSWORD_SELECT:
+      nextStep = PairingStep::METHOD_TYPE_SELECT;
+      break;
+    case PairingStep::METHOD_TYPE_SELECT:
       nextStep = PairingStep::METHOD_SELECT;
       break;
     case PairingStep::METHOD_SELECT: {
@@ -92,6 +95,12 @@ void PairingForm::UpdateStepForm(QObject *viewLoader, QObject *window) {
     }
   }
 
+  // Set default pairing method
+  if(m_CurrentStep == PairingStep::METHOD_SELECT) {
+    auto defaultMethod = m_PairingData.pairingMethodType == "AUTO" ? PairingMethod::UDP : PairingMethod::MANUAL_UDP;
+    m_PairingData.pairingMethod = QString::fromUtf8(PairingMethodUtils::ToString(defaultMethod));
+  }
+
   // Bluetooth scanner
   if(m_CurrentStep == PairingStep::BLUETOOTH_DEVICE_SELECT) {
     if(m_BluetoothScanThread.joinable())
@@ -134,6 +143,9 @@ void PairingForm::UpdateStepForm(QObject *viewLoader, QObject *window) {
     case PairingStep::USER_PASSWORD_SELECT:
       QMetaObject::invokeMethod(viewLoader, "setSource", Q_ARG(QUrl, QUrl("qrc:/ui/pairing/PairingPasswordForm.qml")));
       break;
+    case PairingStep::METHOD_TYPE_SELECT:
+      QMetaObject::invokeMethod(viewLoader, "setSource", Q_ARG(QUrl, QUrl("qrc:/ui/pairing/PairingMethodTypeForm.qml")));
+      break;
     case PairingStep::METHOD_SELECT:
       QMetaObject::invokeMethod(viewLoader, "setSource", Q_ARG(QUrl, QUrl("qrc:/ui/pairing/PairingMethodForm.qml")));
       break;
@@ -166,7 +178,8 @@ void PairingForm::Show(QObject *viewLoader, QObject *window) {
     return;
   }
 
-  m_PairingData.pairingMethod = QString::fromUtf8(PairingMethodUtils::ToString(PairingMethod::TCP));
+  m_PairingData.pairingMethodType = "AUTO";
+  m_PairingData.pairingMethod = QString::fromUtf8(PairingMethodUtils::ToString(PairingMethod::UDP));
   m_CurrentStep = PairingStep::USER_PASSWORD_SELECT;
   m_StepStack = {};
   QMetaObject::invokeMethod(viewLoader, "setSource", Q_ARG(QUrl, QUrl("qrc:/ui/pairing/PairingPasswordForm.qml")));

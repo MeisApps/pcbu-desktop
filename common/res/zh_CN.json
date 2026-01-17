@@ -104,7 +104,6 @@
   "pairing_form_qr_desc": "打开手机上的应用程序并扫描二维码进行配对。或者，您也可以在应用程序中输入配对码。",
   "pairing_method_tcp_select": "使用 TCP/IP",
   "pairing_method_bt_select": "使用蓝牙",
-  "pairing_method_tcp_desc": "建议用于仅在家中使用的台式电脑或笔记本电脑。",
   "pairing_method_bt_desc": "推荐用于移动笔记本电脑或平板电脑。可能不可靠，具体取决于您的蓝牙适配器。",
 
   "service_setting_wait_for_key": "等待登陆界面按下按键",

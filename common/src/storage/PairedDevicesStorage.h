@@ -19,6 +19,7 @@ struct PairedDevice {
   std::string ipAddress{};
   uint16_t tcpPort{};
   uint16_t udpPort{};
+  uint16_t udpManualPort{};
   std::string bluetoothAddress{};
   std::string cloudToken{};
 };

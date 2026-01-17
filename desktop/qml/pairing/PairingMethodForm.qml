@@ -23,20 +23,7 @@ StepForm {
                 }
             }
             ColumnLayout {
-                RadioButton {
-                    ButtonGroup.group: methodRadioGroup
-                    property string methodStr: 'TCP'
-                    text: QI18n.Get('pairing_method_tcp_select')
-                    checked: PairingForm.GetData().pairingMethod === methodStr
-                }
-                Label {
-                    Layout.preferredWidth: 500
-                    Layout.leftMargin: 40
-                    text: QI18n.Get('pairing_method_tcp_desc')
-                    wrapMode: Label.WordWrap
-                }
-            }
-            ColumnLayout {
+                visible: PairingForm.GetData().pairingMethodType === 'AUTO'
                 RadioButton {
                     ButtonGroup.group: methodRadioGroup
                     property string methodStr: 'UDP'
@@ -51,6 +38,22 @@ StepForm {
                 }
             }
             ColumnLayout {
+                visible: PairingForm.GetData().pairingMethodType === 'AUTO'
+                RadioButton {
+                    ButtonGroup.group: methodRadioGroup
+                    property string methodStr: 'TCP'
+                    text: QI18n.Get('pairing_method_tcp_select')
+                    checked: PairingForm.GetData().pairingMethod === methodStr
+                }
+                Label {
+                    Layout.preferredWidth: 500
+                    Layout.leftMargin: 40
+                    text: QI18n.Get('pairing_method_tcp_desc')
+                    wrapMode: Label.WordWrap
+                }
+            }
+            ColumnLayout {
+                visible: PairingForm.GetData().pairingMethodType === 'AUTO'
                 enabled: PairingForm.HasBluetooth()
                 RadioButton {
                     ButtonGroup.group: methodRadioGroup
@@ -65,20 +68,22 @@ StepForm {
                     wrapMode: Label.WordWrap
                 }
             }
-            /*ColumnLayout {
+
+            ColumnLayout {
+                visible: PairingForm.GetData().pairingMethodType === 'MANUAL'
                 RadioButton {
                     ButtonGroup.group: methodRadioGroup
-                    property string methodStr: 'CLOUD_TCP'
-                    text: QI18n.Get('pairing_method_cloud_tcp_select')
+                    property string methodStr: 'MANUAL_UDP'
+                    text: QI18n.Get('pairing_method_manual_udp_select')
                     checked: PairingForm.GetData().pairingMethod === methodStr
                 }
                 Label {
                     Layout.preferredWidth: 500
                     Layout.leftMargin: 40
-                    text: QI18n.Get('pairing_method_cloud_tcp_desc')
+                    text: QI18n.Get('pairing_method_manual_udp_desc')
                     wrapMode: Label.WordWrap
                 }
-            }*/
+            }
         }
     }
 }

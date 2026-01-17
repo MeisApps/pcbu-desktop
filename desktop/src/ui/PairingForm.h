@@ -8,7 +8,7 @@
 #include "connection/servers/PairingServer.h"
 #include "platform/NetworkHelper.h"
 
-enum class PairingStep { USER_PASSWORD_SELECT, METHOD_SELECT, BLUETOOTH_DEVICE_SELECT, BLUETOOTH_PAIRING, QR_SCAN, NONE };
+enum class PairingStep { USER_PASSWORD_SELECT, METHOD_TYPE_SELECT, METHOD_SELECT, BLUETOOTH_DEVICE_SELECT, BLUETOOTH_PAIRING, QR_SCAN, NONE };
 
 struct PairingAssistantModel {
   Q_GADGET
@@ -16,11 +16,13 @@ public:
   QString userName{};
   QString password{};
   bool isManualUserName{};
+  QString pairingMethodType{};
   QString pairingMethod{};
   QString bluetoothAddress{};
   Q_PROPERTY(QString userName MEMBER userName)
   Q_PROPERTY(QString password MEMBER password)
   Q_PROPERTY(bool isManualUserName MEMBER isManualUserName)
+  Q_PROPERTY(QString pairingMethodType MEMBER pairingMethodType)
   Q_PROPERTY(QString pairingMethod MEMBER pairingMethod)
   Q_PROPERTY(QString bluetoothAddress MEMBER bluetoothAddress)
 };

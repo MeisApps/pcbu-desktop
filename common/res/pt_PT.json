@@ -107,8 +107,6 @@
   "pairing_method_tcp_select": "Usar TCP/IP",
   "pairing_method_udp_select": "Usar UDP",
   "pairing_method_bt_select": "Usar Bluetooth",
-  "pairing_method_tcp_desc": "Indicada para computadores usados em ambientes fixos ou confiáveis. Requer novo emparelhamento periodicamente, salvo se o IP for estático.",
-  "pairing_method_udp_desc": "Alternativa ao TCP. Funciona em qualquer rede local. Pode demorar mais a mostrar o aviso de desbloqueio, mas não exige novo emparelhamento.",
   "pairing_method_bt_desc": "Recomendado para portáteis ou tablets. Pode ser instável, dependendo do adaptador Bluetooth.",
 
   "service_setting_wait_for_key": "Aguardar pressionar tecla no início de sessão",

@@ -13,6 +13,7 @@ struct PacketPairInit { // From phone
   std::string ipAddress{};
   uint16_t tcpPort{};
   uint16_t udpPort{};
+  uint16_t udpManualPort{};
   std::string cloudToken{};
 
   static std::optional<PacketPairInit> FromJson(const std::string &jsonStr) {
@@ -26,6 +27,7 @@ struct PacketPairInit { // From phone
         packet.ipAddress = json["ipAddress"];
         packet.tcpPort = json["tcpPort"];
         packet.udpPort = json["udpPort"];
+        packet.udpManualPort = json["udpManualPort"];
         packet.cloudToken = json["cloudToken"];
       } catch(...) {
       }
@@ -109,9 +111,10 @@ struct PacketUDPBroadcast {
   std::string deviceId;
   std::string pcbuIP;
   uint16_t pcbuPort;
+  bool isManual;
 
   nlohmann::json ToJson() {
-    return {{"deviceId", deviceId}, {"pcbuIP", pcbuIP}, {"pcbuPort", pcbuPort}};
+    return {{"deviceId", deviceId}, {"pcbuIP", pcbuIP}, {"pcbuPort", pcbuPort}, {"isManual", isManual}};
   }
 };
 

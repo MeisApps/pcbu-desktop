@@ -98,6 +98,7 @@ void PairingServer::Accept() {
       device.ipAddress = initPacket->ipAddress;
       device.tcpPort = initPacket->tcpPort;
       device.udpPort = initPacket->udpPort;
+      device.udpManualPort = initPacket->udpManualPort;
       device.bluetoothAddress = m_UIData.btAddress;
       device.cloudToken = initPacket->cloudToken;
 
@@ -145,7 +146,7 @@ std::vector<uint8_t> PairingServer::ReadPacket() {
   auto lenBytesRead =
       boost::asio::read(m_Socket, boost::asio::buffer(lenBuffer.data(), lenBuffer.size()), boost::asio::transfer_exactly(lenBuffer.size()), ec);
   if(lenBytesRead < sizeof(uint16_t)) {
-    spdlog::warn("Error reading packet length.");
+    spdlog::warn("Error reading packet length. (Read={})", lenBytesRead);
     return {};
   }
 

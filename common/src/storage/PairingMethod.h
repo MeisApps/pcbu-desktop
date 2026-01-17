@@ -4,7 +4,7 @@
 #include <spdlog/spdlog.h>
 #include <string>
 
-enum class PairingMethod : int { TCP, BLUETOOTH, CLOUD_TCP, CLOUD_BT, UDP };
+enum class PairingMethod : int { TCP, BLUETOOTH, CLOUD_TCP, CLOUD_BT, UDP, MANUAL_UDP };
 
 class PairingMethodUtils {
 public:
@@ -19,6 +19,8 @@ public:
       return "CLOUD_BT";
     else if(method == PairingMethod::UDP)
       return "UDP";
+    else if(method == PairingMethod::MANUAL_UDP)
+      return "MANUAL_UDP";
     spdlog::warn("Unknown pairing method.");
     return {};
   }
@@ -34,6 +36,8 @@ public:
       return PairingMethod::CLOUD_BT;
     else if(methodStr == "UDP")
       return PairingMethod::UDP;
+    else if(methodStr == "MANUAL_UDP")
+      return PairingMethod::MANUAL_UDP;
     spdlog::warn("Invalid pairing method '{}'.", methodStr);
     return PairingMethod::TCP;
   }

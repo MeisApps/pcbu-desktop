@@ -15,6 +15,7 @@
         <file>forms/LoadingForm.qml</file>
 
         <file>pairing/PairingPasswordForm.qml</file>
+        <file>pairing/PairingMethodTypeForm.qml</file>
         <file>pairing/PairingMethodForm.qml</file>
         <file>pairing/PairingBTSelectForm.qml</file>
         <file>pairing/PairingBTPairForm.qml</file>

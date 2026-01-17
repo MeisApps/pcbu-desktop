@@ -7,6 +7,12 @@
 #include <thread>
 #include <vector>
 
+struct UDPBroadcastDevice {
+  std::string deviceID;
+  uint16_t devicePort;
+  bool isManual;
+};
+
 class UDPBroadcaster {
 public:
   ~UDPBroadcaster();
@@ -14,12 +20,12 @@ public:
   void Start();
   void Stop();
 
-  void AddDevice(const std::string &deviceID, uint16_t devicePort);
+  void AddDevice(const std::string &deviceID, uint16_t devicePort, bool isManual);
 
 private:
   std::thread m_Thread{};
   std::atomic<bool> m_IsRunning{};
-  std::vector<std::pair<std::string, uint16_t>> m_Devices{};
+  std::vector<UDPBroadcastDevice> m_Devices{};
 };
 
 #endif

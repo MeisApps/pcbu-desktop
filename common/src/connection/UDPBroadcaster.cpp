@@ -25,11 +25,12 @@ void UDPBroadcaster::Start() {
 
     auto dataVec = std::vector<std::pair<boost::asio::ip::udp::endpoint, nlohmann::json>>();
     for(const auto &device : m_Devices) {
-      boost::asio::ip::udp::endpoint endpoint(boost::asio::ip::address_v4::broadcast(), device.second);
+      boost::asio::ip::udp::endpoint endpoint(boost::asio::ip::address_v4::broadcast(), device.devicePort);
       auto packet = PacketUDPBroadcast();
-      packet.deviceId = device.first;
+      packet.deviceId = device.deviceID;
       packet.pcbuIP = NetworkHelper::GetSavedNetworkInterface().ipAddress;
       packet.pcbuPort = AppSettings::Get().unlockServerPort;
+      packet.isManual = device.isManual;
       dataVec.emplace_back(endpoint, packet.ToJson());
     }
 
@@ -56,6 +57,6 @@ void UDPBroadcaster::Stop() {
     m_Thread.join();
 }
 
-void UDPBroadcaster::AddDevice(const std::string &deviceID, uint16_t devicePort) {
-  m_Devices.emplace_back(deviceID, devicePort);
+void UDPBroadcaster::AddDevice(const std::string &deviceID, uint16_t devicePort, bool isManual) {
+  m_Devices.emplace_back(deviceID, devicePort, isManual);
 }
