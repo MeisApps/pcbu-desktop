@@ -103,6 +103,7 @@
 
   "pairing_form_password_desc": "Select a user and enter their password. All your data is stored encrypted on your phone and will not be shared with anyone.",
   "pairing_form_method_desc": "Select a communication method.",
+  "pairing_form_bt_scanning": "Scanning...",
   "pairing_form_bt_select_desc": "Open Bluetooth settings on your phone and scan for devices. Then wait until your phone appears in this list and select it.",
   "pairing_form_bt_pair_desc": "Please complete the Bluetooth pairing process on your phone and operating system.",
   "pairing_form_qr_desc": "Open the app on your phone and scan the QR code to pair. Alternatively, you can also enter the pairing code in the app.",

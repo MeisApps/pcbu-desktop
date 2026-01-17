@@ -103,6 +103,7 @@
 
   "pairing_form_password_desc": "Wähle bitte einen Benutzer und gib dessen Passwort ein. Alle deine Daten werden verschlüsselt auf deinem Telefon gespeichert und werden mit niemandem geteilt.",
   "pairing_form_method_desc": "Wähle eine Kommunikationsmethode aus.",
+  "pairing_form_bt_scanning": "Suche...",
   "pairing_form_bt_select_desc": "Öffne die Bluetooth Einstellungen auf deinem Telefon und scanne nach Geräten. Dann warte, bis dein Telefon in der Liste auftaucht und wähle es aus.",
   "pairing_form_bt_pair_desc": "Schließe bitte den Bluetooth Pairingprozess auf deinem Telefon und Betriebssystem ab.",
   "pairing_form_qr_desc": "Öffne die App auf deinem Telefon und scanne den QR-Code. Alternativ kannst du auch den Kopplungscode in der App eingeben.",
