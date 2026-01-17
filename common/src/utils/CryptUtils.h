@@ -2,6 +2,7 @@
 #define PCBU_DESKTOP_CRYPTUTILS_H
 
 #include <cstdint>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -19,6 +20,9 @@ public:
   static std::string Sha256(const std::string &text);
   static CryptPacket EncryptAESPacket(const std::vector<uint8_t> &data, const std::string &pwd);
   static CryptPacket DecryptAESPacket(const std::vector<uint8_t> &data, const std::string &pwd);
+
+  static std::optional<std::string> EncryptAES(const std::string &data, const std::string &pwd);
+  static std::optional<std::string> DecryptAES(const std::string &data, const std::string &pwd);
 
 private:
   static size_t EncryptAES(const uint8_t *src, size_t srcLen, uint8_t *dst, size_t dstLen, const char *pwd);

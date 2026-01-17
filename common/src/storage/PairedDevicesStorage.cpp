@@ -18,9 +18,9 @@
 #define CHOWN_USER "root:root"
 #endif
 
-std::optional<PairedDevice> PairedDevicesStorage::GetDeviceByID(const std::string &pairingId) {
+std::optional<PairedDevice> PairedDevicesStorage::GetDeviceByID(const std::string &id) {
   for(const auto &device : GetDevices())
-    if(device.pairingId == pairingId)
+    if(device.id == id)
       return device;
   return {};
 }
@@ -41,15 +41,15 @@ std::vector<PairedDevice> PairedDevicesStorage::GetDevicesForUser(const std::str
 
 void PairedDevicesStorage::AddDevice(const PairedDevice &device) {
   auto devices = PairedDevicesStorage::GetDevices();
-  auto rmRange = std::ranges::remove_if(devices, [&](const PairedDevice &d) { return d.pairingId == device.pairingId; });
+  auto rmRange = std::ranges::remove_if(devices, [&](const PairedDevice &d) { return d.id == device.id; });
   devices.erase(rmRange.begin(), rmRange.end());
   devices.emplace_back(device);
   PairedDevicesStorage::SaveDevices(devices);
 }
 
-void PairedDevicesStorage::RemoveDevice(const std::string &pairingId) {
+void PairedDevicesStorage::RemoveDevice(const std::string &id) {
   auto devices = PairedDevicesStorage::GetDevices();
-  auto rmRange = std::ranges::remove_if(devices, [&](const PairedDevice &d) { return d.pairingId == pairingId; });
+  auto rmRange = std::ranges::remove_if(devices, [&](const PairedDevice &d) { return d.id == id; });
   devices.erase(rmRange.begin(), rmRange.end());
   PairedDevicesStorage::SaveDevices(devices);
 }
@@ -68,10 +68,11 @@ std::vector<PairedDevice> PairedDevicesStorage::GetDevices() {
     auto json = nlohmann::json::parse(jsonData);
     for(auto entry : json) {
       auto device = PairedDevice();
-      device.pairingId = entry["pairingId"];
+      device.id = entry["id"];
       device.pairingMethod = PairingMethodUtils::FromString(entry["pairingMethod"]);
       device.deviceName = entry["deviceName"];
       device.userName = entry["userName"];
+      device.passwordEnc = entry["passwordEnc"];
       device.encryptionKey = entry["encryptionKey"];
 
       device.ipAddress = entry["ipAddress"];
@@ -105,10 +106,13 @@ void PairedDevicesStorage::SaveDevices(const std::vector<PairedDevice> &devices)
   try {
     nlohmann::json devicesJson{};
     for(auto device : devices) {
-      nlohmann::json deviceJson = {{"pairingId", device.pairingId},
+
+
+      nlohmann::json deviceJson = {{"id", device.id},
                                    {"pairingMethod", PairingMethodUtils::ToString(device.pairingMethod)},
                                    {"deviceName", device.deviceName},
                                    {"userName", device.userName},
+                                   {"passwordEnc", device.passwordEnc},
                                    {"encryptionKey", device.encryptionKey},
 
                                    {"ipAddress", device.ipAddress},

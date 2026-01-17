@@ -1,5 +1,6 @@
 #include "UDPBroadcaster.h"
 
+#include "Packets.h"
 #include "platform/NetworkHelper.h"
 #include "storage/AppSettings.h"
 
@@ -25,12 +26,11 @@ void UDPBroadcaster::Start() {
     auto dataVec = std::vector<std::pair<boost::asio::ip::udp::endpoint, nlohmann::json>>();
     for(const auto &device : m_Devices) {
       boost::asio::ip::udp::endpoint endpoint(boost::asio::ip::address_v4::broadcast(), device.second);
-      nlohmann::json data = {
-          {"pcbuIP", NetworkHelper::GetSavedNetworkInterface().ipAddress},
-          {"pcbuPort", AppSettings::Get().unlockServerPort},
-          {"pairingId", device.first},
-      };
-      dataVec.emplace_back(endpoint, data);
+      auto packet = PacketUDPBroadcast();
+      packet.deviceId = device.first;
+      packet.pcbuIP = NetworkHelper::GetSavedNetworkInterface().ipAddress;
+      packet.pcbuPort = AppSettings::Get().unlockServerPort;
+      dataVec.emplace_back(endpoint, packet.ToJson());
     }
 
     spdlog::info("UDP broadcast started.");

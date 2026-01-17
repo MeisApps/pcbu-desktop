@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "PairingStructs.h"
+#include "connection/Packets.h"
 
 namespace boostnet = boost::asio::ip;
 
@@ -14,7 +15,7 @@ public:
   PairingServer();
   ~PairingServer();
 
-  void Start(const PairingServerData &serverData);
+  void Start(const PairingUIData &uiData);
   void Stop();
 
 private:
@@ -27,7 +28,7 @@ private:
   boostnet::tcp::acceptor m_Acceptor;
   boostnet::tcp::socket m_Socket;
 
-  PairingServerData m_ServerData{};
+  PairingUIData m_UIData{};
   std::thread m_AcceptThread{};
   std::atomic<bool> m_IsRunning{};
 };

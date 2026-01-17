@@ -9,10 +9,11 @@
 #include "PairingMethod.h"
 
 struct PairedDevice {
-  std::string pairingId{};
+  std::string id{};
   PairingMethod pairingMethod{};
   std::string deviceName{};
   std::string userName{};
+  std::string passwordEnc{};
   std::string encryptionKey{};
 
   std::string ipAddress{};
@@ -24,11 +25,11 @@ struct PairedDevice {
 
 class PairedDevicesStorage {
 public:
-  static std::optional<PairedDevice> GetDeviceByID(const std::string &pairingId);
+  static std::optional<PairedDevice> GetDeviceByID(const std::string &id);
   static std::vector<PairedDevice> GetDevicesForUser(const std::string &userName);
 
   static void AddDevice(const PairedDevice &device);
-  static void RemoveDevice(const std::string &pairingId);
+  static void RemoveDevice(const std::string &id);
 
   static std::vector<PairedDevice> GetDevices();
   static void SaveDevices(const std::vector<PairedDevice> &devices);

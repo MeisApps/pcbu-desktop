@@ -44,7 +44,7 @@ UnlockResult UnlockHandler::GetResult(const std::string &authUser, const std::st
       case PairingMethod::UDP: {
         if(broadcastClient == nullptr)
           broadcastClient = new UDPBroadcaster();
-        broadcastClient->AddDevice(device.pairingId, device.udpPort);
+        broadcastClient->AddDevice(device.id, device.udpPort);
       }
       case PairingMethod::CLOUD_TCP:
         hasTCPServer = true;
@@ -171,9 +171,17 @@ UnlockResult UnlockHandler::RunServer(BaseUnlockConnection *connection, AtomicUn
     m_PrintMessage(UnlockStateUtils::ToString(state));
   spdlog::info("Connection result: {}", UnlockStateUtils::ToString(state));
 
+  auto pwDec = CryptUtils::DecryptAES(connection->GetDevice().passwordEnc, connection->GetResponseData().passwordKey);
+  if(!pwDec.has_value()) {
+    auto errorMsg = I18n::Get("error_password_decrypt");
+    spdlog::error(errorMsg);
+    m_PrintMessage(errorMsg);
+    return UnlockResult(UnlockState::DATA_ERROR);
+  }
+
   auto result = UnlockResult();
   result.state = state;
   result.device = connection->GetDevice();
-  result.password = connection->GetResponseData().password;
+  result.password = pwDec.value();
   return result;
 }

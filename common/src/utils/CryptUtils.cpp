@@ -46,7 +46,10 @@ std::string CryptUtils::Sha256(const std::string &text) {
 }
 
 CryptPacket CryptUtils::EncryptAESPacket(const std::vector<uint8_t> &data, const std::string &pwd) {
-  auto dataBuf = (uint8_t *)malloc(data.size() + sizeof(int64_t));
+  if(data.size() > CRYPT_BUFFER_SIZE)
+    return {PacketCryptResult::OTHER_ERROR};
+
+  auto dataBuf = static_cast<uint8_t *>(malloc(data.size() + sizeof(int64_t)));
   if(dataBuf == nullptr)
     return {PacketCryptResult::OTHER_ERROR};
 
@@ -54,7 +57,7 @@ CryptPacket CryptUtils::EncryptAESPacket(const std::vector<uint8_t> &data, const
   memcpy(dataBuf, &timeMs, sizeof(int64_t));
   memcpy(&dataBuf[sizeof(int64_t)], data.data(), data.size());
 
-  auto encBuffer = (uint8_t *)malloc(CRYPT_BUFFER_SIZE);
+  auto encBuffer = static_cast<uint8_t *>(malloc(CRYPT_BUFFER_SIZE));
   if(encBuffer == nullptr)
     return {PacketCryptResult::OTHER_ERROR};
 
@@ -72,7 +75,13 @@ CryptPacket CryptUtils::EncryptAESPacket(const std::vector<uint8_t> &data, const
 }
 
 CryptPacket CryptUtils::DecryptAESPacket(const std::vector<uint8_t> &data, const std::string &pwd) {
-  auto decBuffer = (uint8_t *)malloc(CRYPT_BUFFER_SIZE);
+  if(data.size() > CRYPT_BUFFER_SIZE)
+    return {PacketCryptResult::OTHER_ERROR};
+
+  auto decBuffer = static_cast<uint8_t *>(malloc(CRYPT_BUFFER_SIZE));
+  if(decBuffer == nullptr)
+    return {PacketCryptResult::OTHER_ERROR};
+
   auto decLen = DecryptAES(data.data(), data.size(), decBuffer, CRYPT_BUFFER_SIZE, pwd.c_str());
   if(decLen <= sizeof(int64_t)) {
     free(decBuffer);
@@ -82,7 +91,7 @@ CryptPacket CryptUtils::DecryptAESPacket(const std::vector<uint8_t> &data, const
 
   int64_t timestamp{};
   memcpy(&timestamp, decBuffer, sizeof(int64_t));
-  timestamp = (int64_t)ntohll(timestamp);
+  timestamp = static_cast<int64_t>(ntohll(timestamp));
 
   auto timeDiff = Utils::GetCurrentTimeMs() - timestamp;
   if(timeDiff < -CRYPT_PACKET_TIMEOUT || timeDiff > CRYPT_PACKET_TIMEOUT) {
@@ -94,6 +103,49 @@ CryptPacket CryptUtils::DecryptAESPacket(const std::vector<uint8_t> &data, const
   memcpy(resultVec.data(), &decBuffer[sizeof(int64_t)], decLen);
   free(decBuffer);
   return {PacketCryptResult::OK, resultVec};
+}
+
+std::optional<std::string> CryptUtils::EncryptAES(const std::string &data, const std::string &pwd) {
+  if(data.size() > CRYPT_BUFFER_SIZE)
+    return {};
+
+  auto encBuffer = static_cast<uint8_t *>(malloc(CRYPT_BUFFER_SIZE));
+  if(encBuffer == nullptr)
+    return {};
+
+  auto encLen = EncryptAES(reinterpret_cast<const uint8_t *>(data.c_str()), data.size(), encBuffer, CRYPT_BUFFER_SIZE, pwd.c_str());
+  if(encLen <= 0) {
+    free(encBuffer);
+    return {};
+  }
+
+  std::vector<uint8_t> resultVec(encLen);
+  memcpy(resultVec.data(), encBuffer, encLen);
+  free(encBuffer);
+  return StringUtils::ToHexString(resultVec);
+}
+
+std::optional<std::string> CryptUtils::DecryptAES(const std::string &data, const std::string &pwd) {
+  if(data.size() > CRYPT_BUFFER_SIZE)
+    return {};
+
+  auto decVec = StringUtils::FromHexString(data);
+  if(decVec.empty())
+    return {};
+
+  auto decBuffer = static_cast<uint8_t *>(malloc(CRYPT_BUFFER_SIZE));
+  if(decBuffer == nullptr)
+    return {};
+
+  auto decLen = DecryptAES(decVec.data(), decVec.size(), decBuffer, CRYPT_BUFFER_SIZE, pwd.c_str());
+  if(decLen <= 0) {
+    free(decBuffer);
+    return {};
+  }
+
+  auto result = std::string(reinterpret_cast<char *>(decBuffer), decLen);
+  free(decBuffer);
+  return result;
 }
 
 size_t CryptUtils::EncryptAES(const uint8_t *src, size_t srcLen, uint8_t *dst, size_t dstLen, const char *pwd) {
@@ -239,7 +291,7 @@ size_t CryptUtils::DecryptAES(const uint8_t *src, size_t srcLen, uint8_t *dst, s
 }
 
 uint8_t *CryptUtils::GenerateKey(const char *pwd, unsigned char *salt) {
-  auto key = (unsigned char *)malloc(AES_KEY_SIZE / 8);
+  auto key = static_cast<unsigned char *>(malloc(AES_KEY_SIZE / 8));
   if(!key)
     return nullptr;
   if(PKCS5_PBKDF2_HMAC(pwd, (int)strlen(pwd), salt, SALT_SIZE, ITERATIONS, EVP_sha256(), AES_KEY_SIZE / 8, key) != 1) {

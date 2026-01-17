@@ -6,63 +6,16 @@
 
 #include "storage/PairingMethod.h"
 
-struct PacketPairInit { // From phone
-  std::string protoVersion{};
-  std::string deviceUUID{};
-  std::string deviceName{};
-  std::string ipAddress{};
-  uint16_t tcpPort{};
-  uint16_t udpPort{};
-  std::string cloudToken{};
-
-  static std::optional<PacketPairInit> FromJson(const std::string &jsonStr) {
-    try {
-      auto json = nlohmann::json::parse(jsonStr);
-      auto packet = PacketPairInit();
-      packet.protoVersion = json["protoVersion"];
-      packet.deviceUUID = json["deviceUUID"];
-      packet.deviceName = json["deviceName"];
-      packet.ipAddress = json["ipAddress"];
-      packet.tcpPort = json["tcpPort"];
-      packet.udpPort = json["udpPort"];
-      packet.cloudToken = json["cloudToken"];
-      return packet;
-    } catch(...) {
-    }
-    return {};
-  }
-};
-
-struct PacketPairResponse { // From PC
-  std::string errMsg{};
-  std::string pairingId{};
-  PairingMethod pairingMethod{};
-  std::string hostName{};
-  std::string hostOS{};
-  std::string hostAddress{};
-  uint16_t hostPort{};
-  std::string macAddress{};
-  std::string userName{};
-  std::string password{};
-
-  nlohmann::json ToJson() {
-    return {{"errMsg", errMsg},     {"pairingId", pairingId},   {"pairingMethod", PairingMethodUtils::ToString(pairingMethod)},
-            {"hostName", hostName}, {"hostOS", hostOS},         {"hostAddress", hostAddress},
-            {"hostPort", hostPort}, {"macAddress", macAddress}, {"userName", userName},
-            {"password", password}};
-  }
-};
-
 struct PairingQRData {
   std::string ip{};
   uint16_t port{};
-  PairingMethod method{};
+  std::string method{};
   std::string encKey{};
 
   PairingQRData(const std::string &ip, uint16_t port, PairingMethod pairingMethod, const std::string &encKey) {
     this->ip = ip;
     this->port = port;
-    this->method = pairingMethod;
+    this->method = PairingMethodUtils::ToString(pairingMethod);
     this->encKey = encKey;
   }
 
@@ -71,7 +24,7 @@ struct PairingQRData {
   }
 };
 
-struct PairingServerData {
+struct PairingUIData {
   std::string userName{};
   std::string password{};
   std::string encKey{};

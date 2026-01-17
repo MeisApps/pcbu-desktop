@@ -79,14 +79,14 @@ void PairingForm::UpdateStepForm(QObject *viewLoader, QObject *window) {
     m_PairingServer->Stop();
     if(m_CurrentStep == PairingStep::QR_SCAN) {
       m_EncKey = StringUtils::RandomString(64);
-      auto serverData = PairingServerData();
-      serverData.userName = m_PairingData.userName.toStdString();
-      serverData.password = m_PairingData.password.toStdString();
-      serverData.encKey = m_EncKey;
-      serverData.method = PairingMethodUtils::FromString(m_PairingData.pairingMethod.toStdString());
-      serverData.macAddress = NetworkHelper::GetSavedNetworkInterface().macAddress;
-      serverData.btAddress = m_PairingData.bluetoothAddress.toStdString();
-      m_PairingServer->Start(serverData);
+      auto uiData = PairingUIData();
+      uiData.userName = m_PairingData.userName.toStdString();
+      uiData.password = m_PairingData.password.toStdString();
+      uiData.encKey = m_EncKey;
+      uiData.method = PairingMethodUtils::FromString(m_PairingData.pairingMethod.toStdString());
+      uiData.macAddress = NetworkHelper::GetSavedNetworkInterface().macAddress;
+      uiData.btAddress = m_PairingData.bluetoothAddress.toStdString();
+      m_PairingServer->Start(uiData);
     } else {
       m_EncKey = {};
     }

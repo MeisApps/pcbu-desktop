@@ -4,7 +4,7 @@
 
 DevicesTableModel::DevicesTableModel(QObject *parent) : QAbstractTableModel(parent) {
   for(const auto &device : PairedDevicesStorage::GetDevices()) {
-    auto pairingId = QString::fromUtf8(device.pairingId);
+    auto pairingId = QString::fromUtf8(device.id);
     auto deviceName = QString::fromUtf8(device.deviceName);
     auto userName = QString::fromUtf8(device.userName);
     auto method = QString::fromUtf8(PairingMethodUtils::ToString(device.pairingMethod));

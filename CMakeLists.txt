@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.22)
 project(pcbu_desktop_all)
 
 if(NOT DEFINED TARGET_ARCH)
-    set(TARGET_ARCH "arm64") # x64
+    set(TARGET_ARCH "x64") # arm64
 endif()
 
 if(WIN32)

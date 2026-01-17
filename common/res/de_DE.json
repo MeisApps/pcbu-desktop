@@ -7,6 +7,8 @@
   "error_invalid_user": "Fehler: Ungültiger Benutzer.",
   "error_start_handler": "Fehler: Konnte Socket nicht starten.",
   "error_password": "Ungültiges Passwort.",
+  "error_password_encrypt": "Fehler beim Verschlüsseln des Passworts. Bitte Support kontaktieren.",
+  "error_password_decrypt": "Fehler beim Entschlüsseln des Passworts.",
   "error_protocol_mismatch": "Die Version deiner App ist inkompatibel mit der Desktop Version. Stelle bitte sicher, dass beide aktuell sind.",
   "error_pairing_packet_parse": "Kopplungsdaten konnten nicht verarbeitet werden. Stelle bitte sicher, dass die Desktop- und Smartphone-App aktuell ist.",
   "error_account_disabled": "Fehler: Der Windows Account ist deaktiviert.",

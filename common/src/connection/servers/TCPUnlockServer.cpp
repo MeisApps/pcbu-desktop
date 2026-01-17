@@ -46,10 +46,10 @@ void TCPUnlockServer::PerformAuthFlow(SOCKET socket) {
     spdlog::error("Packet error {}.", (int)devicePacket.error);
     return;
   }
-  auto pairingId = std::string((const char *)devicePacket.data.data(), devicePacket.data.size());
-  auto device = PairedDevicesStorage::GetDeviceByID(pairingId);
+  auto deviceId = std::string(reinterpret_cast<const char *>(devicePacket.data.data()), devicePacket.data.size());
+  auto device = PairedDevicesStorage::GetDeviceByID(deviceId);
   if(!device.has_value()) {
-    spdlog::error("Invalid pairing ID.");
+    spdlog::error("Invalid device ID.");
     return;
   }
   m_PairedDevice = device.value();
@@ -81,7 +81,7 @@ void TCPUnlockServer::AcceptThread() {
   address.sin_family = AF_INET;
   address.sin_addr.s_addr = INADDR_ANY;
   address.sin_port = htons(settings.unlockServerPort);
-  if(bind(m_ServerSocket, (struct sockaddr *)&address, sizeof(address)) < 0) {
+  if(bind(m_ServerSocket, reinterpret_cast<struct sockaddr *>(&address), sizeof(address)) < 0) {
     spdlog::error("bind() failed. (Code={})", SOCKET_LAST_ERROR);
     m_UnlockState = UnlockState::PORT_ERROR;
     goto threadEnd;
@@ -104,7 +104,7 @@ void TCPUnlockServer::AcceptThread() {
       continue;
     }
     SOCKET clientSocket;
-    if((clientSocket = accept(m_ServerSocket, (struct sockaddr *)&address, (socklen_t *)&addrLen)) == SOCKET_INVALID) {
+    if((clientSocket = accept(m_ServerSocket, reinterpret_cast<struct sockaddr *>(&address), (socklen_t *)&addrLen)) == SOCKET_INVALID) {
       auto err = SOCKET_LAST_ERROR;
       if(err == SOCKET_ERROR_TRY_AGAIN || err == SOCKET_ERROR_WOULD_BLOCK) {
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
@@ -139,9 +139,9 @@ threadEnd:
 void TCPUnlockServer::ClientThread(SOCKET clientSocket) {
   spdlog::info("TCP client connected.");
   m_HasConnection = true;
-  m_NumConnections++;
+  ++m_NumConnections;
   PerformAuthFlow(clientSocket);
-  m_NumConnections--;
+  --m_NumConnections;
   m_HasConnection = m_NumConnections > 0;
   SOCKET_CLOSE(clientSocket);
   spdlog::info("TCP client closed.");

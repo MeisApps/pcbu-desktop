@@ -7,6 +7,7 @@
 #include "utils/AppInfo.h"
 #include "utils/CryptUtils.h"
 #include "utils/I18n.h"
+#include "utils/StringUtils.h"
 
 PairingServer::PairingServer()
     : m_Acceptor(m_IOService, boostnet::tcp::endpoint(boostnet::tcp::v4(), AppSettings::Get().pairingServerPort)), m_Socket(m_IOService) {}
@@ -15,8 +16,8 @@ PairingServer::~PairingServer() {
   Stop();
 }
 
-void PairingServer::Start(const PairingServerData &serverData) {
-  m_ServerData = serverData;
+void PairingServer::Start(const PairingUIData &uiData) {
+  m_UIData = uiData;
   if(m_IsRunning)
     return;
   m_IsRunning = true;
@@ -81,39 +82,46 @@ void PairingServer::Accept() {
       if(AppInfo::CompareVersion(AppInfo::GetProtocolVersion(), initPacket->protoVersion) != 0)
         throw std::runtime_error(I18n::Get("error_protocol_mismatch"));
 
+      auto passwordKey = StringUtils::RandomString(64);
+      auto pwEnc = CryptUtils::EncryptAES(m_UIData.password, passwordKey);
+      if(!pwEnc.has_value())
+        throw std::runtime_error(I18n::Get("error_password_encrypt"));
+
       auto device = PairedDevice();
-      device.pairingId = CryptUtils::Sha256(PlatformHelper::GetDeviceUUID() + initPacket->deviceUUID + m_ServerData.userName);
-      device.pairingMethod = m_ServerData.method;
+      device.id = CryptUtils::Sha256(PlatformHelper::GetDeviceUUID() + initPacket->deviceUUID + m_UIData.userName);
+      device.pairingMethod = m_UIData.method;
       device.deviceName = initPacket->deviceName;
-      device.userName = m_ServerData.userName;
-      device.encryptionKey = m_ServerData.encKey;
+      device.userName = m_UIData.userName;
+      device.passwordEnc = pwEnc.value();
+      device.encryptionKey = m_UIData.encKey;
 
       device.ipAddress = initPacket->ipAddress;
       device.tcpPort = initPacket->tcpPort;
       device.udpPort = initPacket->udpPort;
-      device.bluetoothAddress = m_ServerData.btAddress;
+      device.bluetoothAddress = m_UIData.btAddress;
       device.cloudToken = initPacket->cloudToken;
 
       auto respPacket = PacketPairResponse();
-      respPacket.pairingId = device.pairingId;
-      respPacket.hostName = NetworkHelper::GetHostName();
-      respPacket.hostOS = AppInfo::GetOperatingSystem();
-      respPacket.hostAddress = NetworkHelper::GetSavedNetworkInterface().ipAddress;
-      respPacket.hostPort = AppSettings::Get().unlockServerPort;
-      respPacket.pairingMethod = device.pairingMethod;
-      respPacket.macAddress = m_ServerData.macAddress;
-      respPacket.userName = m_ServerData.userName;
-      respPacket.password = m_ServerData.password;
+      respPacket.data = PacketPairResponseData();
+      respPacket.data.deviceId = device.id;
+      respPacket.data.deviceName = NetworkHelper::GetHostName();
+      respPacket.data.deviceOS = AppInfo::GetOperatingSystem();
+      respPacket.data.ipAddress = NetworkHelper::GetSavedNetworkInterface().ipAddress;
+      respPacket.data.port = AppSettings::Get().unlockServerPort;
+      respPacket.data.pairingMethod = device.pairingMethod;
+      respPacket.data.macAddress = m_UIData.macAddress;
+      respPacket.data.userName = m_UIData.userName;
+      respPacket.data.passwordKey = passwordKey;
 
       WritePacket(respPacket.ToJson().dump());
       PairedDevicesStorage::AddDevice(device);
-      spdlog::info("Successfully paired device. (ID={}, Method={})", device.pairingId, PairingMethodUtils::ToString(device.pairingMethod));
+      spdlog::info("Successfully paired device. (ID={}, Method={})", device.id, PairingMethodUtils::ToString(device.pairingMethod));
 
 #ifdef WINDOWS
-      if(PlatformHelper::SetDefaultCredProv(m_ServerData.userName, "{74A23DE2-B81D-46EC-E129-CD32507ED716}"))
-        spdlog::info("Successfully changed default credential provider for user '{}'.", m_ServerData.userName);
+      if(PlatformHelper::SetDefaultCredProv(m_UIData.userName, "{74A23DE2-B81D-46EC-E129-CD32507ED716}"))
+        spdlog::info("Successfully changed default credential provider for user '{}'.", m_UIData.userName);
       else
-        spdlog::error("Failed setting default credential provider for user '{}'.", m_ServerData.userName);
+        spdlog::error("Failed setting default credential provider for user '{}'.", m_UIData.userName);
 #endif
     } catch(const std::exception &ex) {
       spdlog::error("Pairing server error: {}", ex.what());
@@ -157,7 +165,7 @@ std::vector<uint8_t> PairingServer::ReadPacket() {
     return {};
   }
 
-  auto res = CryptUtils::DecryptAESPacket(buffer, m_ServerData.encKey);
+  auto res = CryptUtils::DecryptAESPacket(buffer, m_UIData.encKey);
   if(res.result != PacketCryptResult::OK) {
     spdlog::warn("Error decrypting packet. (Code={})", (int)res.result);
     return {};
@@ -170,7 +178,7 @@ void PairingServer::WritePacket(const std::string &dataStr) {
 }
 
 void PairingServer::WritePacket(const std::vector<uint8_t> &data) {
-  auto res = CryptUtils::EncryptAESPacket(data, m_ServerData.encKey);
+  auto res = CryptUtils::EncryptAESPacket(data, m_UIData.encKey);
   if(res.result != PacketCryptResult::OK) {
     spdlog::warn("Error encrypting packet. (Size={}, Code={})", data.size(), (int)res.result);
     return;

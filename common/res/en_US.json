@@ -7,6 +7,8 @@
   "error_invalid_user": "Error: Invalid user.",
   "error_start_handler": "Error: Could not start socket.",
   "error_password": "Invalid password.",
+  "error_password_encrypt": "Failed to encrypt password. Please contact support.",
+  "error_password_decrypt": "Failed to decrypt password.",
   "error_protocol_mismatch": "Your app's version is incompatible with the desktop app's version. Please make sure that both are up-to-date.",
   "error_pairing_packet_parse": "Failed to parse pairing data. Please make sure that both the desktop and mobile app are up-to-date.",
   "error_account_disabled": "Error: The Windows account is disabled.",

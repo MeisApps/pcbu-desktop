@@ -93,6 +93,17 @@ std::string StringUtils::WithSeperators(const std::string &str, const std::strin
   return boost::algorithm::join(chunks, seperator);
 }
 
+std::vector<uint8_t> StringUtils::FromHexString(const std::string& hex) {
+  std::vector<uint8_t> result{};
+  result.reserve((hex.size() + 1) / 2);
+  try {
+    boost::algorithm::unhex(hex.begin(), hex.end(), std::back_inserter(result));
+  } catch (const boost::algorithm::hex_decode_error&) {
+    return {};
+  }
+  return result;
+}
+
 std::string StringUtils::ToHexString(const std::vector<uint8_t> &data) {
   std::string hex;
   boost::algorithm::hex(data.begin(), data.end(), std::back_inserter(hex));

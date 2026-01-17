@@ -25,7 +25,7 @@ PairedDevice BaseUnlockConnection::GetDevice() {
   return m_PairedDevice;
 }
 
-UnlockResponseData BaseUnlockConnection::GetResponseData() {
+PacketUnlockResponse BaseUnlockConnection::GetResponseData() {
   return m_ResponseData;
 }
 
@@ -38,12 +38,13 @@ UnlockState BaseUnlockConnection::PollResult() {
 }
 
 void BaseUnlockConnection::PerformAuthFlow(SOCKET socket) {
-  auto serverDataStr = GetUnlockInfoPacket();
-  if(serverDataStr.empty()) {
+  auto requestPacket = GetUnlockInfoPacket();
+  if(!requestPacket.has_value()) {
     m_UnlockState = UnlockState::UNK_ERROR;
     return;
   }
-  auto writeResult = WritePacket(socket, {serverDataStr.begin(), serverDataStr.end()});
+  auto requestStr = requestPacket.value().ToJson().dump();
+  auto writeResult = WritePacket(socket, {requestStr.begin(), requestStr.end()});
   if(writeResult == PacketError::NONE) {
     auto responsePacket = ReadPacket(socket);
     OnResponseReceived(responsePacket);
@@ -62,16 +63,21 @@ void BaseUnlockConnection::PerformAuthFlow(SOCKET socket) {
   }
 }
 
-std::string BaseUnlockConnection::GetUnlockInfoPacket() {
-  nlohmann::json encServerData = {{"authUser", m_AuthUser}, {"authProgram", m_AuthProgram}, {"unlockToken", m_UnlockToken}};
-  auto encServerDataStr = encServerData.dump();
-  auto cryptResult = CryptUtils::EncryptAESPacket({encServerDataStr.begin(), encServerDataStr.end()}, m_PairedDevice.encryptionKey);
+std::optional<PacketUnlockRequest> BaseUnlockConnection::GetUnlockInfoPacket() {
+  auto encData = PacketUnlockRequestData();
+  encData.user = m_AuthUser;
+  encData.program = m_AuthProgram;
+  encData.unlockToken = m_UnlockToken;
+  auto encDataStr = encData.ToJson().dump();
+  auto cryptResult = CryptUtils::EncryptAESPacket({encDataStr.begin(), encDataStr.end()}, m_PairedDevice.encryptionKey);
   if(cryptResult.result != PacketCryptResult::OK) {
     spdlog::error("Encrypt error.");
     return {};
   }
-  nlohmann::json serverData = {{"pairingId", m_PairedDevice.pairingId}, {"encData", StringUtils::ToHexString(cryptResult.data)}};
-  return serverData.dump();
+  auto request = PacketUnlockRequest();
+  request.deviceId = m_PairedDevice.id;
+  request.encData = StringUtils::ToHexString(cryptResult.data);
+  return request;
 }
 
 void BaseUnlockConnection::OnResponseReceived(const Packet &packet) {
@@ -130,19 +136,15 @@ void BaseUnlockConnection::OnResponseReceived(const Packet &packet) {
 
   // Parse data
   auto dataStr = std::string(cryptResult.data.begin(), cryptResult.data.end());
-  try {
-    auto json = nlohmann::json::parse(dataStr);
-    auto response = UnlockResponseData();
-    response.unlockToken = json["unlockToken"];
-    response.password = json["password"];
-
-    m_ResponseData = response;
-    if(response.unlockToken == m_UnlockToken) {
+  auto responsePacket = PacketUnlockResponse::FromJson(dataStr);
+  if(responsePacket.has_value()) {
+    m_ResponseData = responsePacket.value();
+    if(m_ResponseData.unlockToken == m_UnlockToken) {
       m_UnlockState = UnlockState::SUCCESS;
     } else {
       m_UnlockState = UnlockState::UNK_ERROR;
     }
-  } catch(std::exception &) {
+  } else {
     spdlog::error("Error parsing response data.");
     m_UnlockState = UnlockState::DATA_ERROR;
   }
