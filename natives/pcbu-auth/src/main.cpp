@@ -72,10 +72,8 @@ int runMain(int argc, char *argv[]) {
     return 1;
   } else if(result.state == UnlockState::CANCELED) {
     return 1;
-  } else if(result.state == UnlockState::TIMEOUT || result.state == UnlockState::CONNECT_ERROR) {
-    return -1;
   }
-  return 1;
+  return -1;
 }
 
 int main(int argc, char *argv[]) {
