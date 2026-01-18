@@ -97,7 +97,6 @@
   "error_not_admin": "请以管理员/root身份运行该应用程序。",
   "notice_ms_account": "注意：您使用的是 Microsoft 帐户，因此需要输入您的帐户密码。",
 
-  "pairing_form_password_desc": "选择一个用户并输入其密码。您的所有数据均以加密形式存储在手机上，不会与任何人共享。",
   "pairing_form_method_desc": "选择通信方式。",
   "pairing_form_bt_select_desc": "打开手机上的蓝牙设置并扫描设备。然后等到您的手机出现在此列表中并选择它。",
   "pairing_form_bt_pair_desc": "请在您的手机和操作系统上完成蓝牙配对过程。",

@@ -101,7 +101,7 @@
   "error_not_admin": "Bitte starte die App als Administrator/Root.",
   "notice_ms_account": "Hinweis: Du verwendest einen Microsoft Account, also musst du das Passwort des Accounts eingeben.",
 
-  "pairing_form_password_desc": "Wähle bitte einen Benutzer und gib dessen Passwort ein. Alle deine Daten werden verschlüsselt auf deinem Telefon gespeichert und werden mit niemandem geteilt.",
+  "pairing_form_password_desc": "Wähle einen Benutzer aus und gib dessen Passwort ein. Deine Anmeldedaten werden verschlüsselt auf deinem PC gespeichert und mit niemanden geteilt.",
   "pairing_form_method_type_desc": "Wähle eine Kommunikationsart aus.",
   "pairing_form_method_desc": "Wähle eine Kommunikationsmethode aus.",
   "pairing_form_bt_scanning": "Suche...",
@@ -118,7 +118,7 @@
   "pairing_method_manual_udp_select": "UDP manuell verwenden",
   "pairing_method_tcp_desc": "Alternative zu UDP. Erfordert regelmäßiges erneutes Koppeln, sofern keine statische IP-Adresse festgelegt ist. Entsperrungsaufforderungen werden schneller angezeigt als bei UDP.",
   "pairing_method_udp_desc": "Empfohlen für Desktop-PCs oder Notebooks, die zu Hause verwendet werden. Funktioniert in jedem lokalen Netzwerk oder WLAN. Beide Geräte müssen sich im selben Netzwerk befinden.",
-  "pairing_method_bt_desc": "Empfohlen für mobile Notebooks oder Tablets. Kann bei manchen Bluetooth Adaptern unzuverlässig sein.",
+  "pairing_method_bt_desc": "Empfohlen für mobile Notebooks oder Tablets. Kann bei manchen Bluetooth Adaptern unzuverlässig sein. Verbraucht viel Akkuleistung.",
   "pairing_method_manual_udp_desc": "Funktioniert in jedem lokalen Netzwerk oder WLAN. Beide Geräte müssen sich im selben Netzwerk befinden.",
 
   "service_setting_wait_for_key": "Warte auf Tastendruck beim Login",

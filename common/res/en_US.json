@@ -101,7 +101,7 @@
   "error_not_admin": "Please run the app as admin/root.",
   "notice_ms_account": "Note: You are using a Microsoft account, so you need to enter your account password.",
 
-  "pairing_form_password_desc": "Select a user and enter their password. All your data is stored encrypted on your phone and will not be shared with anyone.",
+  "pairing_form_password_desc": "Select a user and enter their password. Your login details get saved encrypted on your PC and won't be shared with anyone.",
   "pairing_form_method_type_desc": "Select a communication type.",
   "pairing_form_method_desc": "Select a communication method.",
   "pairing_form_bt_scanning": "Scanning...",
@@ -118,7 +118,7 @@
   "pairing_method_manual_udp_select": "Use UDP manually",
   "pairing_method_tcp_desc": "Alternative to UDP. Requires periodic re-pairing unless a static IP is set. Unlock prompts appear faster than with UDP.",
   "pairing_method_udp_desc": "Recommended for desktop PCs or notebooks used at home. Works on any local network or Wi-Fi. Both devices have to be on the same network.",
-  "pairing_method_bt_desc": "Recommended for mobile notebooks or tablets. May be unreliable depending on your Bluetooth adapter.",
+  "pairing_method_bt_desc": "Recommended for mobile notebooks or tablets. May be unreliable depending on your Bluetooth adapter. Uses a lot of battery power.",
   "pairing_method_manual_udp_desc": "Works on any local network or Wi-Fi. Both devices have to be on the same network.",
 
   "service_setting_wait_for_key": "Wait for key press at login",

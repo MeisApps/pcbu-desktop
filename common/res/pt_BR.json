@@ -99,7 +99,6 @@
   "error_not_admin": "Execute o aplicativo como administrador/root.",
   "notice_ms_account": "Nota: você está usando uma conta Microsoft, então deve inserir a senha da conta.",
 
-  "pairing_form_password_desc": "Selecione um usuário e insira sua senha. Todos os dados são armazenados criptografados no telefone e não são compartilhados.",
   "pairing_form_method_desc": "Selecione um método de comunicação.",
   "pairing_form_bt_select_desc": "Abra as configurações de Bluetooth no telefone e procure por dispositivos. Aguarde o telefone aparecer na lista e selecione-o.",
   "pairing_form_bt_pair_desc": "Conclua o pareamento Bluetooth no telefone e no sistema operacional.",
