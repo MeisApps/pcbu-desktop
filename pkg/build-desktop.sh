@@ -88,8 +88,9 @@ elif [[ "$PLATFORM" == "linux" ]]; then
   cp ../../desktop/res/icons/icon.png appimage_dir/usr/share/icons/hicolor/256x256/apps/PCBioUnlock.png
   chmod +x appimage_dir/usr/bin/run-app.sh
 
-  export QML_SOURCES_PATHS=../../desktop/qml
-  export EXTRA_QT_MODULES=svg
+  export QML_SOURCES_PATHS="../../desktop/qml"
+  export EXTRA_QT_MODULES="svg;waylandcompositor"
+  export EXTRA_PLATFORM_PLUGINS="libqwayland.so"
   ./linuxdeploy-$LINUX_ARCH.AppImage --appdir appimage_dir --plugin checkrt --desktop-file ../linux/PCBioUnlock.desktop
   wget "https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-$LINUX_ARCH.AppImage" && chmod +x ./linuxdeploy-plugin-qt-$LINUX_ARCH.AppImage
   ./linuxdeploy-plugin-qt-$LINUX_ARCH.AppImage --appdir appimage_dir
