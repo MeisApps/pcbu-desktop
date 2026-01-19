@@ -17,7 +17,7 @@ static int print_pam(struct pam_conv *conv, const std::string &message) {
   if(!conv)
     return PAM_CONV_ERR;
 
-  msg.msg = (char *)message.c_str();
+  msg.msg = const_cast<char *>(message.c_str());
   msg.msg_style = PAM_TEXT_INFO;
   conv->conv(1, &pMsg, &resp, conv->appdata_ptr);
   return PAM_SUCCESS;
@@ -27,7 +27,7 @@ int pam_sm_authenticate(pam_handle_t *pamh, int flags, int argc, const char **ar
   const char *userName = nullptr;
   const char *serviceName = nullptr;
   struct pam_conv *conv = nullptr;
-  auto statusCode = pam_get_item(pamh, PAM_SERVICE, (const void **)&serviceName);
+  auto statusCode = pam_get_item(pamh, PAM_SERVICE, reinterpret_cast<const void **>(&serviceName));
   if(statusCode == PAM_SUCCESS) {
     statusCode = pam_get_user(pamh, (const char **)&userName, nullptr);
     if(statusCode == PAM_SUCCESS) {
@@ -52,10 +52,10 @@ int pam_sm_authenticate(pam_handle_t *pamh, int flags, int argc, const char **ar
     auto result = proc.exit_code();
     if(result == 0)
       return PAM_SUCCESS;
-    else if(result == 1)
+    if(result == 1)
       return PAM_AUTH_ERR;
   } catch(const std::exception &ex) {
-    spdlog::error("Installation is corrupt. {}", ex.what());
+    // spdlog::error("Installation is corrupt. {}", ex.what());
   }
   return PAM_IGNORE;
 }

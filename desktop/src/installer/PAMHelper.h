@@ -22,6 +22,8 @@ private:
   void AddEntryToFile(const std::filesystem::path &filePath, const std::string &entry);
   void RemoveEntryFromFile(const std::filesystem::path &filePath, const std::string &entry);
 
+  bool SetPolkitRestrictions(bool enabled);
+
   std::function<void(const std::string &)> m_Logger{};
 };
 

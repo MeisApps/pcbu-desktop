@@ -46,10 +46,21 @@ bool PAMHelper::HasConfigEntry(const std::string &configName, const std::string 
 
 void PAMHelper::SetConfigEntry(const std::string &configName, const std::string &entry, bool enabled) {
   auto hasEntry = HasConfigEntry(configName, entry);
-  if(enabled && !hasEntry)
-    AddToConfig(configName, entry);
-  else if(!enabled && hasEntry)
+  if(enabled && !hasEntry) {
+    if(configName == "polkit-1") {
+      m_Logger("Disabling polkit-agent-helper restrictions...");
+      if(SetPolkitRestrictions(false))
+        AddToConfig(configName, entry);
+    } else {
+      AddToConfig(configName, entry);
+    }
+  } else if(!enabled && hasEntry) {
     RemoveFromConfig(configName, entry);
+    if(configName == "polkit-1") {
+      m_Logger("Enabling polkit-agent-helper restrictions...");
+      SetPolkitRestrictions(true);
+    }
+  }
 }
 
 bool PAMHelper::IsConfigGenerated(const std::filesystem::path &filePath) {
@@ -129,4 +140,46 @@ void PAMHelper::RemoveEntryFromFile(const std::filesystem::path &filePath, const
       resultStr.append(line + '\n');
   if(!Shell::WriteBytes(filePath, {resultStr.begin(), resultStr.end()}))
     throw std::runtime_error(I18n::Get("error_file_write", filePath.string()));
+}
+
+bool PAMHelper::SetPolkitRestrictions(bool enabled) {
+  auto serviceDirs = {std::filesystem::path("/lib64/systemd/system/"), std::filesystem::path("/lib/systemd/system/"),
+                      std::filesystem::path("/usr/lib64/systemd/system/"), std::filesystem::path("/usr/lib/systemd/system/"),
+                      std::filesystem::path("/etc/systemd/system/")};
+  auto serviceNames = {"polkit-agent-helper@.service", "polkit-agent-helper.service"};
+  std::optional<std::filesystem::path> servicePath{};
+  for(const auto &path : serviceDirs) {
+    for(const auto &name : serviceNames) {
+      if(std::filesystem::exists(path / name)) {
+        servicePath = path / name;
+        goto POLKIT_FOUND;
+      }
+    }
+  }
+
+POLKIT_FOUND:
+  if(!servicePath.has_value()) {
+    m_Logger("Failed to find polkit-agent-helper service path.");
+    return false;
+  }
+  auto fileData = Shell::ReadBytes(servicePath.value());
+  auto fileStr = std::string(fileData.begin(), fileData.end());
+  if(enabled) {
+    fileStr = StringUtils::Replace(fileStr, "NoNewPrivileges=no", "NoNewPrivileges=yes");
+    fileStr = StringUtils::Replace(fileStr, "PrivateDevices=no", "PrivateDevices=yes");
+    fileStr = StringUtils::Replace(fileStr, "PrivateNetwork=no", "PrivateNetwork=yes");
+    fileStr = StringUtils::Replace(fileStr, "#RestrictAddressFamilies=AF_UNIX", "RestrictAddressFamilies=AF_UNIX");
+    fileStr = StringUtils::Replace(fileStr, "RestrictSUIDSGID=no", "RestrictSUIDSGID=yes");
+  } else {
+    fileStr = StringUtils::Replace(fileStr, "NoNewPrivileges=yes", "NoNewPrivileges=no");
+    fileStr = StringUtils::Replace(fileStr, "PrivateDevices=yes", "PrivateDevices=no");
+    fileStr = StringUtils::Replace(fileStr, "PrivateNetwork=yes", "PrivateNetwork=no");
+    fileStr = StringUtils::Replace(fileStr, "RestrictAddressFamilies=AF_UNIX", "#RestrictAddressFamilies=AF_UNIX");
+    fileStr = StringUtils::Replace(fileStr, "RestrictSUIDSGID=yes", "RestrictSUIDSGID=no");
+  }
+  if(!Shell::WriteBytes(servicePath.value(), {fileStr.begin(), fileStr.end()})) {
+    m_Logger(I18n::Get("error_file_write", servicePath.value().string()));
+    return false;
+  }
+  return true;
 }

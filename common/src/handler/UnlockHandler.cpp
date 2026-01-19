@@ -174,7 +174,7 @@ UnlockResult UnlockHandler::RunServer(BaseUnlockConnection *connection, AtomicUn
   spdlog::info("Connection result: {}", UnlockStateUtils::ToString(state));
 
   auto pwDec = CryptUtils::DecryptAES(connection->GetDevice().passwordEnc, connection->GetResponseData().passwordKey);
-  if(!pwDec.has_value()) {
+  if(!pwDec.has_value() && state == UnlockState::SUCCESS) {
     auto errorMsg = I18n::Get("error_password_decrypt");
     spdlog::error(errorMsg);
     m_PrintMessage(errorMsg);
@@ -184,6 +184,6 @@ UnlockResult UnlockHandler::RunServer(BaseUnlockConnection *connection, AtomicUn
   auto result = UnlockResult();
   result.state = state;
   result.device = connection->GetDevice();
-  result.password = pwDec.value();
+  result.password = pwDec.has_value() ? pwDec.value() : "";
   return result;
 }
