@@ -32,7 +32,7 @@ jobs:
         uses: jurplel/install-qt-action@v3
         with:
           dir: 'C:/'
-          version: '$QT_VERSION'
+          version: $QT_VERSION
           host: 'windows'
           target: 'desktop'
           arch: 'win64_msvc2022_64'
