@@ -19,6 +19,11 @@ jobs:
         with:
           submodules: recursive
 
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
       - name: vcpkg build x64
         uses: johnwason/vcpkg-action@v6
         with:
@@ -32,7 +37,7 @@ jobs:
         uses: jurplel/install-qt-action@v3
         with:
           dir: 'C:/'
-          version: $QT_VERSION
+          version: ${{ env.QT_VERSION }}
           host: 'windows'
           target: 'desktop'
           arch: 'win64_msvc2022_64'
@@ -40,7 +45,7 @@ jobs:
           cache-key-prefix: 'qt-x64'
 
       - name: Build x64
-        run: bash -c "cd pkg && chmod +x build-desktop.sh && ARCH=x64 QT_BASE_DIR=C:/Qt/$QT_VERSION ./build-desktop.sh"
+        run: bash -c "cd pkg && chmod +x build-desktop.sh && ARCH=x64 QT_BASE_DIR=C:/Qt/${{ env.QT_VERSION }} ./build-desktop.sh"
         env:
           VCPKG_ROOT: ${{github.workspace}}/vcpkg
 
