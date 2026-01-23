@@ -13,7 +13,8 @@ std::string AppInfo::GetVersion() {
 }
 
 std::string AppInfo::GetProtocolVersion() {
-  return "2.0.0";
+  // Bumped because iOS implementation uses a 12-byte AES-GCM nonce (CryptoKit).
+  return "2.1.0";
 }
 
 std::string AppInfo::GetOperatingSystem() {

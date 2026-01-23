@@ -17,7 +17,7 @@
 #endif
 
 #define AES_KEY_SIZE 256
-#define IV_SIZE 16
+#define IV_SIZE 12
 #define SALT_SIZE 16
 #define GCM_TAG_SIZE 16
 #define ITERATIONS 65535
