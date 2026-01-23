@@ -28,7 +28,7 @@ jobs:
           github-binarycache: true
           cache-key: 'vcpkg-x64'
 
-      - name: Install Qt x64
+      - name: Install Qt x64 
         uses: jurplel/install-qt-action@v3
         with:
           dir: 'C:/'
