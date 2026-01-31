@@ -72,11 +72,12 @@ struct PacketPairResponse { // From PC
 };
 
 struct PacketUnlockRequest {
+  std::string protoVersion;
   std::string deviceId;
   std::string encData;
 
   nlohmann::json ToJson() {
-    return {{"deviceId", deviceId}, {"encData", encData}};
+    return {{"protoVersion", protoVersion}, {"deviceId", deviceId}, {"encData", encData}};
   }
 };
 
@@ -91,13 +92,30 @@ struct PacketUnlockRequestData {
 };
 
 struct PacketUnlockResponse {
-  std::string unlockToken;
-  std::string passwordKey;
+  std::string error;
+  std::string encData;
 
   static std::optional<PacketUnlockResponse> FromJson(const std::string &jsonStr) {
     try {
       auto json = nlohmann::json::parse(jsonStr);
       auto packet = PacketUnlockResponse();
+      packet.error = json["error"];
+      packet.encData = json["encData"];
+      return packet;
+    } catch(...) {
+    }
+    return {};
+  }
+};
+
+struct PacketUnlockResponseData {
+  std::string unlockToken;
+  std::string passwordKey;
+
+  static std::optional<PacketUnlockResponseData> FromJson(const std::string &jsonStr) {
+    try {
+      auto json = nlohmann::json::parse(jsonStr);
+      auto packet = PacketUnlockResponseData();
       packet.unlockToken = json["unlockToken"];
       packet.passwordKey = json["passwordKey"];
       return packet;

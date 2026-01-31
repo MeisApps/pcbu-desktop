@@ -1,5 +1,6 @@
 #include "BaseUnlockConnection.h"
 
+#include "utils/AppInfo.h"
 #include "utils/StringUtils.h"
 
 BaseUnlockConnection::BaseUnlockConnection() {
@@ -25,7 +26,7 @@ PairedDevice BaseUnlockConnection::GetDevice() {
   return m_PairedDevice;
 }
 
-PacketUnlockResponse BaseUnlockConnection::GetResponseData() {
+PacketUnlockResponseData BaseUnlockConnection::GetResponseData() {
   return m_ResponseData;
 }
 
@@ -63,7 +64,7 @@ void BaseUnlockConnection::PerformAuthFlow(SOCKET socket) {
   }
 }
 
-std::optional<PacketUnlockRequest> BaseUnlockConnection::GetUnlockInfoPacket() {
+std::optional<PacketUnlockRequest> BaseUnlockConnection::GetUnlockInfoPacket() const {
   auto encData = PacketUnlockRequestData();
   encData.user = m_AuthUser;
   encData.program = m_AuthProgram;
@@ -75,6 +76,7 @@ std::optional<PacketUnlockRequest> BaseUnlockConnection::GetUnlockInfoPacket() {
     return {};
   }
   auto request = PacketUnlockRequest();
+  request.protoVersion = AppInfo::GetProtocolVersion();
   request.deviceId = m_PairedDevice.id;
   request.encData = StringUtils::ToHexString(cryptResult.data);
   return request;
@@ -101,24 +103,41 @@ void BaseUnlockConnection::OnResponseReceived(const Packet &packet) {
     return;
   }
 
-  // Decrypt data
-  auto cryptResult = CryptUtils::DecryptAESPacket(packet.data, m_PairedDevice.encryptionKey);
-  if(cryptResult.result != PacketCryptResult::OK) {
-    auto respStr = std::string((const char *)packet.data.data(), packet.data.size());
-    if(respStr == "CANCEL") {
-      m_UnlockState = UnlockState::CANCELED;
-      return;
-    } else if(respStr == "NOT_PAIRED") {
-      m_UnlockState = UnlockState::NOT_PAIRED_ERROR;
-      return;
-    } else if(respStr == "ERROR") {
-      m_UnlockState = UnlockState::APP_ERROR;
-      return;
-    } else if(respStr == "TIME_ERROR") {
-      m_UnlockState = UnlockState::TIME_ERROR;
-      return;
-    }
+  // Parse data
+  auto respStr = std::string(packet.data.begin(), packet.data.end());
+  auto responsePacket = PacketUnlockResponse::FromJson(respStr);
+  if(!responsePacket.has_value()) {
+    spdlog::error("Error parsing response packet.");
+    m_UnlockState = UnlockState::DATA_ERROR;
+    return;
+  }
 
+  // Error handling
+  auto error = responsePacket.value().error;
+  if(!error.empty()) {
+    spdlog::error("Error in response packet: {}", error);
+    if(error == "CANCEL") {
+      m_UnlockState = UnlockState::CANCELED;
+    } else if(error == "NOT_PAIRED") {
+      m_UnlockState = UnlockState::NOT_PAIRED_ERROR;
+    } else if(error == "APP_ERROR") {
+      m_UnlockState = UnlockState::APP_ERROR;
+    } else if(error == "TIME_ERROR") {
+      m_UnlockState = UnlockState::TIME_ERROR;
+    } else if(error == "DATA_ERROR") {
+      m_UnlockState = UnlockState::DATA_ERROR;
+    } else if(error == "PROTOCOL_ERROR") {
+      m_UnlockState = UnlockState::PROTOCOL_ERROR;
+    } else {
+      m_UnlockState = UnlockState::UNK_ERROR;
+    }
+    return;
+  }
+
+  // Decrypt data
+  auto cryptData = StringUtils::FromHexString(responsePacket.value().encData);
+  auto cryptResult = CryptUtils::DecryptAESPacket(cryptData, m_PairedDevice.encryptionKey);
+  if(cryptResult.result != PacketCryptResult::OK) {
     switch(cryptResult.result) {
       case INVALID_TIMESTAMP: {
         spdlog::error("Invalid timestamp on AES data.");
@@ -126,7 +145,7 @@ void BaseUnlockConnection::OnResponseReceived(const Packet &packet) {
         break;
       }
       default: {
-        spdlog::error("Invalid data received. (Size={}, Str={})", packet.data.size(), respStr);
+        spdlog::error("Invalid data received. (Size={})", packet.data.size());
         m_UnlockState = UnlockState::DATA_ERROR;
         break;
       }
@@ -134,18 +153,20 @@ void BaseUnlockConnection::OnResponseReceived(const Packet &packet) {
     return;
   }
 
-  // Parse data
+  // Parse encrypted data
   auto dataStr = std::string(cryptResult.data.begin(), cryptResult.data.end());
-  auto responsePacket = PacketUnlockResponse::FromJson(dataStr);
-  if(responsePacket.has_value()) {
-    m_ResponseData = responsePacket.value();
-    if(m_ResponseData.unlockToken == m_UnlockToken) {
-      m_UnlockState = UnlockState::SUCCESS;
-    } else {
-      m_UnlockState = UnlockState::UNK_ERROR;
-    }
-  } else {
+  auto dataPacket = PacketUnlockResponseData::FromJson(dataStr);
+  if(!dataPacket.has_value()) {
     spdlog::error("Error parsing response data.");
     m_UnlockState = UnlockState::DATA_ERROR;
+    return;
+  }
+  m_ResponseData = dataPacket.value();
+
+  // Token check
+  if(m_ResponseData.unlockToken == m_UnlockToken) {
+    m_UnlockState = UnlockState::SUCCESS;
+  } else {
+    m_UnlockState = UnlockState::UNK_ERROR;
   }
 }

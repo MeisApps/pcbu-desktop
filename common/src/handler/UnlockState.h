@@ -16,7 +16,8 @@ enum UnlockState {
   APP_ERROR = 8,
   START_ERROR = 9,
   PORT_ERROR = 10,
-  UNK_ERROR = 11
+  PROTOCOL_ERROR = 11,
+  UNK_ERROR = 12
 };
 
 class UnlockStateUtils {
@@ -42,6 +43,8 @@ public:
       return I18n::Get("error_start_handler");
     } else if(state == UnlockState::PORT_ERROR) {
       return I18n::Get("error_unlock_server_init");
+    } else if(state == UnlockState::PROTOCOL_ERROR) {
+      return I18n::Get("error_protocol_mismatch");
     } else if(state == UnlockState::UNK_ERROR) {
       return I18n::Get("unlock_error_unknown");
     } else {

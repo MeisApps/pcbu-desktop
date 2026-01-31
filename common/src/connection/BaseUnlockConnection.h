@@ -24,7 +24,7 @@ public:
   virtual void Stop() = 0;
 
   PairedDevice GetDevice();
-  PacketUnlockResponse GetResponseData();
+  PacketUnlockResponseData GetResponseData();
   [[nodiscard]] bool HasClient() const;
 
   void SetUnlockInfo(const std::string &authUser, const std::string &authProgram);
@@ -34,7 +34,7 @@ protected:
   virtual void PerformAuthFlow(SOCKET socket);
 
 private:
-  std::optional<PacketUnlockRequest> GetUnlockInfoPacket();
+  std::optional<PacketUnlockRequest> GetUnlockInfoPacket() const;
   void OnResponseReceived(const Packet &packet);
 
 protected:
@@ -45,7 +45,7 @@ protected:
 
   std::atomic<UnlockState> m_UnlockState{};
   PairedDevice m_PairedDevice{};
-  PacketUnlockResponse m_ResponseData{};
+  PacketUnlockResponseData m_ResponseData{};
 
   std::string m_AuthUser{};
   std::string m_AuthProgram{};
