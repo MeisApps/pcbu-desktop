@@ -132,12 +132,22 @@ void PAMHelper::AddEntryToFile(const std::filesystem::path &filePath, const std:
 void PAMHelper::RemoveEntryFromFile(const std::filesystem::path &filePath, const std::string &entry) {
   auto fileData = Shell::ReadBytes(filePath);
   auto fileStr = std::string(fileData.begin(), fileData.end());
+  auto entries = StringUtils::Split(entry, "\n");
 
   m_Logger(fmt::format("Removing PAM entry from {}...", filePath.string()));
   std::string resultStr{};
-  for(const auto &line : StringUtils::Split(fileStr, "\n"))
-    if(line != entry)
+  for(const auto &line : StringUtils::Split(fileStr, "\n"))  {
+    auto shouldRemove = false;
+    for(const auto &lineEntry : entries) {
+      if(line == lineEntry) {
+        shouldRemove = true;
+        break;
+      }
+    }
+    if(!shouldRemove)
       resultStr.append(line + '\n');
+  }
+
   if(!Shell::WriteBytes(filePath, {resultStr.begin(), resultStr.end()}))
     throw std::runtime_error(I18n::Get("error_file_write", filePath.string()));
 }
