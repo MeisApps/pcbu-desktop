@@ -170,12 +170,16 @@ POLKIT_FOUND:
     fileStr = StringUtils::Replace(fileStr, "PrivateNetwork=no", "PrivateNetwork=yes");
     fileStr = StringUtils::Replace(fileStr, "#RestrictAddressFamilies=AF_UNIX", "RestrictAddressFamilies=AF_UNIX");
     fileStr = StringUtils::Replace(fileStr, "RestrictSUIDSGID=no", "RestrictSUIDSGID=yes");
+    fileStr = StringUtils::Replace(fileStr, "#DeviceAllow=", "DeviceAllow=");
+    fileStr = StringUtils::Replace(fileStr, "#DevicePolicy=strict", "DevicePolicy=strict");
   } else {
     fileStr = StringUtils::Replace(fileStr, "NoNewPrivileges=yes", "NoNewPrivileges=no");
     fileStr = StringUtils::Replace(fileStr, "PrivateDevices=yes", "PrivateDevices=no");
     fileStr = StringUtils::Replace(fileStr, "PrivateNetwork=yes", "PrivateNetwork=no");
     fileStr = StringUtils::Replace(fileStr, "RestrictAddressFamilies=AF_UNIX", "#RestrictAddressFamilies=AF_UNIX");
     fileStr = StringUtils::Replace(fileStr, "RestrictSUIDSGID=yes", "RestrictSUIDSGID=no");
+    fileStr = StringUtils::Replace(fileStr, "DeviceAllow=", "#DeviceAllow=");
+    fileStr = StringUtils::Replace(fileStr, "DevicePolicy=strict", "#DevicePolicy=strict");
   }
   if(!Shell::WriteBytes(servicePath.value(), {fileStr.begin(), fileStr.end()})) {
     m_Logger(I18n::Get("error_file_write", servicePath.value().string()));
