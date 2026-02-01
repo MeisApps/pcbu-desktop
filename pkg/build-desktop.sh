@@ -30,7 +30,7 @@ BUILD_CORES=3
 if [[ "$PLATFORM" == "win" ]]; then
   WIN_QT_PATH="$(cygpath -u "$QT_BASE_DIR")/msvc2022_64"
   WIN_QT_PATH_ARM64="$(cygpath -u "$QT_BASE_DIR")/msvc2022_arm64"
-  WIN_MT_PATH="/c/Program Files (x86)/Windows Kits/10/bin/10.0.22621.0/x64/mt.exe"
+  WIN_MT_PATH="/c/Program Files (x86)/Windows Kits/10/bin/10.0.26100.0/x64/mt.exe"
 fi
 
 # Build

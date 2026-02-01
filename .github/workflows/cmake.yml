@@ -15,24 +15,23 @@ jobs:
   build-windows:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           submodules: recursive
 
       - name: vcpkg build x64
-        uses: johnwason/vcpkg-action@v6
+        uses: johnwason/vcpkg-action@v7
         with:
           pkgs: openssl
           triplet: x64-windows-static
-          token: ${{ github.token }}
-          github-binarycache: true
+          token: ${{github.token}}
           cache-key: 'vcpkg-x64'
 
       - name: Install Qt x64
-        uses: jurplel/install-qt-action@v3
+        uses: jurplel/install-qt-action@v4
         with:
           dir: 'C:/'
-          version: '$QT_VERSION'
+          version: '${{env.QT_VERSION}}'
           host: 'windows'
           target: 'desktop'
           arch: 'win64_msvc2022_64'
@@ -40,7 +39,7 @@ jobs:
           cache-key-prefix: 'qt-x64'
 
       - name: Build x64
-        run: bash -c "cd pkg && chmod +x build-desktop.sh && ARCH=x64 QT_BASE_DIR=C:/Qt/$QT_VERSION ./build-desktop.sh"
+        run: bash -c "cd pkg && chmod +x build-desktop.sh && ARCH=x64 QT_BASE_DIR=C:/Qt/${{env.QT_VERSION}} ./build-desktop.sh"
         env:
           VCPKG_ROOT: ${{github.workspace}}/vcpkg
 
@@ -51,19 +50,18 @@ jobs:
             pkg/build/PCBioUnlock-Setup-x64.exe
 
       - name: vcpkg build arm64
-        uses: johnwason/vcpkg-action@v6
+        uses: johnwason/vcpkg-action@v7
         with:
           pkgs: openssl
           triplet: arm64-windows-static
-          token: ${{ github.token }}
-          github-binarycache: true
+          token: ${{github.token}}
           cache-key: 'vcpkg-arm64'
 
       - name: Install Qt arm64
-        uses: jurplel/install-qt-action@v3
+        uses: jurplel/install-qt-action@v4
         with:
           dir: 'C:/'
-          version: '$QT_VERSION'
+          version: '${{env.QT_VERSION}}'
           host: 'windows'
           target: 'desktop'
           arch: 'win64_msvc2022_arm64_cross_compiled'
@@ -71,7 +69,7 @@ jobs:
           cache-key-prefix: 'qt-arm64'
 
       - name: Build arm64
-        run: bash -c "cd pkg && rm -Rf ./build/ && ARCH=arm64 QT_BASE_DIR=C:/Qt/$QT_VERSION ./build-desktop.sh"
+        run: bash -c "cd pkg && rm -Rf ./build/ && ARCH=arm64 QT_BASE_DIR=C:/Qt/${{env.QT_VERSION}} ./build-desktop.sh"
         env:
           VCPKG_ROOT: ${{github.workspace}}/vcpkg
 
@@ -84,7 +82,7 @@ jobs:
   build-linux-x64:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           submodules: recursive
 
@@ -100,7 +98,7 @@ jobs:
   build-linux-arm64:
     runs-on: ubuntu-24.04-arm
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           submodules: recursive
 
@@ -116,24 +114,24 @@ jobs:
   build-mac-arm64:
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           submodules: recursive
 
       - name: Prepare Qt
         run: sudo chmod 777 /opt
       - name: Install Qt
-        uses: jurplel/install-qt-action@v3
+        uses: jurplel/install-qt-action@v4
         with:
           dir: '/opt'
-          version: '$QT_VERSION'
+          version: '${{env.QT_VERSION}}'
           host: 'mac'
           target: 'desktop'
           arch: 'clang_64'
           cache: 'true'
 
       - name: Build
-        run: bash -c "cd pkg && rm -Rf ./build/ && ARCH=arm64 QT_BASE_DIR=/opt/Qt/$QT_VERSION CI_BUILD=1 ./build-desktop.sh"
+        run: bash -c "cd pkg && rm -Rf ./build/ && ARCH=arm64 QT_BASE_DIR=/opt/Qt/${{env.QT_VERSION}} CI_BUILD=1 ./build-desktop.sh"
 
       - name: Upload
         uses: softprops/action-gh-release@v2
