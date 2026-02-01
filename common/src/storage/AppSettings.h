@@ -16,8 +16,9 @@ struct PCBUAppStorage {
   uint32_t clientSocketTimeout{};
   uint32_t clientConnectTimeout{};
   uint32_t clientConnectRetries{};
-  bool waitForKeyPress{};
-  bool isManualUnlockEnabled{};
+
+  bool winWaitForKeyPress{};
+  bool winHidePasswordField{};
 };
 
 class AppSettings {

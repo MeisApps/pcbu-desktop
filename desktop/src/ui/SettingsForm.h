@@ -21,7 +21,8 @@ public:
     clientSocketTimeout = settings.clientSocketTimeout;
     clientConnectTimeout = settings.clientConnectTimeout;
     clientConnectRetries = settings.clientConnectRetries;
-    waitForKeyPress = settings.waitForKeyPress;
+    winWaitForKeyPress = settings.winWaitForKeyPress;
+    winHidePasswordField = settings.winHidePasswordField;
   }
   [[nodiscard]] PCBUAppStorage ToStorage() const {
     auto settings = PCBUAppStorage();
@@ -34,7 +35,8 @@ public:
     settings.clientSocketTimeout = clientSocketTimeout;
     settings.clientConnectTimeout = clientConnectTimeout;
     settings.clientConnectRetries = clientConnectRetries;
-    settings.waitForKeyPress = waitForKeyPress;
+    settings.winWaitForKeyPress = winWaitForKeyPress;
+    settings.winHidePasswordField = winHidePasswordField;
     return settings;
   }
 
@@ -47,7 +49,8 @@ public:
   uint32_t clientSocketTimeout{};
   uint32_t clientConnectTimeout{};
   uint32_t clientConnectRetries{};
-  bool waitForKeyPress{};
+  bool winWaitForKeyPress{};
+  bool winHidePasswordField{};
   Q_PROPERTY(QString installedVersion MEMBER installedVersion)
   Q_PROPERTY(QString language MEMBER language)
   Q_PROPERTY(QString serverIP MEMBER serverIP)
@@ -57,7 +60,8 @@ public:
   Q_PROPERTY(uint32_t clientSocketTimeout MEMBER clientSocketTimeout)
   Q_PROPERTY(uint32_t clientConnectTimeout MEMBER clientConnectTimeout)
   Q_PROPERTY(uint32_t clientConnectRetries MEMBER clientConnectRetries)
-  Q_PROPERTY(bool waitForKeyPress MEMBER waitForKeyPress)
+  Q_PROPERTY(bool winWaitForKeyPress MEMBER winWaitForKeyPress)
+  Q_PROPERTY(bool winHidePasswordField MEMBER winHidePasswordField)
 };
 
 struct ServiceSettingModel {

@@ -61,7 +61,7 @@ UnlockResult UnlockHandler::GetResult(const std::string &authUser, const std::st
       connections.emplace_back(connection);
     }
   }
-  if(!devices.empty() && settings.isManualUnlockEnabled || hasTCPServer) {
+  if(hasTCPServer) {
     auto server = new TCPUnlockServer();
     server->SetUnlockInfo(authUser, authProgram);
     connections.emplace_back(server);

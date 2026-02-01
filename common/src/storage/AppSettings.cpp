@@ -37,8 +37,9 @@ PCBUAppStorage AppSettings::Get() {
     settings.clientSocketTimeout = json["clientSocketTimeout"];
     settings.clientConnectTimeout = json["clientConnectTimeout"];
     settings.clientConnectRetries = json["clientConnectRetries"];
-    settings.waitForKeyPress = json["waitForKeyPress"];
-    settings.isManualUnlockEnabled = json["isManualUnlockEnabled"];
+
+    settings.winWaitForKeyPress = json["winWaitForKeyPress"];
+    settings.winHidePasswordField = json["winHidePasswordField"];
     return settings;
   } catch(const std::exception &ex) {
     spdlog::error("Failed reading app storage: {}", ex.what());
@@ -50,8 +51,9 @@ PCBUAppStorage AppSettings::Get() {
     def.clientSocketTimeout = 120;
     def.clientConnectTimeout = 5;
     def.clientConnectRetries = 2;
-    def.waitForKeyPress = false;
-    def.isManualUnlockEnabled = false;
+
+    def.winWaitForKeyPress = true;
+    def.winHidePasswordField = false;
     spdlog::info("Creating new app storage...");
     Save(def);
     return def;
@@ -70,8 +72,9 @@ void AppSettings::Save(const PCBUAppStorage &storage) {
         {"clientSocketTimeout", storage.clientSocketTimeout},
         {"clientConnectTimeout", storage.clientConnectTimeout},
         {"clientConnectRetries", storage.clientConnectRetries},
-        {"waitForKeyPress", storage.waitForKeyPress},
-        {"isManualUnlockEnabled", storage.isManualUnlockEnabled},
+
+        {"winWaitForKeyPress", storage.winWaitForKeyPress},
+        {"winHidePasswordField", storage.winHidePasswordField},
     };
     auto baseDir = GetBaseDir();
     if(!std::filesystem::exists(baseDir))

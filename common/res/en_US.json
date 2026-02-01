@@ -122,6 +122,7 @@
   "pairing_method_manual_udp_desc": "Works on any local network or Wi-Fi. Both devices have to be on the same network.",
 
   "service_setting_wait_for_key": "Wait for key press at login",
+  "service_setting_hide_pw_field": "Hide password field on login screen",
   "service_setting_sudo": "Enable sudo integration",
   "service_setting_polkit": "Enable polkit integration",
   "service_setting_login_manager": "Enable login manager integration",

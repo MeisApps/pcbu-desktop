@@ -122,6 +122,7 @@
   "pairing_method_manual_udp_desc": "Funktioniert in jedem lokalen Netzwerk oder WLAN. Beide Geräte müssen sich im selben Netzwerk befinden.",
 
   "service_setting_wait_for_key": "Warte auf Tastendruck beim Login",
+  "service_setting_hide_pw_field": "Passwortfeld auf Anmeldebildschirm ausblenden",
   "service_setting_sudo": "Aktiviere sudo Integration",
   "service_setting_polkit": "Aktiviere polkit Integration",
   "service_setting_login_manager": "Aktiviere login manager Integration",

@@ -62,7 +62,7 @@ void CUnlockListener::ListenThread() {
   Sleep(500);
   auto storage = AppSettings::Get();
   auto devices = PairedDevicesStorage::GetDevices();
-  const auto waitForNetwork = std::any_of(devices.begin(), devices.end(), [](const PairedDevice &device) {
+  const auto waitForNetwork = std::ranges::any_of(devices, [](const PairedDevice &device) {
     return device.pairingMethod == PairingMethod::TCP || device.pairingMethod == PairingMethod::CLOUD_TCP;
   });
   if(m_ProviderUsage == CPUS_LOGON || m_ProviderUsage == CPUS_UNLOCK_WORKSTATION) {
@@ -70,8 +70,8 @@ void CUnlockListener::ListenThread() {
     if(waitForNetwork) {
       m_Credential->UpdateMessage(I18n::Get("wait_network"));
       while(m_IsRunning) {
-        auto isAbort = false;
-        if(NetworkHelper::HasLANConnection() || (isAbort = GetAsyncKeyState(VK_LCONTROL) < 0 && GetAsyncKeyState(VK_LMENU) < 0)) {
+        auto isAbort = GetAsyncKeyState(VK_LCONTROL) < 0 && GetAsyncKeyState(VK_LMENU) < 0;
+        if(NetworkHelper::HasLANConnection() || isAbort) {
           if(isAbort) {
             m_HasResponse = true;
             m_Credential->UpdateMessage(I18n::Get("unlock_canceled"));
@@ -84,7 +84,7 @@ void CUnlockListener::ListenThread() {
     }
 
     // Key press
-    if(storage.waitForKeyPress) {
+    if(storage.winWaitForKeyPress) {
       Sleep(500);
       m_Credential->UpdateMessage(I18n::Get("wait_key_press"));
       byte lastKeys[KEY_RANGE];
@@ -101,7 +101,7 @@ void CUnlockListener::ListenThread() {
   }
 
   // Unlock
-  std::function printMessage = [this](const std::string &s) { m_Credential->UpdateMessage(s); };
+  std::function<void(const std::string&)> printMessage = [this](const std::string &s) { m_Credential->UpdateMessage(s); };
   auto handler = UnlockHandler(printMessage);
   const auto result = handler.GetResult(userDomainStr, "Windows-Login", &m_IsRunning);
 

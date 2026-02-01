@@ -28,7 +28,8 @@ ServiceInstaller::ServiceInstaller(const std::function<void(const std::string &)
 }
 
 std::vector<ServiceSetting> ServiceInstaller::GetSettings() {
-  return {{"waitForKey", I18n::Get("service_setting_wait_for_key"), AppSettings::Get().waitForKeyPress, true}};
+  return {{"waitForKey", I18n::Get("service_setting_wait_for_key"), AppSettings::Get().winWaitForKeyPress, true},
+  {"hidePasswordField", I18n::Get("service_setting_hide_pw_field"), AppSettings::Get().winHidePasswordField, false}};
 }
 
 void ServiceInstaller::ApplySettings(const std::vector<ServiceSetting> &settings, bool useDefault) {
@@ -36,7 +37,11 @@ void ServiceInstaller::ApplySettings(const std::vector<ServiceSetting> &settings
     auto isEnabled = useDefault ? setting.defaultVal : setting.enabled;
     if(setting.id == "waitForKey") {
       auto storage = AppSettings::Get();
-      storage.waitForKeyPress = isEnabled;
+      storage.winWaitForKeyPress = isEnabled;
+      AppSettings::Save(storage);
+    } else if(setting.id == "hidePasswordField") {
+      auto storage = AppSettings::Get();
+      storage.winHidePasswordField = isEnabled;
       AppSettings::Save(storage);
     } else {
       spdlog::warn("Unknown service setting {}.", setting.id);
