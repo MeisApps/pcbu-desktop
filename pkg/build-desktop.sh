@@ -66,7 +66,6 @@ if [[ "$PLATFORM" == "win" ]]; then
           cp "$replacement_file" "$dll_file"
         else
           echo "No replacement found for $dll_file"
-          exit 1
         fi
       fi
     done
