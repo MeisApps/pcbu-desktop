@@ -26,7 +26,7 @@ if [ -z "$QT_BASE_DIR" ]; then
   exit 1
 fi
 
-BUILD_CORES=3
+BUILD_CORES=4
 if [[ "$PLATFORM" == "win" ]]; then
   WIN_QT_PATH="$(cygpath -u "$QT_BASE_DIR")/msvc2022_64"
   WIN_QT_PATH_ARM64="$(cygpath -u "$QT_BASE_DIR")/msvc2022_arm64"
