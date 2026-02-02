@@ -12,7 +12,7 @@ env:
   QT_VERSION: 6.10.2
 
 jobs:
-  build-windows:
+  build-windows-x64:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v6
@@ -48,6 +48,13 @@ jobs:
         with:
           files: |
             pkg/build/PCBioUnlock-Setup-x64.exe
+
+  build-windows-arm64:
+    runs-on: windows-11-arm
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          submodules: recursive
 
       - name: vcpkg build arm64
         uses: johnwason/vcpkg-action@v7
