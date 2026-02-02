@@ -9,7 +9,7 @@ permissions:
   contents: write
 
 env:
-  QT_VERSION: 6.10.1
+  QT_VERSION: 6.10.2
 
 jobs:
   build-windows:

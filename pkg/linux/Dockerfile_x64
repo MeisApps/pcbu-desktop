@@ -5,7 +5,7 @@ RUN apt-get install -y python3 python3-pip pipx mesa-common-dev libgl1-mesa-dev 
 RUN apt-get install -y libssl-dev libpam-dev libcrypt-dev libbluetooth-dev
 
 RUN pipx install aqtinstall
-ARG QT=6.10.1
+ARG QT=6.10.2
 ARG QT_HOST=linux
 ARG QT_TARGET=desktop
 ARG QT_ARCH=linux_gcc_64
