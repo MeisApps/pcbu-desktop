@@ -56,6 +56,37 @@ jobs:
         with:
           submodules: recursive
 
+      - name: Workaround Qt install bug
+        shell: pwsh
+        run: |
+          $target = "C:\Qt\${{env.QT_VERSION}}\msvc2022_arm64\bin"
+          New-Item -Path $target -ItemType Directory -Force | Out-Null
+          Set-Location $target
+
+          # qmake.bat
+          @"
+          @echo off
+          \Users\qt\work\install\bin\qmake6.exe -qtconf "%~dp0\target_qt.conf" %*  
+          "@ | Out-File -FilePath "qmake.bat" -Encoding ascii -Force
+
+          # qmake6.bat
+          @"
+          @echo off
+          \Users\qt\work\install\bin\qmake6.exe -qtconf "%~dp0\target_qt.conf" %*
+          "@ | Out-File -FilePath "qmake6.bat" -Encoding ascii -Force
+
+          # qtpaths.bat
+          @"
+          @echo off
+          \Users\qt\work\install\bin\qtpaths6.exe -qtconf "%~dp0\target_qt.conf" %*
+          "@ | Out-File -FilePath "qtpaths.bat" -Encoding ascii -Force
+
+          # qtpaths6.bat
+          @"
+          @echo off
+          \Users\qt\work\install\bin\qtpaths6.exe -qtconf "%~dp0\target_qt.conf" %*
+          "@ | Out-File -FilePath "qtpaths6.bat" -Encoding ascii -Force
+
       - name: vcpkg build arm64
         uses: johnwason/vcpkg-action@v7
         with:
