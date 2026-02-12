@@ -49,8 +49,8 @@ void PAMHelper::SetConfigEntry(const std::string &configName, const std::string 
   if(enabled && !hasEntry) {
     if(configName == "polkit-1") {
       m_Logger("Disabling polkit-agent-helper restrictions...");
-      if(SetPolkitRestrictions(false))
-        AddToConfig(configName, entry);
+      SetPolkitRestrictions(false);
+      AddToConfig(configName, entry);
     } else {
       AddToConfig(configName, entry);
     }
