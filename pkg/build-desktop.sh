@@ -26,7 +26,7 @@ if [ -z "$QT_BASE_DIR" ]; then
   exit 1
 fi
 
-BUILD_CORES=3
+BUILD_CORES=4
 if [[ "$PLATFORM" == "win" ]]; then
   WIN_QT_PATH="$(cygpath -u "$QT_BASE_DIR")/msvc2022_64"
   WIN_QT_PATH_ARM64="$(cygpath -u "$QT_BASE_DIR")/msvc2022_arm64"
@@ -59,15 +59,12 @@ if [[ "$PLATFORM" == "win" ]]; then
   if [[ "$ARCH" == "arm64" ]]; then # ToDo: Workaround for no windeployqt on arm64
     find "installer_dir/" -type f -name "*.dll" | while read -r dll_file; do
       file_name=$(basename "$dll_file")
-      if [[ "$file_name" != "D3Dcompiler_47.dll" ]] && [[ "$file_name" != "opengl32sw.dll" ]]; then
-        replacement_file=$(find "$WIN_QT_PATH_ARM64" -type f -name "$file_name" | head -n 1)
-        if [ -f "$replacement_file" ]; then
-          echo "Replacing $dll_file with $replacement_file"
-          cp "$replacement_file" "$dll_file"
-        else
-          echo "No replacement found for $dll_file"
-          exit 1
-        fi
+      replacement_file=$(find "$WIN_QT_PATH_ARM64" -type f -name "$file_name" | head -n 1)
+      if [ -f "$replacement_file" ]; then
+        echo "Replacing $dll_file with $replacement_file"
+        cp "$replacement_file" "$dll_file"
+      else
+        echo "No replacement found for $dll_file"
       fi
     done
     rm installer_dir/D3Dcompiler_47.dll
