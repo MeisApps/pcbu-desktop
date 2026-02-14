@@ -1,6 +1,5 @@
 #include "AppSettings.h"
 
-#include <fstream>
 #include <nlohmann/json.hpp>
 #include <spdlog/spdlog.h>
 
@@ -12,6 +11,9 @@
 #include <ShlObj_core.h>
 #include <spdlog/fmt/xchar.h>
 #endif
+
+PCBUAppStorage AppSettings::g_Cache{};
+std::mutex AppSettings::g_Mutex{};
 
 std::filesystem::path AppSettings::GetBaseDir() {
 #ifdef WINDOWS
@@ -25,12 +27,19 @@ std::filesystem::path AppSettings::GetBaseDir() {
 }
 
 PCBUAppStorage AppSettings::Get() {
+  std::unique_lock lock(g_Mutex);
+  if(!g_Cache.machineID.empty())
+    return g_Cache;
+  g_Cache = Load();
+  return g_Cache;
+}
+
+PCBUAppStorage AppSettings::Load() {
   std::string machineID{};
   try {
     auto jsonData = Shell::ReadBytes(GetBaseDir() / SETTINGS_FILE_NAME);
     auto json = nlohmann::json::parse(jsonData);
     auto settings = PCBUAppStorage();
-
     bool save = false;
     try {
       machineID = json["machineID"];
@@ -38,7 +47,6 @@ PCBUAppStorage AppSettings::Get() {
       machineID = StringUtils::RandomString(32);
       save = true;
     }
-
     settings.machineID = machineID;
     settings.installedVersion = json["installedVersion"];
     settings.language = json["language"];
@@ -52,9 +60,11 @@ PCBUAppStorage AppSettings::Get() {
 
     settings.winWaitForKeyPress = json["winWaitForKeyPress"];
     settings.winHidePasswordField = json["winHidePasswordField"];
-
-    if(save)
+    if(save) {
+      g_Mutex.unlock();
       Save(settings);
+      g_Mutex.lock();
+    }
     return settings;
   } catch(const std::exception &ex) {
     spdlog::error("Failed reading app storage: {}", ex.what());
@@ -70,13 +80,15 @@ PCBUAppStorage AppSettings::Get() {
 
     def.winWaitForKeyPress = true;
     def.winHidePasswordField = false;
-    spdlog::info("Creating new app storage...");
+    g_Mutex.unlock();
     Save(def);
+    g_Mutex.lock();
     return def;
   }
 }
 
 void AppSettings::Save(const PCBUAppStorage &storage) {
+  std::unique_lock lock(g_Mutex);
   try {
     nlohmann::json json = {
         {"machineID", storage.machineID},
@@ -98,13 +110,20 @@ void AppSettings::Save(const PCBUAppStorage &storage) {
       Shell::CreateDir(baseDir);
     auto jsonStr = json.dump();
     Shell::WriteBytes(baseDir / SETTINGS_FILE_NAME, {jsonStr.begin(), jsonStr.end()});
+    g_Cache = storage;
   } catch(const std::exception &ex) {
     spdlog::error("Failed writing app storage: {}", ex.what());
   }
 }
 
-void AppSettings::SetInstalledVersion(bool isInstall) {
-  auto settings = AppSettings::Get();
-  settings.installedVersion = isInstall ? AppInfo::GetVersion() : "";
-  AppSettings::Save(settings);
+void AppSettings::InvalidateCache() {
+  std::unique_lock lock(g_Mutex);
+  g_Cache = {};
+}
+
+void AppSettings::SetInstalledVersion(bool isInstalled) {
+  auto settings = Get();
+  settings.installedVersion = isInstalled ? AppInfo::GetVersion() : "";
+  Save(settings);
+  InvalidateCache();
 }
