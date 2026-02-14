@@ -19,4 +19,12 @@ A clear and concise description of what the bug is.
  - OS: [e.g. Android 16, Android 10]
 
 **Logs**
-Open the desktop app, click on logs, and paste both the desktop and module logs here.
+Open the desktop app, click on logs, and paste both the desktop and module logs below.
+
+```
+Desktop logs here
+```
+
+```
+Module logs here
+```
