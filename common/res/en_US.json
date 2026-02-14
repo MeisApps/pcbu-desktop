@@ -59,6 +59,7 @@
   "client_socket_timeout": "Read/Write timeout (sec)",
   "client_connect_timeout": "Connect timeout (sec)",
   "client_connect_retries": "Connect retries",
+  "enable_debug_logs": "Enable debug logging (requires restart)",
   "auto_detect": "Auto detect",
   "current_user": "Current user",
   "ms_account": "Microsoft account",

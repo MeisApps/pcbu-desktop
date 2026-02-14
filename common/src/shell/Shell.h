@@ -21,6 +21,8 @@ public:
 
   static bool CreateDir(const std::filesystem::path &path);
   static bool RemoveDir(const std::filesystem::path &path);
+
+  static bool CreateFile(const std::filesystem::path &path);
   static bool RemoveFile(const std::filesystem::path &path);
 
   static std::vector<uint8_t> ReadBytes(const std::filesystem::path &path);

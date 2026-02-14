@@ -9,6 +9,7 @@
 
 #ifdef WINDOWS
 #include <boost/process/v1/windows.hpp>
+#undef CreateFile
 
 #define SHELL_NAME "cmd.exe"
 #define SHELL_CMD_ARG "/c"
@@ -66,7 +67,7 @@ ShellCmdResult Shell::RunUserCommand(const std::string &cmd) {
     output.append(line + "\n");
   proc.wait();
 
-  spdlog::debug("Process exit. Code: {} Command: '{}' Output: '{}'", proc.exit_code(), cmd, output);
+  spdlog::debug("Process exit. Code: {} Command: '{}' Output: '{}'", proc.exit_code(), cmd, StringUtils::Trim(output));
   auto result = ShellCmdResult();
   result.exitCode = proc.exit_code();
   result.output = output;
@@ -102,6 +103,11 @@ bool Shell::RemoveDir(const std::filesystem::path &path) {
   #else
       return RunCommand(fmt::format("rm -R \"{}\"", path.string())).exitCode == 0;
   #endif*/
+}
+
+bool Shell::CreateFile(const std::filesystem::path &path) {
+  std::ofstream file(path);
+  return file.is_open();
 }
 
 bool Shell::RemoveFile(const std::filesystem::path &path) {

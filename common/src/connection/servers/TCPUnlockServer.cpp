@@ -41,6 +41,7 @@ void TCPUnlockServer::Stop() {
 }
 
 void TCPUnlockServer::PerformAuthFlow(SOCKET socket) {
+  spdlog::debug("Reading device ID...");
   auto devicePacket = ReadPacket(socket);
   if(devicePacket.error != PacketError::NONE) {
     spdlog::error("Packet error {}.", (int)devicePacket.error);

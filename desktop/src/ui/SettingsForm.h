@@ -90,6 +90,9 @@ public:
   Q_INVOKABLE QVariantList GetServiceSettings();
   Q_INVOKABLE void SetServiceSettings(const QVariantList &settings);
 
+  Q_INVOKABLE bool IsDebugLoggingEnabled();
+  Q_INVOKABLE void SetDebugLoggingEnabled(bool enabled);
+
   Q_INVOKABLE QString GetOperatingSystem();
 
 public slots:

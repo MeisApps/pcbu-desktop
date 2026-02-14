@@ -12,12 +12,12 @@ Form {
         anchors.fill: parent
         GroupBox {
             Layout.preferredWidth: parent.width / 1.8
-            Layout.preferredHeight: parent.height / 1.5
+            Layout.preferredHeight: parent.height / 1.35
             title: QI18n.Get('common_settings')
             GridLayout {
                 anchors.fill: parent
                 anchors.margins: 10
-                columns: 4
+                columns: 5
                 rows: 2
                 columnSpacing: 5
                 Label {
@@ -35,11 +35,11 @@ Form {
                     Layout.column: 0
                     text: '%1:'.arg(QI18n.Get('pairing_server_port'))
                 }
-                /*Label {
+                Label {
                     Layout.row: 3
                     Layout.column: 0
                     text: '%1:'.arg(QI18n.Get('unlock_server_port'))
-                }*/
+                }
 
                 ComboBox { // Lang
                     Layout.fillWidth: true
@@ -124,13 +124,13 @@ Form {
                     id: pairingServerPortTextField
                     text: SettingsForm.GetSettings().pairingServerPort
                 }
-                /*TextField { // Unlock port
+                TextField { // Unlock port
                     Layout.fillWidth: true
                     Layout.row: 3
                     Layout.column: 1
                     id: unlockServerPortTextField
                     text: SettingsForm.GetSettings().unlockServerPort
-                }*/
+                }
 
                 GridLayout {
                     Layout.row: 4
@@ -176,10 +176,23 @@ Form {
                         text: SettingsForm.GetSettings().clientSocketTimeout
                     }
                 }
+
+                CheckBox {
+                    Layout.fillWidth: true
+                    Layout.row: 5
+                    Layout.column: 0
+                    Layout.columnSpan: 2
+                    id: debugLogCheckBox
+                    text: QI18n.Get('enable_debug_logs')
+                    checked: SettingsForm.IsDebugLoggingEnabled()
+                    onToggled: {
+                        SettingsForm.SetDebugLoggingEnabled(debugLogCheckBox.checked);
+                    }
+                }
             }
         }
         GroupBox {
-            Layout.preferredWidth: parent.width / 3
+            Layout.preferredWidth: parent.width / 2.8
             Layout.preferredHeight: parent.height / 2.5
             Layout.alignment: Qt.AlignRight
             title: '%1 %2'.arg(SettingsForm.GetOperatingSystem()).arg(QI18n.Get('service_settings'))
@@ -200,15 +213,15 @@ Form {
             onBackClicked: MainWindow.Show(viewLoader)
             onNextClicked: {
                 let pairingServerPortNum = parseInt(pairingServerPortTextField.text, 10);
-                //let unlockServerPortNum = parseInt(unlockServerPortTextField.text, 10);
+                let unlockServerPortNum = parseInt(unlockServerPortTextField.text, 10);
                 if(isNaN(pairingServerPortNum) || pairingServerPortNum < 0 || pairingServerPortNum > 65535) {
                     showErrorMessage(QI18n.Get('error_invalid_port'));
                     return;
                 }
-                /*if(isNaN(unlockServerPortNum) || unlockServerPortNum < 0 || unlockServerPortNum > 65535) {
+                if(isNaN(unlockServerPortNum) || unlockServerPortNum < 0 || unlockServerPortNum > 65535) {
                     showErrorMessage(QI18n.Get('error_invalid_port'));
                     return;
-                }*/
+                }
 
                 let ipV4Regex = /^(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]\d|\d)(?:\.(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]\d|\d)){3}$/gm;
                 let serverIp = ipSelectTextField.text;
@@ -234,7 +247,7 @@ Form {
                 settings.serverIP = serverIp;
                 settings.serverMAC = serverIp === 'auto' ? networkListModel.get(ipSelectComboBox.currentIndex).macAddress : '';
                 settings.pairingServerPort = pairingServerPortNum;
-                settings.unlockServerPort = SettingsForm.GetSettings().unlockServerPort;
+                settings.unlockServerPort = unlockServerPortNum;
                 settings.clientSocketTimeout = clientSocketTimeoutNum;
                 settings.clientConnectTimeout = clientConnectTimeoutNum;
                 settings.clientConnectRetries = clientConnectRetriesNum;

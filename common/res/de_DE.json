@@ -59,6 +59,7 @@
   "client_socket_timeout": "Lese/Schreib Zeitlimit (Sek.)",
   "client_connect_timeout": "Verbindungszeitlimit (Sek.)",
   "client_connect_retries": "Verbindungsversuche",
+  "enable_debug_logs": "Debug-Protokollierung aktivieren (Neustart erforderlich)",
   "auto_detect": "Auto erkennen",
   "current_user": "Derzeitiger Nutzer",
   "ms_account": "Microsoft Account",

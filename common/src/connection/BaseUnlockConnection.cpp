@@ -45,8 +45,10 @@ void BaseUnlockConnection::PerformAuthFlow(SOCKET socket) {
     return;
   }
   auto requestStr = requestPacket.value().ToJson().dump();
+  spdlog::debug("Writing PacketUnlockRequest...");
   auto writeResult = WritePacket(socket, {requestStr.begin(), requestStr.end()});
   if(writeResult == PacketError::NONE) {
+    spdlog::debug("Reading PacketUnlockResponse...");
     auto responsePacket = ReadPacket(socket);
     OnResponseReceived(responsePacket);
   } else {

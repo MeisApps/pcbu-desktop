@@ -41,6 +41,7 @@ Packet BaseConnection::ReadPacket(SOCKET socket) {
   std::vector<uint8_t> lenBuffer{};
   lenBuffer.resize(sizeof(uint16_t));
   uint16_t lenBytesRead = 0;
+  spdlog::debug("Reading packet length...");
   while(lenBytesRead < sizeof(uint16_t)) {
     int result = (int)read(socket, lenBuffer.data() + lenBytesRead, sizeof(uint16_t) - lenBytesRead);
     if(result <= 0) {
@@ -65,6 +66,7 @@ Packet BaseConnection::ReadPacket(SOCKET socket) {
   std::vector<uint8_t> buffer{};
   buffer.resize(packetSize);
   uint16_t bytesRead = 0;
+  spdlog::debug("Reading packet data... (Len={})", packetSize);
   while(bytesRead < packetSize) {
     int result = (int)read(socket, buffer.data() + bytesRead, packetSize - bytesRead);
     if(result <= 0) {
@@ -77,12 +79,14 @@ Packet BaseConnection::ReadPacket(SOCKET socket) {
       bytesRead += result;
     }
   }
+  spdlog::debug("Done reading packet.");
   return {PacketError::NONE, buffer};
 }
 
 PacketError BaseConnection::WritePacket(SOCKET socket, const std::vector<uint8_t> &data) {
   uint16_t packetSize = htons(static_cast<uint16_t>(data.size()));
   int bytesWritten = 0;
+  spdlog::debug("Writing packet length... (Len={})", data.size());
   while(bytesWritten < sizeof(uint16_t)) {
     int result = (int)write(socket, reinterpret_cast<const char *>(&packetSize) + bytesWritten, sizeof(uint16_t) - bytesWritten);
     if(result <= 0) {
@@ -96,6 +100,7 @@ PacketError BaseConnection::WritePacket(SOCKET socket, const std::vector<uint8_t
     }
   }
   bytesWritten = 0;
+  spdlog::debug("Writing packet data...");
   while(bytesWritten < data.size()) {
     int result = (int)write(socket, reinterpret_cast<const char *>(data.data()) + bytesWritten, (int)data.size() - bytesWritten);
     if(result <= 0) {
@@ -108,6 +113,7 @@ PacketError BaseConnection::WritePacket(SOCKET socket, const std::vector<uint8_t
       bytesWritten += result;
     }
   }
+  spdlog::debug("Done writing packet.");
   return PacketError::NONE;
 }
 

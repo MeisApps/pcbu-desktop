@@ -1,5 +1,6 @@
 #include "SettingsForm.h"
 
+#include "shell/Shell.h"
 #include "utils/AppInfo.h"
 
 AppSettingsModel SettingsForm::GetSettings() {
@@ -26,6 +27,20 @@ void SettingsForm::SetServiceSettings(const QVariantList &settings) {
     result.push_back({setting.id.toStdString(), setting.name.toStdString(), setting.enabled});
   }
   m_EditServiceSettings = result;
+}
+
+bool SettingsForm::IsDebugLoggingEnabled() {
+  return std::filesystem::exists(AppSettings::GetBaseDir() / "LOG_DEBUG");
+}
+
+void SettingsForm::SetDebugLoggingEnabled(bool enabled) {
+  if(enabled) {
+    if(!Shell::CreateFile(AppSettings::GetBaseDir() / "LOG_DEBUG"))
+      spdlog::error("Failed to create debug log file.");
+  } else {
+    if(!Shell::RemoveFile(AppSettings::GetBaseDir() / "LOG_DEBUG"))
+      spdlog::error("Failed to remove debug log file.");
+  }
 }
 
 QString SettingsForm::GetOperatingSystem() {
