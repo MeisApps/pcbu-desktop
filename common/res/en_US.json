@@ -1,6 +1,7 @@
 {
   "initializing": "Initializing...",
   "password": "Password",
+  "retry": "Retry",
   "error_unknown": "Unknown Error.",
   "error_pam": "Error: Could not get PAM info.",
   "error_not_paired": "Error: User {} is not paired.",

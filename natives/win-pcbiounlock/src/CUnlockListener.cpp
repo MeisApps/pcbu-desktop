@@ -18,11 +18,12 @@ void CUnlockListener::Release() {
   Stop();
 }
 
-void CUnlockListener::Start() {
+void CUnlockListener::Start(bool ignoreWaitKeyPress) {
   if(m_IsRunning)
     return;
   Stop();
   m_IsRunning = true;
+  m_IgnoreWaitKeyPress = ignoreWaitKeyPress;
   m_ListenThread = std::thread(&CUnlockListener::ListenThread, this);
 }
 
@@ -30,6 +31,7 @@ void CUnlockListener::Stop() {
   if(!m_IsRunning)
     return;
   m_IsRunning = false;
+  m_IgnoreWaitKeyPress = false;
   if(m_ListenThread.joinable())
     m_ListenThread.join();
 }
@@ -84,7 +86,7 @@ void CUnlockListener::ListenThread() {
     }
 
     // Key press
-    if(storage.winWaitForKeyPress) {
+    if(storage.winWaitForKeyPress && !m_IgnoreWaitKeyPress) {
       Sleep(500);
       m_Credential->UpdateMessage(I18n::Get("wait_key_press"));
       byte lastKeys[KEY_RANGE];

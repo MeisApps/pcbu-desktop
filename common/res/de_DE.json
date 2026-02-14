@@ -1,6 +1,7 @@
 {
   "initializing": "Initialisiere...",
   "password": "Passwort",
+  "retry": "Erneut versuchen",
   "error_unknown": "Unbekannter Fehler.",
   "error_pam": "Fehler: Konnte PAM Infos nicht holen.",
   "error_not_paired": "Fehler: Benutzer {} ist nicht gepairt.",

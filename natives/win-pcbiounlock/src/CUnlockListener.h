@@ -15,7 +15,7 @@ public:
                   const std::wstring &userDomain);
   void Release();
 
-  void Start();
+  void Start(bool ignoreWaitKeyPress = false);
   void Stop();
 
   bool HasResponse() const;
@@ -26,6 +26,7 @@ private:
   std::thread m_ListenThread{};
   std::atomic<bool> m_IsRunning{};
   bool m_HasResponse{};
+  bool m_IgnoreWaitKeyPress{};
 
   CREDENTIAL_PROVIDER_USAGE_SCENARIO m_ProviderUsage{};
   CSampleProvider *m_CredentialProvider{};

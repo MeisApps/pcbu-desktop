@@ -10,6 +10,7 @@
 
 #include "CUnlockCredential.h"
 
+#include "CSampleProvider.h"
 #include "guid.h"
 #include "storage/AppSettings.h"
 #include "utils/StringUtils.h"
@@ -83,6 +84,9 @@ HRESULT CUnlockCredential::Initialize(CREDENTIAL_PROVIDER_USAGE_SCENARIO cpus, _
   }
   if(SUCCEEDED(hr)) {
     hr = SHStrDupW(L"Submit", &_rgFieldStrings[SFI_SUBMIT_BUTTON]);
+  }
+  if(SUCCEEDED(hr)) {
+    hr = SHStrDupW(StringUtils::ToWideString(I18n::Get("retry")).c_str(), &_rgFieldStrings[SFI_RETRY_BUTTON]);
   }
   if(SUCCEEDED(hr)) {
     _pUnlockListener = new(std::nothrow) CUnlockListener();
@@ -181,7 +185,8 @@ HRESULT CUnlockCredential::GetFieldState(DWORD dwFieldID, _Out_ CREDENTIAL_PROVI
   if((dwFieldID < ARRAYSIZE(_rgFieldStatePairs))) {
     auto hideUsername = dwFieldID == SFI_USERNAME && _cpus != CPUS_CREDUI;
     auto hidePasswordField = dwFieldID == SFI_PASSWORD && AppSettings::Get().winHidePasswordField;
-    if(hideUsername || hidePasswordField)
+    auto hideRetryButton = dwFieldID == SFI_RETRY_BUTTON && (_unlockResult.state == UnlockState::UNKNOWN || _unlockResult.state == UnlockState::SUCCESS);
+    if(hideUsername || hidePasswordField || hideRetryButton)
     {
       *pcpfs = CPFS_HIDDEN;
       *pcpfis = CPFIS_NONE;
@@ -323,8 +328,21 @@ HRESULT CUnlockCredential::SetComboBoxSelectedValue(__in DWORD dwFieldId, __in D
 
 // Our credential doesn't have a command link.
 HRESULT CUnlockCredential::CommandLinkClicked(__in DWORD dwFieldID) {
-  UNREFERENCED_PARAMETER(dwFieldID);
-  return E_NOTIMPL;
+  HRESULT hr;
+  if(dwFieldID == SFI_RETRY_BUTTON) {
+    _unlockResult = {};
+    if(_pUnlockListener != nullptr) {
+      _pUnlockListener->Stop();
+      _pUnlockListener->Start(true);
+    }
+    if(_pCredentialProvider != nullptr) {
+      _pCredentialProvider->UpdateCredsStatus();
+    }
+    hr = S_OK;
+  } else {
+    hr = E_INVALIDARG;
+  }
+  return hr;
 }
 
 // Collect the username and password into a serialized credential for the correct usage scenario

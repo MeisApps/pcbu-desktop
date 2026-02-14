@@ -22,7 +22,8 @@ enum SAMPLE_FIELD_ID {
   SFI_MESSAGE = 2,
   SFI_PASSWORD = 3,
   SFI_SUBMIT_BUTTON = 4,
-  SFI_NUM_FIELDS = 5, // Note: if new fields are added, keep NUM_FIELDS last.  This is used as a count of the number of fields
+  SFI_RETRY_BUTTON = 5,
+  SFI_NUM_FIELDS = 6, // Note: if new fields are added, keep NUM_FIELDS last.  This is used as a count of the number of fields
 };
 
 // The first value indicates when the tile is displayed (selected, not selected)
@@ -41,8 +42,9 @@ struct FIELD_STATE_PAIR {
 // The Field interactive state indicates when
 static const FIELD_STATE_PAIR s_rgFieldStatePairs[] = {
     {CPFS_DISPLAY_IN_BOTH, CPFIS_NONE},             // SFI_TILEIMAGE
-    {CPFS_DISPLAY_IN_BOTH, CPFIS_NONE},             // SFI_LABEL
-    {CPFS_DISPLAY_IN_BOTH, CPFIS_NONE},             // SFI_LABEL
+    {CPFS_DISPLAY_IN_BOTH, CPFIS_NONE},             // SFI_USERNAME
+    {CPFS_DISPLAY_IN_BOTH, CPFIS_NONE},             // SFI_MESSAGE
     {CPFS_DISPLAY_IN_SELECTED_TILE, CPFIS_FOCUSED}, // SFI_PASSWORD
     {CPFS_DISPLAY_IN_SELECTED_TILE, CPFIS_NONE},    // SFI_SUBMIT_BUTTON
+    {CPFS_DISPLAY_IN_SELECTED_TILE, CPFIS_NONE},    // SFI_RETRY_BUTTON
 };
