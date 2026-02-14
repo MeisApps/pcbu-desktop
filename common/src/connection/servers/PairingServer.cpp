@@ -81,6 +81,10 @@ void PairingServer::Accept() {
         throw std::runtime_error(I18n::Get("error_pairing_packet_parse"));
       if(AppInfo::CompareVersion(AppInfo::GetProtocolVersion(), initPacket->protoVersion) != 0)
         throw std::runtime_error(I18n::Get("error_protocol_mismatch"));
+      if(initPacket.value().deviceUUID.empty()) {
+        spdlog::warn("Device ID is empty. Generating fallback...");
+        initPacket.value().deviceUUID = StringUtils::RandomString(32);
+      }
 
       auto passwordKey = StringUtils::RandomString(64);
       auto pwEnc = CryptUtils::EncryptAES(m_UIData.password, passwordKey);
@@ -88,7 +92,7 @@ void PairingServer::Accept() {
         throw std::runtime_error(I18n::Get("error_password_encrypt"));
 
       auto device = PairedDevice();
-      device.id = CryptUtils::Sha256(PlatformHelper::GetDeviceUUID() + initPacket->deviceUUID + m_UIData.userName);
+      device.id = CryptUtils::Sha256(AppSettings::Get().machineID + initPacket->deviceUUID + m_UIData.userName);
       device.pairingMethod = m_UIData.method;
       device.deviceName = initPacket->deviceName;
       device.userName = m_UIData.userName;

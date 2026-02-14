@@ -7,6 +7,7 @@
 #include <vector>
 
 struct PCBUAppStorage {
+  std::string machineID{};
   std::string installedVersion{};
   std::string language{};
   std::string serverIP{};

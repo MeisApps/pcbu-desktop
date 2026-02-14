@@ -112,17 +112,6 @@ std::optional<WinUserName> PlatformHelper_SplitUserName(const std::string &userN
   return winUser;
 }
 
-std::string PlatformHelper::GetDeviceUUID() {
-  auto uuidResult = Shell::RunCommand("wmic csproduct get uuid");
-  if(uuidResult.exitCode == 0 && uuidResult.output.size() > 4)
-    return StringUtils::Trim(uuidResult.output.substr(4));
-  auto regUuid = RegistryUtils::GetStringValue(HKEY_LOCAL_MACHINE, "SOFTWARE\\Microsoft\\Cryptography", "MachineGuid");
-  if(regUuid.has_value() && !regUuid.value().empty())
-    return regUuid.value();
-  spdlog::error("Failed to find device UUID.");
-  return {};
-}
-
 bool PlatformHelper::HasNativeLibrary(const std::string &libName) {
   return false;
 }

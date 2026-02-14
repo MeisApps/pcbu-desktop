@@ -12,6 +12,7 @@ struct AppSettingsModel {
 public:
   AppSettingsModel() = default;
   explicit AppSettingsModel(const PCBUAppStorage &settings) {
+    machineID = QString::fromStdString(settings.machineID);
     installedVersion = QString::fromUtf8(settings.installedVersion);
     language = QString::fromUtf8(settings.language);
     serverIP = QString::fromUtf8(settings.serverIP);
@@ -26,6 +27,7 @@ public:
   }
   [[nodiscard]] PCBUAppStorage ToStorage() const {
     auto settings = PCBUAppStorage();
+    settings.machineID = machineID.toStdString();
     settings.installedVersion = installedVersion.toStdString();
     settings.language = language.toStdString();
     settings.serverIP = serverIP.toStdString();
@@ -40,6 +42,7 @@ public:
     return settings;
   }
 
+  QString machineID{};
   QString installedVersion{};
   QString language{};
   QString serverIP{};
@@ -51,6 +54,7 @@ public:
   uint32_t clientConnectRetries{};
   bool winWaitForKeyPress{};
   bool winHidePasswordField{};
+  Q_PROPERTY(QString machineID MEMBER machineID)
   Q_PROPERTY(QString installedVersion MEMBER installedVersion)
   Q_PROPERTY(QString language MEMBER language)
   Q_PROPERTY(QString serverIP MEMBER serverIP)

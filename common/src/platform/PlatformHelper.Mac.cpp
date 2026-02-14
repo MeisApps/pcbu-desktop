@@ -6,22 +6,6 @@
 #include "shell/Shell.h"
 #include "utils/StringUtils.h"
 
-std::string PlatformHelper::GetDeviceUUID() {
-  auto platformExpert = IOServiceGetMatchingService(kIOMainPortDefault, IOServiceMatching("IOPlatformExpertDevice"));
-  if(platformExpert) {
-    auto uuid = (CFStringRef)IORegistryEntryCreateCFProperty(platformExpert, CFSTR(kIOPlatformUUIDKey), kCFAllocatorDefault, 0);
-    IOObjectRelease(platformExpert);
-    if(uuid) {
-      auto uuidCStr = CFStringGetCStringPtr(uuid, kCFStringEncodingUTF8);
-      std::string uuidStr = uuidCStr ? uuidCStr : "";
-      CFRelease(uuid);
-      return uuidStr;
-    }
-  }
-  spdlog::error("Failed to find device UUID.");
-  return {};
-}
-
 std::vector<std::string> PlatformHelper::GetAllUsers() {
   std::vector<std::string> result{};
   auto cmdResult = Shell::RunUserCommand("dscl localhost -list /Local/Default/Users");

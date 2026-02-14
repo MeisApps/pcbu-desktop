@@ -6,6 +6,7 @@
 
 #include "shell/Shell.h"
 #include "utils/AppInfo.h"
+#include "utils/StringUtils.h"
 
 #ifdef WINDOWS
 #include <ShlObj_core.h>
@@ -24,10 +25,21 @@ std::filesystem::path AppSettings::GetBaseDir() {
 }
 
 PCBUAppStorage AppSettings::Get() {
+  std::string machineID{};
   try {
     auto jsonData = Shell::ReadBytes(GetBaseDir() / SETTINGS_FILE_NAME);
     auto json = nlohmann::json::parse(jsonData);
     auto settings = PCBUAppStorage();
+
+    bool save = false;
+    try {
+      machineID = json["machineID"];
+    } catch(...) {
+      machineID = StringUtils::RandomString(32);
+      save = true;
+    }
+
+    settings.machineID = machineID;
     settings.installedVersion = json["installedVersion"];
     settings.language = json["language"];
     settings.serverIP = json["serverIP"];
@@ -40,10 +52,14 @@ PCBUAppStorage AppSettings::Get() {
 
     settings.winWaitForKeyPress = json["winWaitForKeyPress"];
     settings.winHidePasswordField = json["winHidePasswordField"];
+
+    if(save)
+      Save(settings);
     return settings;
   } catch(const std::exception &ex) {
     spdlog::error("Failed reading app storage: {}", ex.what());
     auto def = PCBUAppStorage();
+    def.machineID = machineID.empty() ? StringUtils::RandomString(32) : machineID;
     def.language = "auto";
     def.serverIP = "auto";
     def.pairingServerPort = 43295;
@@ -63,6 +79,7 @@ PCBUAppStorage AppSettings::Get() {
 void AppSettings::Save(const PCBUAppStorage &storage) {
   try {
     nlohmann::json json = {
+        {"machineID", storage.machineID},
         {"installedVersion", storage.installedVersion},
         {"language", storage.language},
         {"serverIP", storage.serverIP},

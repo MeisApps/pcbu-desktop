@@ -10,14 +10,6 @@
 #include "shell/Shell.h"
 #include "utils/StringUtils.h"
 
-std::string PlatformHelper::GetDeviceUUID() {
-  auto data = Shell::ReadBytes("/etc/machine-id");
-  std::string result = {data.begin(), data.end()};
-  if(result.empty())
-    spdlog::error("Failed to find device UUID.");
-  return result;
-}
-
 std::vector<std::string> PlatformHelper::GetAllUsers() {
   auto data = Shell::ReadBytes("/etc/passwd");
   auto passwdStr = std::string(data.begin(), data.end());

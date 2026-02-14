@@ -9,7 +9,6 @@ enum class PlatformLoginResult { SUCCESS, INVALID_USER, INVALID_PASSWORD, ACCOUN
 
 class PlatformHelper {
 public:
-  static std::string GetDeviceUUID();
   static bool HasNativeLibrary(const std::string &libName);
 
   static std::vector<std::string> GetAllUsers();
