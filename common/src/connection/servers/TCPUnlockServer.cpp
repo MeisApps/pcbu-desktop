@@ -40,23 +40,6 @@ void TCPUnlockServer::Stop() {
     m_AcceptThread.join();
 }
 
-void TCPUnlockServer::PerformAuthFlow(SOCKET socket) {
-  spdlog::debug("Reading device ID...");
-  auto devicePacket = ReadPacket(socket);
-  if(devicePacket.error != PacketError::NONE) {
-    spdlog::error("Packet error {}.", (int)devicePacket.error);
-    return;
-  }
-  auto deviceId = std::string(reinterpret_cast<const char *>(devicePacket.data.data()), devicePacket.data.size());
-  auto device = PairedDevicesStorage::GetDeviceByID(deviceId);
-  if(!device.has_value()) {
-    spdlog::error("Invalid device ID.");
-    return;
-  }
-  m_PairedDevice = device.value();
-  BaseUnlockConnection::PerformAuthFlow(socket);
-}
-
 void TCPUnlockServer::AcceptThread() {
   struct sockaddr_in address {};
   socklen_t addrLen = sizeof(address);
@@ -141,7 +124,7 @@ void TCPUnlockServer::ClientThread(SOCKET clientSocket) {
   spdlog::info("TCP client connected.");
   m_HasConnection = true;
   ++m_NumConnections;
-  PerformAuthFlow(clientSocket);
+  PerformAuthFlow(clientSocket, true);
   --m_NumConnections;
   m_HasConnection = m_NumConnections > 0;
   SOCKET_CLOSE(clientSocket);

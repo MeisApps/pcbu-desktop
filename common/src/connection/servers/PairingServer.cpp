@@ -13,6 +13,7 @@ PairingServer::PairingServer()
     : m_Acceptor(m_IOService, boostnet::tcp::endpoint(boostnet::tcp::v4(), AppSettings::Get().pairingServerPort)), m_Socket(m_IOService) {}
 
 PairingServer::~PairingServer() {
+  BaseConnection::~BaseConnection();
   Stop();
 }
 
@@ -65,8 +66,8 @@ void PairingServer::Accept() {
       spdlog::error("Error accepting socket: {}", error.message());
       return;
     }
-    auto data = ReadPacket();
-    if(data.empty()) {
+    auto packetData = ReadEncryptedPacket();
+    if(packetData.empty()) {
       try {
         m_Socket.shutdown(boost::asio::socket_base::shutdown_both);
       } catch(...) {
@@ -76,7 +77,7 @@ void PairingServer::Accept() {
       return;
     }
     try {
-      auto initPacket = PacketPairInit::FromJson({data.begin(), data.end()});
+      auto initPacket = PacketPairInit::FromJson({packetData.begin(), packetData.end()});
       if(!initPacket.has_value())
         throw std::runtime_error(I18n::Get("error_pairing_packet_parse"));
       if(AppInfo::CompareVersion(AppInfo::GetProtocolVersion(), initPacket->protoVersion) != 0)
@@ -118,7 +119,7 @@ void PairingServer::Accept() {
       respPacket.data.userName = m_UIData.userName;
       respPacket.data.passwordKey = passwordKey;
 
-      WritePacket(respPacket.ToJson().dump());
+      WriteEncryptedPacket(PACKET_ID_PAIR_RESPONSE, respPacket.ToJson().dump());
       PairedDevicesStorage::AddDevice(device);
       spdlog::info("Successfully paired device. (ID={}, Method={})", device.id, PairingMethodUtils::ToString(device.pairingMethod));
 
@@ -132,7 +133,7 @@ void PairingServer::Accept() {
       spdlog::error("Pairing server error: {}", ex.what());
       auto respPacket = PacketPairResponse();
       respPacket.errMsg = ex.what();
-      WritePacket(respPacket.ToJson().dump());
+      WriteEncryptedPacket(PACKET_ID_PAIR_RESPONSE, respPacket.ToJson().dump());
     }
     try {
       m_Socket.shutdown(boost::asio::socket_base::shutdown_both);
@@ -143,54 +144,25 @@ void PairingServer::Accept() {
   });
 }
 
-std::vector<uint8_t> PairingServer::ReadPacket() {
-  boost::system::error_code ec;
-  std::vector<uint8_t> lenBuffer{};
-  lenBuffer.resize(sizeof(uint16_t));
-  auto lenBytesRead =
-      boost::asio::read(m_Socket, boost::asio::buffer(lenBuffer.data(), lenBuffer.size()), boost::asio::transfer_exactly(lenBuffer.size()), ec);
-  if(lenBytesRead < sizeof(uint16_t)) {
-    spdlog::warn("Error reading packet length. (Read={})", lenBytesRead);
+std::vector<uint8_t> PairingServer::ReadEncryptedPacket() {
+  auto packet = ReadPacket(m_Socket.native_handle());
+  if(packet.error != PacketError::NONE) {
+    spdlog::warn("Error reading packet. (Code={})", (int)packet.error);
     return {};
   }
-
-  uint16_t packetSize{};
-  std::memcpy(&packetSize, lenBuffer.data(), sizeof(uint16_t));
-  packetSize = ntohs(packetSize);
-  if(packetSize == 0) {
-    spdlog::warn("Empty packet received.");
+  auto decRes = CryptUtils::DecryptAESPacket(packet.data, m_UIData.encKey);
+  if(decRes.result != PacketCryptResult::OK) {
+    spdlog::warn("Error decrypting packet. (Code={})", (int)decRes.result);
     return {};
   }
-
-  std::vector<uint8_t> buffer{};
-  buffer.resize(packetSize);
-  auto bytesRead = boost::asio::read(m_Socket, boost::asio::buffer(buffer.data(), buffer.size()), boost::asio::transfer_exactly(buffer.size()), ec);
-  if(bytesRead < packetSize) {
-    spdlog::warn("Error reading packet data. (Size={})", packetSize);
-    return {};
-  }
-
-  auto res = CryptUtils::DecryptAESPacket(buffer, m_UIData.encKey);
-  if(res.result != PacketCryptResult::OK) {
-    spdlog::warn("Error decrypting packet. (Code={})", (int)res.result);
-    return {};
-  }
-  return res.data;
+  return decRes.data;
 }
 
-void PairingServer::WritePacket(const std::string &dataStr) {
-  WritePacket(std::vector<uint8_t>{dataStr.begin(), dataStr.end()});
-}
-
-void PairingServer::WritePacket(const std::vector<uint8_t> &data) {
-  auto res = CryptUtils::EncryptAESPacket(data, m_UIData.encKey);
-  if(res.result != PacketCryptResult::OK) {
-    spdlog::warn("Error encrypting packet. (Size={}, Code={})", data.size(), (int)res.result);
+void PairingServer::WriteEncryptedPacket(uint8_t packetId, const std::string &data) {
+  auto encRes = CryptUtils::EncryptAESPacket({data.begin(), data.end()}, m_UIData.encKey);
+  if(encRes.result != PacketCryptResult::OK) {
+    spdlog::warn("Error encrypting packet. (Size={}, Code={})", data.size(), (int)encRes.result);
     return;
   }
-
-  uint16_t packetSize = htons(static_cast<uint16_t>(res.data.size()));
-  boost::system::error_code ec;
-  boost::asio::write(m_Socket, boost::asio::buffer(&packetSize, sizeof(uint16_t)), ec);
-  boost::asio::write(m_Socket, boost::asio::buffer(res.data), ec);
+  WritePacket(m_Socket.native_handle(), packetId, {encRes.data.begin(), encRes.data.end()});
 }

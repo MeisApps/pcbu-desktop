@@ -38,10 +38,6 @@ void BTUnlockServer::Stop() {
     m_AcceptThread.join();
 }
 
-void BTUnlockServer::PerformAuthFlow(SOCKET socket) {
-  BaseUnlockConnection::PerformAuthFlow(socket);
-}
-
 void BTUnlockServer::AcceptThread() {
   std::optional<SDPService> sdpService{};
   spdlog::info("Starting BT server...");
@@ -131,8 +127,7 @@ threadEnd:
 
 void BTUnlockServer::ClientThread(SOCKET clientSocket) {
   m_HasConnection = true;
-  PerformAuthFlow(clientSocket);
-
+  PerformAuthFlow(clientSocket, true);
   m_HasConnection = false;
   SOCKET_CLOSE(clientSocket);
   spdlog::info("BT Client closed.");

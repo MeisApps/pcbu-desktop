@@ -14,6 +14,13 @@
 #include "utils/CryptUtils.h"
 #include "utils/Utils.h"
 
+enum UnlockConnectionState {
+  NONE,
+  HAS_DEVICE_ID,
+  HAS_UNLOCK_REQUEST,
+  HAS_UNLOCK_RESPONSE,
+};
+
 class BaseUnlockConnection : public BaseConnection {
 public:
   BaseUnlockConnection();
@@ -31,10 +38,11 @@ public:
   UnlockState PollResult();
 
 protected:
-  virtual void PerformAuthFlow(SOCKET socket);
+  void PerformAuthFlow(SOCKET socket, bool needsDeviceID = false);
 
 private:
-  std::optional<PacketUnlockRequest> GetUnlockInfoPacket() const;
+  void OnPacketReceived(SOCKET socket, Packet &packet);
+  bool SendUnlockRequest(SOCKET socket);
   void OnResponseReceived(const Packet &packet);
 
 protected:
@@ -46,6 +54,9 @@ protected:
   std::atomic<UnlockState> m_UnlockState{};
   PairedDevice m_PairedDevice{};
   PacketUnlockResponseData m_ResponseData{};
+
+  std::map<SOCKET, UnlockConnectionState> m_ConnectionStates{};
+  std::mutex m_StateMutex{};
 
   std::string m_AuthUser{};
   std::string m_AuthProgram{};

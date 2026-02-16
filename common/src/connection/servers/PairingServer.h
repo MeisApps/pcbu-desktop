@@ -6,23 +6,24 @@
 #include <vector>
 
 #include "PairingStructs.h"
+#include "connection/BaseConnection.h"
 #include "connection/Packets.h"
 
 namespace boostnet = boost::asio::ip;
 
-class PairingServer {
+class PairingServer : public BaseConnection {
 public:
   PairingServer();
-  ~PairingServer();
+  ~PairingServer() override;
 
   void Start(const PairingUIData &uiData);
   void Stop();
 
 private:
   void Accept();
-  std::vector<uint8_t> ReadPacket();
-  void WritePacket(const std::string &dataStr);
-  void WritePacket(const std::vector<uint8_t> &data);
+
+  std::vector<uint8_t> ReadEncryptedPacket();
+  void WriteEncryptedPacket(uint8_t packetId, const std::string &data);
 
   boost::asio::io_context m_IOService{};
   boostnet::tcp::acceptor m_Acceptor;

@@ -6,6 +6,15 @@
 
 #include "storage/PairingMethod.h"
 
+constexpr uint32_t PACKET_HEADER = 0x4E8A5A5C;
+
+constexpr uint8_t PACKET_ID_PAIR_INIT = 0x50;
+constexpr uint8_t PACKET_ID_PAIR_RESPONSE = 0x51;
+
+constexpr uint8_t PACKET_ID_DEVICE_ID = 0xB0;
+constexpr uint8_t PACKET_ID_UNLOCK_REQUEST = 0xB1;
+constexpr uint8_t PACKET_ID_UNLOCK_RESPONSE = 0xB2;
+
 struct PacketPairInit { // From phone
   std::string protoVersion{};
   std::string deviceUUID{};

@@ -13,9 +13,6 @@ public:
   bool Start() override;
   void Stop() override;
 
-protected:
-  void PerformAuthFlow(SOCKET socket) override;
-
 private:
   void AcceptThread();
   void ClientThread(SOCKET clientSocket);
