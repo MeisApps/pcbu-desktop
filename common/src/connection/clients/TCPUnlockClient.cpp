@@ -56,7 +56,7 @@ void TCPUnlockClient::ConnectThread() {
   }
 
 socketStart:
-  if((m_ClientSocket = socket(AF_INET, SOCK_STREAM, 0)) == SOCKET_INVALID) {
+  if((m_ClientSocket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)) == SOCKET_INVALID) {
     spdlog::error("socket() failed. (Code={})", SOCKET_LAST_ERROR);
     m_IsRunning = false;
     m_UnlockState = UnlockState::UNK_ERROR;
@@ -67,17 +67,23 @@ socketStart:
   FD_SET(m_ClientSocket, &fdSet);
   struct timeval connectTimeout{};
   connectTimeout.tv_sec = (long)settings.clientConnectTimeout;
+  int opt = 1;
   if(!SetSocketRWTimeout(m_ClientSocket, settings.clientSocketTimeout)) {
     spdlog::error("Failed setting R/W timeout for socket. (Code={})", SOCKET_LAST_ERROR);
     m_UnlockState = UnlockState::UNK_ERROR;
     goto threadEnd;
   }
-
   if(!SetSocketBlocking(m_ClientSocket, false)) {
     spdlog::error("Failed setting socket to non-blocking mode. (Code={})", SOCKET_LAST_ERROR);
     m_UnlockState = UnlockState::UNK_ERROR;
     goto threadEnd;
   }
+  if(setsockopt(m_ClientSocket, IPPROTO_TCP, TCP_NODELAY, reinterpret_cast<const char *>(&opt), sizeof(opt))) {
+    spdlog::error("setsockopt(TCP_NODELAY) failed. (Code={})", SOCKET_LAST_ERROR);
+    m_UnlockState = UnlockState::UNK_ERROR;
+    goto threadEnd;
+  }
+
   if(connect(m_ClientSocket, reinterpret_cast<struct sockaddr *>(&serv_addr), sizeof(serv_addr)) < 0) {
     auto error = SOCKET_LAST_ERROR;
     if(error != SOCKET_ERROR_IN_PROGRESS && error != SOCKET_ERROR_WOULD_BLOCK) {

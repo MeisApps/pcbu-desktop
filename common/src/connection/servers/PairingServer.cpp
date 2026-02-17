@@ -66,6 +66,7 @@ void PairingServer::Accept() {
       spdlog::error("Error accepting socket: {}", error.message());
       return;
     }
+    m_Socket.set_option(boostnet::tcp::no_delay(true));
     auto packetData = ReadEncryptedPacket();
     if(packetData.empty()) {
       try {

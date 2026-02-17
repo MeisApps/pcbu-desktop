@@ -53,9 +53,8 @@ void BaseUnlockConnection::PerformAuthFlow(SOCKET socket, bool needsDeviceID) {
   }
 
   auto packet = ReadPacket(socket);
-  while(packet.error == PacketError::NONE || packet.error == PacketError::UNKNOWN) {
-    if(packet.error == PacketError::NONE)
-      OnPacketReceived(socket, packet);
+  while(packet.error == PacketError::NONE) {
+    OnPacketReceived(socket, packet);
     packet = ReadPacket(socket);
   }
   if(m_UnlockState == UnlockState::UNKNOWN) {
@@ -94,6 +93,7 @@ void BaseUnlockConnection::OnPacketReceived(SOCKET socket, Packet &packet) {
       auto device = PairedDevicesStorage::GetDeviceByID(deviceId);
       if(!device.has_value()) {
         spdlog::error("Invalid device ID.");
+        m_UnlockState = UnlockState::DATA_ERROR;
         return;
       }
       m_PairedDevice = device.value();

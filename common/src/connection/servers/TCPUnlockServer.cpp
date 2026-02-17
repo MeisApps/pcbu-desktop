@@ -48,7 +48,7 @@ void TCPUnlockServer::AcceptThread() {
   auto clientThreads = std::vector<std::thread>();
   spdlog::info("Starting TCP server...");
 
-  if((m_ServerSocket = socket(AF_INET, SOCK_STREAM, 0)) == SOCKET_INVALID) {
+  if((m_ServerSocket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)) == SOCKET_INVALID) {
     spdlog::error("socket() failed. (Code={})", SOCKET_LAST_ERROR);
     m_IsRunning = false;
     m_UnlockState = UnlockState::UNK_ERROR;
@@ -58,6 +58,11 @@ void TCPUnlockServer::AcceptThread() {
   int opt = 1;
   if(setsockopt(m_ServerSocket, SOL_SOCKET, SO_REUSEADDR, reinterpret_cast<const char *>(&opt), sizeof(opt))) {
     spdlog::error("setsockopt(SO_REUSEADDR) failed. (Code={})", SOCKET_LAST_ERROR);
+    m_UnlockState = UnlockState::UNK_ERROR;
+    goto threadEnd;
+  }
+  if(setsockopt(m_ServerSocket, IPPROTO_TCP, TCP_NODELAY, reinterpret_cast<const char *>(&opt), sizeof(opt))) {
+    spdlog::error("setsockopt(TCP_NODELAY) failed. (Code={})", SOCKET_LAST_ERROR);
     m_UnlockState = UnlockState::UNK_ERROR;
     goto threadEnd;
   }
@@ -124,7 +129,13 @@ void TCPUnlockServer::ClientThread(SOCKET clientSocket) {
   spdlog::info("TCP client connected.");
   m_HasConnection = true;
   ++m_NumConnections;
-  PerformAuthFlow(clientSocket, true);
+  int opt = 1;
+  if(setsockopt(clientSocket, IPPROTO_TCP, TCP_NODELAY, reinterpret_cast<const char *>(&opt), sizeof(opt))) {
+    spdlog::error("setsockopt(TCP_NODELAY) failed. (Code={})", SOCKET_LAST_ERROR);
+    m_UnlockState = UnlockState::UNK_ERROR;
+  } else {
+    PerformAuthFlow(clientSocket, true);
+  }
   --m_NumConnections;
   m_HasConnection = m_NumConnections > 0;
   SOCKET_CLOSE(clientSocket);
