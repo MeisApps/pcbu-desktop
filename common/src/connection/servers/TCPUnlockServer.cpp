@@ -7,6 +7,8 @@
 
 #ifdef WINDOWS
 #include <Ws2tcpip.h>
+#else
+#include <netinet/tcp.h>
 #endif
 
 constexpr int MAX_CLIENTS = 10;
