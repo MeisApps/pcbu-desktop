@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.22)
 project(pcbu_desktop_all)
 
 if(NOT DEFINED TARGET_ARCH)
-    set(TARGET_ARCH "x64") # arm64
+    set(TARGET_ARCH "arm64") # arm64
 endif()
 
 if(WIN32)
@@ -42,8 +42,10 @@ set(Boost_INCLUDE_DIRS
         "${CMAKE_CURRENT_SOURCE_DIR}/deps/boost/libs/algorithm/include"
         "${CMAKE_CURRENT_SOURCE_DIR}/deps/boost/libs/asio/include"
         "${CMAKE_CURRENT_SOURCE_DIR}/deps/boost/libs/date_time/include"
+        "${CMAKE_CURRENT_SOURCE_DIR}/deps/boost/libs/dll/include"
         "${CMAKE_CURRENT_SOURCE_DIR}/deps/boost/libs/exception/include"
         "${CMAKE_CURRENT_SOURCE_DIR}/deps/boost/libs/filesystem/include"
+        "${CMAKE_CURRENT_SOURCE_DIR}/deps/boost/libs/interprocess/include"
         "${CMAKE_CURRENT_SOURCE_DIR}/deps/boost/libs/move/include"
         "${CMAKE_CURRENT_SOURCE_DIR}/deps/boost/libs/numeric/conversion/include"
         "${CMAKE_CURRENT_SOURCE_DIR}/deps/boost/libs/process/include"
@@ -55,6 +57,8 @@ set(Boost_INCLUDE_DIRS
 
 add_subdirectory(common)
 add_subdirectory(desktop)
+add_subdirectory(desktop/elevator)
+add_dependencies(pcbu_desktop pcbu_elevator)
 if(WIN32)
     add_subdirectory(natives/win-pcbiounlock)
     #add_dependencies(pcbu_desktop win-pcbiounlock)

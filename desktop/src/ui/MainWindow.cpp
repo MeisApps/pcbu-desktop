@@ -2,6 +2,7 @@
 
 #include "installer/ServiceInstaller.h"
 #include "platform/PlatformHelper.h"
+#include "shell/ElevatorService.h"
 #include "shell/Shell.h"
 #include "storage/AppSettings.h"
 #include "storage/PairedDevicesStorage.h"
@@ -37,7 +38,7 @@ QString MainWindow::GetLicenseText() {
 }
 
 bool MainWindow::PerformStartupChecks(QObject *viewLoader, QObject *window) {
-  if(!Shell::IsRunningAsAdmin()) {
+  if(!Shell::HasAdmin()) {
     QMetaObject::invokeMethod(window, "showFatalErrorMessage", Q_ARG(QVariant, QString::fromUtf8(I18n::Get("error_not_admin"))));
     return false;
   }

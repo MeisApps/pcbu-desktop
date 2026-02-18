@@ -153,6 +153,13 @@ target_link_libraries(pcbu_desktop PRIVATE
         pcbu_common
 )
 
+add_custom_command(TARGET pcbu_desktop POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy
+            $<TARGET_FILE:pcbu_elevator>
+            $<TARGET_FILE_DIR:pcbu_desktop>
+    COMMENT "Copying elevator..."
+)
+
 set_target_properties(pcbu_desktop PROPERTIES
         WIN32_EXECUTABLE TRUE
         MACOSX_BUNDLE TRUE

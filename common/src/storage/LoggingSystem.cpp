@@ -5,18 +5,18 @@
 #include <spdlog/sinks/stdout_sinks.h>
 
 #include "AppSettings.h"
-#include "shell/Shell.h"
+#include "shell/LocalShell.h"
 
 std::string LoggingSystem::g_LogName{};
 
 void LoggingSystem::Init(const std::string &logName, bool printToConsole) {
   g_LogName = logName;
-  auto logPath = AppSettings::GetBaseDir() / fmt::format("{}.log", g_LogName);
+  auto logPath = AppSettings::GetLogsDir() / fmt::format("{}.log", g_LogName);
   std::ifstream logFile(logPath, std::ifstream::ate | std::ifstream::binary);
   if(logFile) {
     auto sizeKb = logFile.tellg() / 1000;
     if(sizeKb > 5000)
-      Shell::RemoveFile(logPath);
+      LocalShell::RemoveFile(logPath);
   }
 
   try {
@@ -32,7 +32,7 @@ void LoggingSystem::Init(const std::string &logName, bool printToConsole) {
     }
     loggerPtr->set_pattern("[%Y-%m-%d %H:%M:%S.%e] %v");
     spdlog::set_default_logger(loggerPtr);
-#ifdef _DEBUG
+#ifndef NDEBUG
     spdlog::flush_on(spdlog::level::debug);
 #else
     spdlog::flush_on(spdlog::level::warn);

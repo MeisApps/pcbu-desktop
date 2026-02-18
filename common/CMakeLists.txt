@@ -92,6 +92,12 @@ add_library(pcbu_common
         src/platform/BluetoothHelper.h
         src/shell/Shell.cpp
         src/shell/Shell.h
+        src/shell/LocalShell.cpp
+        src/shell/LocalShell.h
+        src/shell/ElevatorService.cpp
+        src/shell/ElevatorService.h
+        src/shell/IPCHelper.cpp
+        src/shell/IPCHelper.h
         src/storage/AppSettings.cpp
         src/storage/AppSettings.h
         src/storage/LoggingSystem.cpp
@@ -127,6 +133,7 @@ target_link_libraries(pcbu_common PUBLIC
         OpenSSL::SSL
         Boost::system
         Boost::filesystem
+        Boost::process
         ${PLATFORM_LIBS}
 )
 
