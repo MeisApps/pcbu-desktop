@@ -132,10 +132,8 @@ void TCPUnlockServer::ClientThread(SOCKET clientSocket) {
   int opt = 1;
   if(setsockopt(clientSocket, IPPROTO_TCP, TCP_NODELAY, reinterpret_cast<const char *>(&opt), sizeof(opt))) {
     spdlog::error("setsockopt(TCP_NODELAY) failed. (Code={})", SOCKET_LAST_ERROR);
-    m_UnlockState = UnlockState::UNK_ERROR;
-  } else {
-    PerformAuthFlow(clientSocket, true);
   }
+  PerformAuthFlow(clientSocket, true);
   --m_NumConnections;
   m_HasConnection = m_NumConnections > 0;
   SOCKET_CLOSE(clientSocket);

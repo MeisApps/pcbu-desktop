@@ -1,5 +1,7 @@
 #include "BaseConnection.h"
 
+#include <chrono>
+#include <thread>
 #include <spdlog/spdlog.h>
 
 #include "Packets.h"
@@ -40,16 +42,16 @@ bool BaseConnection::SetSocketRWTimeout(SOCKET socket, uint32_t secs) {
 
 Packet BaseConnection::ReadPacket(SOCKET socket) {
   uint8_t correctHeaderBytes{};
-  auto headerBE = htonl(PACKET_HEADER);
+  auto headerBE = htonll(PACKET_HEADER);
   spdlog::debug("Reading packet header...");
-  while(correctHeaderBytes < sizeof(uint32_t)) {
+  while(correctHeaderBytes < sizeof(PACKET_HEADER)) {
     uint8_t headerByte{};
     int result = (int)read(socket, &headerByte, 1);
     if(result <= 0) {
       auto error = GetPacketError(result, SOCKET_LAST_ERROR);
       if(error != PacketError::NONE) {
         spdlog::error("Reading packet header failed.");
-        return {GetPacketError(result, SOCKET_LAST_ERROR)};
+        return {error};
       }
     } else {
       if(headerByte == reinterpret_cast<uint8_t *>(&headerBE)[correctHeaderBytes])
@@ -59,131 +61,108 @@ Packet BaseConnection::ReadPacket(SOCKET socket) {
     }
   }
 
-  std::vector<uint8_t> idBuffer{};
-  idBuffer.resize(sizeof(uint8_t));
-  uint32_t idBytesRead = 0;
   spdlog::debug("Reading packet ID...");
-  while(idBytesRead < sizeof(uint8_t)) {
-    int result = (int)read(socket, idBuffer.data() + idBytesRead, sizeof(uint8_t) - idBytesRead);
-    if(result <= 0) {
-      auto error = GetPacketError(result, SOCKET_LAST_ERROR);
-      if(error != PacketError::NONE) {
-        spdlog::error("Reading packet ID failed.");
-        return {GetPacketError(result, SOCKET_LAST_ERROR)};
-      }
-    } else {
-      idBytesRead += result;
-    }
+  uint16_t packetId{};
+  auto result = ReadData(socket, sizeof(packetId));
+  if(result.first != PacketError::NONE || result.second.size() != sizeof(packetId)) {
+    spdlog::error("Reading packet ID failed.");
+    return {result.first};
   }
-  uint8_t packetID = idBuffer[0];
+  std::memcpy(&packetId, result.second.data(), sizeof(packetId));
+  packetId = ntohs(packetId);
 
-  std::vector<uint8_t> lenBuffer{};
-  lenBuffer.resize(sizeof(uint16_t));
-  uint32_t lenBytesRead = 0;
-  spdlog::debug("Reading packet length... (ID={0:X})", packetID);
-  while(lenBytesRead < sizeof(uint16_t)) {
-    int result = (int)read(socket, lenBuffer.data() + lenBytesRead, sizeof(uint16_t) - lenBytesRead);
-    if(result <= 0) {
-      auto error = GetPacketError(result, SOCKET_LAST_ERROR);
-      if(error != PacketError::NONE) {
-        spdlog::error("Reading packet length failed.");
-        return {GetPacketError(result, SOCKET_LAST_ERROR)};
-      }
-    } else {
-      lenBytesRead += result;
-    }
+  spdlog::debug("Reading packet length... (ID={0:X})", packetId);
+  uint16_t packetLength{};
+  result = ReadData(socket, sizeof(packetLength));
+  if(result.first != PacketError::NONE || result.second.size() != sizeof(packetLength)) {
+    spdlog::error("Reading packet length failed.");
+    return {result.first};
   }
-  uint16_t packetSize{};
-  std::memcpy(&packetSize, lenBuffer.data(), sizeof(uint16_t));
-  packetSize = ntohs(packetSize);
-  if(packetSize == 0) {
+  std::memcpy(&packetLength, result.second.data(), sizeof(packetLength));
+  packetLength = ntohs(packetLength);
+
+  if(packetLength == 0) {
     spdlog::error("Empty packet received.");
     return {PacketError::UNKNOWN};
   }
 
-  std::vector<uint8_t> buffer{};
-  buffer.resize(packetSize);
+  spdlog::debug("Reading packet data... (Len={})", packetLength);
+  result = ReadData(socket, packetLength);
+  if(result.first != PacketError::NONE || result.second.size() != packetLength) {
+    spdlog::error("Reading packet data failed. (Len={})", packetLength);
+    return {result.first};
+  }
+  spdlog::debug("Done reading packet.");
+  return {PacketError::NONE, packetId, result.second};
+}
+
+PacketError BaseConnection::WritePacket(SOCKET socket, uint16_t packetId, const std::vector<uint8_t> &data) {
+  PacketError error{};
+  spdlog::debug("Writing packet header...");
+  uint64_t packetHeader = htonll(PACKET_HEADER);
+  error = WriteData(socket, reinterpret_cast<const char *>(&packetHeader), sizeof(packetHeader));
+  if(error != PacketError::NONE) {
+    spdlog::error("Writing packet header failed.");
+    return error;
+  }
+
+  spdlog::debug("Writing packet ID... (ID={0:X})", packetId);
+  uint16_t packetIdNet = htons(packetId);
+  error = WriteData(socket, reinterpret_cast<const char *>(&packetIdNet), sizeof(packetIdNet));
+  if(error != PacketError::NONE) {
+    spdlog::error("Writing packet ID failed.");
+    return error;
+  }
+
+  spdlog::debug("Writing packet length... (Len={})", data.size());
+  uint16_t packetSize = htons(static_cast<uint16_t>(data.size()));
+  error = WriteData(socket, reinterpret_cast<const char *>(&packetSize), sizeof(packetSize));
+  if(error != PacketError::NONE) {
+    spdlog::error("Writing packet length failed.");
+    return error;
+  }
+
+  spdlog::debug("Writing packet data...");
+  error = WriteData(socket, reinterpret_cast<const char *>(data.data()), data.size());
+  if(error != PacketError::NONE) {
+    spdlog::error("Writing packet data failed. (Len={})", packetSize);
+    return error;
+  }
+  spdlog::debug("Done writing packet.");
+  return PacketError::NONE;
+}
+
+std::pair<PacketError, std::vector<uint8_t>> BaseConnection::ReadData(SOCKET socket, uint32_t size) {
   uint32_t bytesRead = 0;
-  spdlog::debug("Reading packet data... (Len={})", packetSize);
-  while(bytesRead < packetSize) {
-    int result = (int)read(socket, buffer.data() + bytesRead, packetSize - bytesRead);
+  std::vector<uint8_t> buffer{};
+  buffer.resize(size);
+  while(bytesRead < size) {
+    int result = (int)read(socket, buffer.data() + bytesRead, size - bytesRead);
     if(result <= 0) {
       auto error = GetPacketError(result, SOCKET_LAST_ERROR);
-      if(error != PacketError::NONE) {
-        spdlog::error("Reading packet data failed. (Len={})", packetSize);
-        return {GetPacketError(result, SOCKET_LAST_ERROR)};
-      }
+      if(error != PacketError::NONE)
+        return {error, {}};
     } else {
       bytesRead += result;
     }
+    std::this_thread::sleep_for(std::chrono::milliseconds(5));
   }
-  spdlog::debug("Done reading packet.");
-  return {PacketError::NONE, packetID, buffer};
+  return {PacketError::NONE, buffer};
 }
 
-PacketError BaseConnection::WritePacket(SOCKET socket, uint8_t packetId, const std::vector<uint8_t> &data) {
-  int bytesWritten = 0;
-  uint32_t packetHeader = htonl(PACKET_HEADER);
-  spdlog::debug("Writing packet header...");
-  while(bytesWritten < sizeof(uint32_t)) {
-    int result = (int)write(socket, reinterpret_cast<const char *>(&packetHeader) + bytesWritten, sizeof(uint32_t) - bytesWritten);
+PacketError BaseConnection::WriteData(SOCKET socket, const char *data, uint32_t size) {
+  uint32_t bytesWritten = 0;
+  while(bytesWritten < size) {
+    int result = (int)write(socket, data + bytesWritten, size - bytesWritten);
     if(result <= 0) {
       auto error = GetPacketError(result, SOCKET_LAST_ERROR);
-      if(error != PacketError::NONE) {
-        spdlog::error("Writing packet header failed.");
+      if(error != PacketError::NONE)
         return error;
-      }
     } else {
       bytesWritten += result;
     }
+    std::this_thread::sleep_for(std::chrono::milliseconds(5));
   }
-
-  bytesWritten = 0;
-  spdlog::debug("Writing packet ID... (ID={0:X})", packetId);
-  while(bytesWritten < sizeof(uint8_t)) {
-    int result = (int)write(socket, reinterpret_cast<const char *>(&packetId) + bytesWritten, sizeof(uint8_t) - bytesWritten);
-    if(result <= 0) {
-      auto error = GetPacketError(result, SOCKET_LAST_ERROR);
-      if(error != PacketError::NONE) {
-        spdlog::error("Writing packet ID failed.");
-        return error;
-      }
-    } else {
-      bytesWritten += result;
-    }
-  }
-
-  bytesWritten = 0;
-  uint16_t packetSize = htons(static_cast<uint16_t>(data.size()));
-  spdlog::debug("Writing packet length... (Len={})", data.size());
-  while(bytesWritten < sizeof(uint16_t)) {
-    int result = (int)write(socket, reinterpret_cast<const char *>(&packetSize) + bytesWritten, sizeof(uint16_t) - bytesWritten);
-    if(result <= 0) {
-      auto error = GetPacketError(result, SOCKET_LAST_ERROR);
-      if(error != PacketError::NONE) {
-        spdlog::error("Writing packet length failed.");
-        return error;
-      }
-    } else {
-      bytesWritten += result;
-    }
-  }
-
-  bytesWritten = 0;
-  spdlog::debug("Writing packet data...");
-  while(bytesWritten < data.size()) {
-    int result = (int)write(socket, reinterpret_cast<const char *>(data.data()) + bytesWritten, (int)data.size() - bytesWritten);
-    if(result <= 0) {
-      auto error = GetPacketError(result, SOCKET_LAST_ERROR);
-      if(error != PacketError::NONE) {
-        spdlog::error("Writing packet data failed. (Len={})", packetSize);
-        return error;
-      }
-    } else {
-      bytesWritten += result;
-    }
-  }
-  spdlog::debug("Done writing packet.");
   return PacketError::NONE;
 }
 
