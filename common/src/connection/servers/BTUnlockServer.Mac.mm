@@ -9,7 +9,3 @@ bool BTUnlockServer::Start() {
 }
 
 void BTUnlockServer::Stop() {}
-
-void BTUnlockServer::PerformAuthFlow(SOCKET socket) {
-  BaseUnlockConnection::PerformAuthFlow(socket);
-}

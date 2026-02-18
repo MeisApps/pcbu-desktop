@@ -14,11 +14,13 @@ enum class PacketError { UNKNOWN, NONE, CLOSED_CONNECTION, TIMEOUT };
 
 struct Packet {
   PacketError error{};
+  uint16_t id{};
   std::vector<uint8_t> data{};
 };
 
 class BaseConnection {
 public:
+  virtual ~BaseConnection() = default;
   virtual bool IsServer();
 
 protected:
@@ -28,9 +30,12 @@ protected:
   static bool SetSocketRWTimeout(SOCKET socket, uint32_t secs);
 
   static Packet ReadPacket(SOCKET socket);
-  static PacketError WritePacket(SOCKET socket, const std::vector<uint8_t> &data);
+  static PacketError WritePacket(SOCKET socket, uint16_t packetId, const std::vector<uint8_t> &data);
 
 private:
+  static std::pair<PacketError, std::vector<uint8_t>> ReadData(SOCKET socket, uint32_t size);
+  static PacketError WriteData(SOCKET socket, const char *data, uint32_t size);
+
   static PacketError GetPacketError(int result, int error);
 };
 
