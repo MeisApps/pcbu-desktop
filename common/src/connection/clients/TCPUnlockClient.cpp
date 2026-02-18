@@ -7,6 +7,7 @@
 #include <Ws2tcpip.h>
 #else
 #include <arpa/inet.h>
+#include <netinet/tcp.h>
 #endif
 
 TCPUnlockClient::TCPUnlockClient(const std::string &ipAddress, int port, const PairedDevice &device) : BaseUnlockConnection(device) {
