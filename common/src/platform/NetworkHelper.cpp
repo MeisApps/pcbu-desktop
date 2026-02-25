@@ -38,10 +38,10 @@ std::vector<NetworkInterface> NetworkHelper::GetLocalNetInterfaces() {
   std::vector<NetworkInterface> result{};
 #ifdef WINDOWS
   ULONG bufferSize = 0;
-  GetAdaptersAddresses(AF_INET, GAA_FLAG_INCLUDE_PREFIX, nullptr, nullptr, &bufferSize);
+  GetAdaptersAddresses(AF_INET, GAA_FLAG_INCLUDE_PREFIX | GAA_FLAG_INCLUDE_GATEWAYS, nullptr, nullptr, &bufferSize);
   std::vector<BYTE> buffer(bufferSize);
   auto adapterAddresses = reinterpret_cast<PIP_ADAPTER_ADDRESSES>(buffer.data());
-  if(GetAdaptersAddresses(AF_INET, GAA_FLAG_INCLUDE_PREFIX, nullptr, adapterAddresses, &bufferSize))
+  if(GetAdaptersAddresses(AF_INET, GAA_FLAG_INCLUDE_PREFIX | GAA_FLAG_INCLUDE_GATEWAYS, nullptr, adapterAddresses, &bufferSize))
     return {};
 
   for(PIP_ADAPTER_ADDRESSES adapter = adapterAddresses; adapter; adapter = adapter->Next) {
@@ -66,6 +66,16 @@ std::vector<NetworkInterface> NetworkHelper::GetLocalNetInterfaces() {
       inet_ntop(AF_INET, &(ipv4->sin_addr), strBuffer, INET_ADDRSTRLEN);
       auto ifAddr = std::string(strBuffer);
       netIf.ipAddress = ifAddr;
+    }
+    for(PIP_ADAPTER_GATEWAY_ADDRESS gateway = adapter->FirstGatewayAddress; gateway; gateway = gateway->Next) {
+      auto family = gateway->Address.lpSockaddr->sa_family;
+      if(family != AF_INET)
+        continue;
+      auto ipv4 = reinterpret_cast<SOCKADDR_IN *>(gateway->Address.lpSockaddr);
+      char strBuffer[INET_ADDRSTRLEN]{};
+      inet_ntop(AF_INET, &(ipv4->sin_addr), strBuffer, INET_ADDRSTRLEN);
+      auto ifAddr = std::string(strBuffer);
+      netIf.gateway = ifAddr;
     }
     if(!netIf.ipAddress.empty())
       result.emplace_back(netIf);
@@ -117,8 +127,12 @@ std::vector<NetworkInterface> NetworkHelper::GetLocalNetInterfaces() {
     auto rank = 0;
     if(std::regex_match(netIf.ipAddress, g_LocalIPv4Regex))
       rank += 1000;
+    if(!netIf.gateway.empty())
+      rank += 100;
     if(netIf.ipAddress.starts_with("192.168.") || netIf.ipAddress.starts_with("10."))
       rank += 50;
+    if(netIf.ipAddress.starts_with("169.254."))
+      rank -= 10;
 #ifdef WINDOWS
     if(netIf.ifName.contains("Bluetooth") || netIf.ifName.contains("vEthernet") || netIf.ifName.contains("VMware") ||
        netIf.ifName.contains("VirtualBox") || netIf.ifName.contains("Docker"))
@@ -136,6 +150,9 @@ std::vector<NetworkInterface> NetworkHelper::GetLocalNetInterfaces() {
       return StringUtils::ToLower(a.ifName) < StringUtils::ToLower(b.ifName);
     return rankA > rankB;
   });
+  for(const auto &netIf : result) {
+    spdlog::debug("Network interface: Name='" + netIf.ifName + "' IP='" + netIf.ipAddress + "' Gateway='" + netIf.gateway + "' Rank=" + std::to_string(rankIp(netIf)));
+  }
   return result;
 }
 

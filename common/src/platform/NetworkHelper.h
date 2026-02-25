@@ -8,6 +8,7 @@ struct NetworkInterface {
   std::string ifName{};
   std::string ipAddress{};
   std::string macAddress{};
+  std::string gateway{};
 };
 
 class NetworkHelper {
