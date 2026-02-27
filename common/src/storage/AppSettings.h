@@ -21,6 +21,7 @@ struct PCBUAppStorage {
 
   bool winWaitForKeyPress{};
   bool winHidePasswordField{};
+  bool unixSetPasswordPAM{};
 };
 
 class AppSettings {

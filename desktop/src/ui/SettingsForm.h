@@ -24,6 +24,7 @@ public:
     clientConnectRetries = settings.clientConnectRetries;
     winWaitForKeyPress = settings.winWaitForKeyPress;
     winHidePasswordField = settings.winHidePasswordField;
+    unixSetPasswordPAM = settings.unixSetPasswordPAM;
   }
   [[nodiscard]] PCBUAppStorage ToStorage() const {
     auto settings = PCBUAppStorage();
@@ -39,6 +40,7 @@ public:
     settings.clientConnectRetries = clientConnectRetries;
     settings.winWaitForKeyPress = winWaitForKeyPress;
     settings.winHidePasswordField = winHidePasswordField;
+    settings.unixSetPasswordPAM = unixSetPasswordPAM;
     return settings;
   }
 
@@ -54,6 +56,7 @@ public:
   uint32_t clientConnectRetries{};
   bool winWaitForKeyPress{};
   bool winHidePasswordField{};
+  bool unixSetPasswordPAM{};
   Q_PROPERTY(QString machineID MEMBER machineID)
   Q_PROPERTY(QString installedVersion MEMBER installedVersion)
   Q_PROPERTY(QString language MEMBER language)
@@ -66,6 +69,7 @@ public:
   Q_PROPERTY(uint32_t clientConnectRetries MEMBER clientConnectRetries)
   Q_PROPERTY(bool winWaitForKeyPress MEMBER winWaitForKeyPress)
   Q_PROPERTY(bool winHidePasswordField MEMBER winHidePasswordField)
+  Q_PROPERTY(bool unixSetPasswordPAM MEMBER unixSetPasswordPAM)
 };
 
 struct ServiceSettingModel {

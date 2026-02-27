@@ -60,6 +60,7 @@ PCBUAppStorage AppSettings::Load() {
 
     settings.winWaitForKeyPress = json["winWaitForKeyPress"];
     settings.winHidePasswordField = json["winHidePasswordField"];
+    settings.unixSetPasswordPAM = json["unixSetPasswordPAM"];
     if(save) {
       g_Mutex.unlock();
       Save(settings);
@@ -80,6 +81,7 @@ PCBUAppStorage AppSettings::Load() {
 
     def.winWaitForKeyPress = true;
     def.winHidePasswordField = false;
+    def.unixSetPasswordPAM = false;
     g_Mutex.unlock();
     Save(def);
     g_Mutex.lock();
@@ -104,6 +106,7 @@ void AppSettings::Save(const PCBUAppStorage &storage) {
 
         {"winWaitForKeyPress", storage.winWaitForKeyPress},
         {"winHidePasswordField", storage.winHidePasswordField},
+        {"unixSetPasswordPAM", storage.unixSetPasswordPAM},
     };
     auto baseDir = GetBaseDir();
     if(!std::filesystem::exists(baseDir))

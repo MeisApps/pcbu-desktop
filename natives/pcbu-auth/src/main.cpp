@@ -2,6 +2,7 @@
 
 #include "handler/UnlockHandler.h"
 #include "platform/PlatformHelper.h"
+#include "storage/AppSettings.h"
 #include "storage/LoggingSystem.h"
 #include "utils/StringUtils.h"
 
@@ -10,6 +11,8 @@
 #elif APPLE
 #include <sys/sysctl.h>
 #endif
+
+constexpr int PASSWORD_PIPE = 3;
 
 std::string GetServiceName() {
   auto fallback = fmt::format("PID {}", getppid());
@@ -55,22 +58,29 @@ int runMain(int argc, char *argv[]) {
     printf("Invalid parameters.\n");
     return -1;
   }
-  auto userName = argv[1];
-  std::function<void(const std::string &)> printMessage = [](const std::string &s) { printf("%s\n", s.c_str()); };
-  auto handler = UnlockHandler(printMessage);
+
+  std::string userName = argv[1];
+  auto handler = UnlockHandler([](const std::string &s) { printf("%s\n", s.c_str()); });
   auto result = handler.GetResult(userName, GetServiceName());
   if(result.state == UnlockState::SUCCESS) {
-    if(strcmp(userName, result.device.userName.c_str()) == 0) {
-      if(PlatformHelper::CheckLogin(userName, result.password) == PlatformLoginResult::SUCCESS) {
-        // pam_set_item(pamh, PAM_AUTHTOK, result.additionalData.c_str()); ToDo
-        return 0;
+    if(userName == result.device.userName && PlatformHelper::CheckLogin(userName, result.password) == PlatformLoginResult::SUCCESS) {
+      if(AppSettings::Get().unixSetPasswordPAM) {
+        size_t bytesWritten{};
+        while(bytesWritten < result.password.size()) {
+          auto count = write(PASSWORD_PIPE, result.password.data() + bytesWritten, result.password.size() - bytesWritten);
+          if(count == -1)
+            break;
+          bytesWritten += count;
+        }
       }
+      return 0;
     }
 
     auto errorMsg = I18n::Get("error_password");
     printf("%s\n", errorMsg.c_str());
     return 1;
-  } else if(result.state == UnlockState::CANCELED) {
+  }
+  if(result.state == UnlockState::CANCELED) {
     return 1;
   }
   return -1;

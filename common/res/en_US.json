@@ -131,6 +131,7 @@
   "service_setting_polkit": "Enable polkit integration",
   "service_setting_login_manager": "Enable login manager integration",
   "service_setting_macos": "Enable macOS integration",
+  "service_setting_pam_set_pw": "Write password to PAM authentication chain",
 
   "error_file_write": "Error writing file '{}'.",
   "error_file_remove": "Error removing file '{}'.",

@@ -34,12 +34,14 @@ ServiceInstaller::ServiceInstaller(const std::function<void(const std::string &)
 std::vector<ServiceSetting> ServiceInstaller::GetSettings() {
   auto isLoginEnabled = PAMHelper::HasConfigEntry("gdm-password", PAM_CONFIG_ENTRY) || PAMHelper::HasConfigEntry("sddm", PAM_CONFIG_ENTRY_SDDM) ||
                         PAMHelper::HasConfigEntry("kde", PAM_CONFIG_ENTRY) || PAMHelper::HasConfigEntry("lightdm", PAM_CONFIG_ENTRY) ||
-                        PAMHelper::HasConfigEntry("cinnamon-screensaver", PAM_CONFIG_ENTRY) || PAMHelper::HasConfigEntry("hyprlock", PAM_CONFIG_ENTRY);
+                        PAMHelper::HasConfigEntry("cinnamon-screensaver", PAM_CONFIG_ENTRY) ||
+                        PAMHelper::HasConfigEntry("hyprlock", PAM_CONFIG_ENTRY);
   auto hasLoginManager = IsProgramInstalled(GDM_NAME) || IsProgramInstalled(SDDM_NAME) || IsProgramInstalled(KDE_NAME) ||
                          IsProgramInstalled(LIGHTDM_NAME) || IsProgramInstalled(CINNAMON_NAME) || IsProgramInstalled(HYPRLAND_NAME);
   return {{"sudo", I18n::Get("service_setting_sudo"), PAMHelper::HasConfigEntry("sudo", PAM_CONFIG_ENTRY), IsProgramInstalled(SUDO_NAME)},
           {"polkit", I18n::Get("service_setting_polkit"), PAMHelper::HasConfigEntry("polkit-1", PAM_CONFIG_ENTRY), IsProgramInstalled(POLKIT_NAME)},
-          {"login", I18n::Get("service_setting_login_manager"), isLoginEnabled, hasLoginManager}};
+          {"login", I18n::Get("service_setting_login_manager"), isLoginEnabled, hasLoginManager},
+          {"pamSetPassword", I18n::Get("service_setting_pam_set_pw"), AppSettings::Get().unixSetPasswordPAM, false}};
 }
 
 void ServiceInstaller::ApplySettings(const std::vector<ServiceSetting> &settings, bool useDefault) {
@@ -62,6 +64,10 @@ void ServiceInstaller::ApplySettings(const std::vector<ServiceSetting> &settings
         m_PAMHelper.SetConfigEntry("cinnamon-screensaver", PAM_CONFIG_ENTRY, isEnabled);
       if(IsProgramInstalled(HYPRLAND_NAME))
         m_PAMHelper.SetConfigEntry("hyprlock", PAM_CONFIG_ENTRY, isEnabled);
+    } else if(setting.id == "pamSetPassword") {
+      auto storage = AppSettings::Get();
+      storage.unixSetPasswordPAM = isEnabled;
+      AppSettings::Save(storage);
     } else {
       spdlog::warn("Unknown service setting {}.", setting.id);
     }

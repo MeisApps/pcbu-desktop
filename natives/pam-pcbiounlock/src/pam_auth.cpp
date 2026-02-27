@@ -1,6 +1,6 @@
 #include <boost/process/v1.hpp>
 #include <spdlog/spdlog.h>
-#include <string>
+
 #define PAM_SM_AUTH
 #include <security/pam_modules.h>
 
@@ -8,7 +8,8 @@
 #include <security/pam_appl.h>
 #endif
 
-#define PCBU_AUTH_PATH "/usr/local/sbin/pcbu_auth"
+constexpr auto PCBU_AUTH_PATH = "/usr/local/sbin/pcbu_auth";
+constexpr int PASSWORD_PIPE = 3;
 
 static int print_pam(struct pam_conv *conv, const std::string &message) {
   struct pam_message msg{};
@@ -35,29 +36,64 @@ int pam_sm_authenticate(pam_handle_t *pamh, int flags, int argc, const char **ar
     }
   }
   if(statusCode != PAM_SUCCESS) {
-    // spdlog::error(I18n::Get("error_pam"));
+    spdlog::error("Failed to get PAM user info.");
     return PAM_IGNORE;
   }
 
-  std::vector<std::string> args{};
-  args.emplace_back(userName);
+  int pipeFd[2]{};
+  bool hasPipe = false;
+  if(!pipe(pipeFd)) {
+    fcntl(pipeFd[0], F_SETFD, FD_CLOEXEC);
+    fcntl(pipeFd[1], F_SETFD, FD_CLOEXEC);
+    hasPipe = true;
+  } else {
+    spdlog::error("Failed to create password pipe.");
+  }
+
+  int pamResult = PAM_IGNORE;
   try {
+    std::vector<std::string> args{};
+    args.emplace_back(userName);
+
     boost::process::v1::ipstream outStream{};
-    boost::process::v1::child proc(PCBU_AUTH_PATH, args, boost::process::v1::std_out > outStream);
+    boost::process::v1::child proc;
+    if(hasPipe) {
+      proc = boost::process::v1::child(PCBU_AUTH_PATH, args, boost::process::v1::std_out > outStream,
+                                       boost::process::v1::posix::fd.bind(PASSWORD_PIPE, pipeFd[1]));
+    } else {
+      proc = boost::process::v1::child(PCBU_AUTH_PATH, args, boost::process::v1::std_out > outStream);
+    }
     std::string line{};
     while(outStream && std::getline(outStream, line) && !line.empty())
       print_pam(conv, line);
-
     proc.wait();
+
+    std::string password{};
+    if(hasPipe) {
+      close(pipeFd[1]);
+      char buffer[512]{};
+      ssize_t bytesRead{};
+      while((bytesRead = read(pipeFd[0], buffer, sizeof(buffer))) > 0) {
+        password.append(buffer, static_cast<size_t>(bytesRead));
+      }
+      close(pipeFd[0]);
+    }
+
     auto result = proc.exit_code();
-    if(result == 0)
-      return PAM_SUCCESS;
-    if(result == 1)
-      return PAM_AUTH_ERR;
+    if(result == 0) {
+      if(!password.empty() && password[0] != '\0') {
+        pam_set_item(pamh, PAM_AUTHTOK, password.c_str());
+      } else {
+        pamResult = PAM_SUCCESS;
+      }
+    }
+    if(result == 1) {
+      pamResult = PAM_AUTH_ERR;
+    }
   } catch(const std::exception &ex) {
-    // spdlog::error("Installation is corrupt. {}", ex.what());
+    spdlog::error("Installation is corrupt. {}", ex.what());
   }
-  return PAM_IGNORE;
+  return pamResult;
 }
 
 int pam_sm_setcred(pam_handle_t *pamh, int flags, int argc, const char **argv) {
