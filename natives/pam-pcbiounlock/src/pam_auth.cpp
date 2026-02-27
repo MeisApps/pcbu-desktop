@@ -1,4 +1,7 @@
-#include <boost/process/v1.hpp>
+#include <boost/asio.hpp>
+#include <boost/process/v2/posix/bind_fd.hpp>
+#include <boost/process/v2/process.hpp>
+#include <boost/process/v2/stdio.hpp>
 #include <spdlog/spdlog.h>
 
 #define PAM_SM_AUTH
@@ -55,17 +58,33 @@ int pam_sm_authenticate(pam_handle_t *pamh, int flags, int argc, const char **ar
     std::vector<std::string> args{};
     args.emplace_back(userName);
 
-    boost::process::v1::ipstream outStream{};
-    boost::process::v1::child proc;
-    if(hasPipe) {
-      proc = boost::process::v1::child(PCBU_AUTH_PATH, args, boost::process::v1::std_out > outStream,
-                                       boost::process::v1::posix::fd.bind(PASSWORD_PIPE, pipeFd[1]));
-    } else {
-      proc = boost::process::v1::child(PCBU_AUTH_PATH, args, boost::process::v1::std_out > outStream);
+    boost::asio::io_context ctx{};
+    boost::asio::readable_pipe outPipe{ctx};
+    boost::process::v2::process proc =
+        hasPipe ? boost::process::v2::process(ctx, PCBU_AUTH_PATH, args, boost::process::v2::process_stdio{{}, outPipe, {}},
+                                              boost::process::v2::posix::bind_fd(PASSWORD_PIPE, pipeFd[1]))
+                : boost::process::v2::process(ctx, PCBU_AUTH_PATH, args, boost::process::v2::process_stdio{{}, outPipe, {}});
+    boost::system::error_code ec;
+    std::vector<char> charBuffer(4096);
+    std::string lineBuffer{};
+    while(true) {
+      auto n = outPipe.read_some(boost::asio::buffer(charBuffer), ec);
+      if(ec)
+        break;
+      lineBuffer.append(charBuffer.data(), n);
+      std::size_t pos{};
+      while((pos = lineBuffer.find('\n')) != std::string::npos) {
+        std::string line = lineBuffer.substr(0, pos);
+        lineBuffer.erase(0, pos + 1);
+        if(!line.empty() && line.back() == '\r')
+          line.pop_back();
+        if(!line.empty()) {
+          print_pam(conv, line);
+        } else {
+          break;
+        }
+      }
     }
-    std::string line{};
-    while(outStream && std::getline(outStream, line) && !line.empty())
-      print_pam(conv, line);
     proc.wait();
 
     std::string password{};
