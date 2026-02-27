@@ -1,8 +1,10 @@
 cmake_minimum_required(VERSION 3.22)
 project(pcbu_desktop_all)
 
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+include(DetectArchitecture)
 if(NOT DEFINED TARGET_ARCH)
-    set(TARGET_ARCH "x64") # arm64
+    detect_architecture(TARGET_ARCH)
 endif()
 
 if(WIN32)

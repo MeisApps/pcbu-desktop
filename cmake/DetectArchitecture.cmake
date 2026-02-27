@@ -1,0 +1,23 @@
+function(detect_architecture out_arch)
+    set(processor "${CMAKE_SYSTEM_PROCESSOR}")
+    string(TOLOWER "${processor}" _proc_lower)
+
+    set(arch "unknown")
+    if(_proc_lower MATCHES "x86_64|amd64")
+        set(arch "x64")
+    elseif(_proc_lower MATCHES "aarch64|arm64")
+        set(arch "arm64")
+    elseif(_proc_lower MATCHES "i[3-6]86|x86|i386|i486|i586|i686")
+        set(arch "x86")
+    elseif(_proc_lower MATCHES "armv[4-7]|arm")
+        set(arch "arm32")
+    elseif(_proc_lower MATCHES "riscv64")
+        set(arch "riscv64")
+    endif()
+
+    set(${out_arch} "${arch}" PARENT_SCOPE)
+    if(arch STREQUAL "unknown")
+        message(WARNING "Unknown architecture: ${processor}")
+    endif()
+endfunction()
+
