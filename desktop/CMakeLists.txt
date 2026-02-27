@@ -112,6 +112,8 @@ set(UI_SRC_FILES
         src/ui/LogsWindow.h
         src/ui/UpdaterWindow.cpp
         src/ui/UpdaterWindow.h
+        src/ui/UnlockTestWindow.cpp
+        src/ui/UnlockTestWindow.h
 
         src/ui/models/DevicesTableModel.cpp
         src/ui/models/DevicesTableModel.h

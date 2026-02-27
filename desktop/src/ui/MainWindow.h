@@ -24,7 +24,6 @@ public slots:
   void OnInstallClicked(QObject *window);
   void OnReinstallClicked(QObject *window);
 
-  void OnTestUnlockClicked(QObject *viewLoader, const QString &pairingId);
   void OnRemoveDeviceClicked(QObject *viewLoader, const QString &pairingId);
 
 private:

@@ -129,14 +129,6 @@ void MainWindow::OnReinstallClicked(QObject *window) {
   });
 }
 
-void MainWindow::OnTestUnlockClicked(QObject *viewLoader, const QString &pairingId) {
-  auto device = PairedDevicesStorage::GetDeviceByID(pairingId.toStdString());
-  if(!device.has_value())
-    return;
-  auto result = Shell::RunUserCommand(fmt::format("/usr/local/sbin/pcbu_auth {} {}", device->userName, "PCBioUnlock Test")); // ToDo
-  spdlog::info("Test result: {} (Code={})", result.output, result.exitCode);
-}
-
 void MainWindow::OnRemoveDeviceClicked(QObject *viewLoader, const QString &pairingId) {
   PairedDevicesStorage::RemoveDevice(pairingId.toStdString());
   Show(viewLoader);

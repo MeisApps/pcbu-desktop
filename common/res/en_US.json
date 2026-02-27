@@ -2,6 +2,7 @@
   "initializing": "Initializing...",
   "password": "Password",
   "retry": "Retry",
+  "cancel": "Cancel",
   "error_unknown": "Unknown Error.",
   "error_pam": "Error: Could not get PAM info.",
   "error_not_paired": "Error: User {} is not paired.",
@@ -78,6 +79,7 @@
   "ignore": "Ignore",
   "manual_enter": "Enter manually",
   "pairing_code": "Pairing code",
+  "unlock_test": "Unlock test",
 
   "install": "Install",
   "uninstall": "Uninstall",

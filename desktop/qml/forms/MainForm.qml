@@ -104,6 +104,7 @@ Form {
                     }
                     Button {
                         Layout.fillWidth: true
+                        Layout.preferredWidth: 70
                         Layout.preferredHeight: 60
                         id: deviceRemoveBtn
                         text: QI18n.Get('remove_device')
@@ -115,17 +116,19 @@ Form {
                             });
                         }
                     }
-                    /*Button {
+                    Button {
                         Layout.fillWidth: true
+                        Layout.preferredWidth: 50
                         Layout.preferredHeight: 60
                         id: deviceTestUnlockBtn
-                        text: 'Test'
+                        text: QI18n.Get('unlock_test')
                         enabled: false
                         onClicked: {
                             let selDevice = devicesTableModel.get(devicesTableView.selectedRow);
-                            MainWindow.OnTestUnlockClicked(viewLoader, selDevice[0]);
+                            let unlockWin = Qt.createComponent("qrc:/ui/UnlockTestWindow.qml").createObject(window, {deviceId: selDevice[0]});
+                            unlockWin.show();
                         }
-                    }*/
+                    }
                 }
             }
         }
