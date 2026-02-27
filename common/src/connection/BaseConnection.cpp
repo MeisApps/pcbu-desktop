@@ -1,15 +1,15 @@
 #include "BaseConnection.h"
 
 #include <chrono>
-#include <thread>
 #include <spdlog/spdlog.h>
+#include <thread>
 
 #include "Packets.h"
 #include "SocketDefs.h"
 
-#ifndef WINDOWS
-#define htonll(x) ((1==htonl(1)) ? (x) : (((uint64_t)htonl((x) & 0xFFFFFFFFUL)) << 32) | htonl((uint32_t)((x) >> 32)))
-#define ntohll(x) ((1==ntohl(1)) ? (x) : (((uint64_t)ntohl((x) & 0xFFFFFFFFUL)) << 32) | ntohl((uint32_t)((x) >> 32)))
+#ifdef LINUX
+#define htonll(x) ((1 == htonl(1)) ? (x) : (((uint64_t)htonl((x) & 0xFFFFFFFFUL)) << 32) | htonl((uint32_t)((x) >> 32)))
+#define ntohll(x) ((1 == ntohl(1)) ? (x) : (((uint64_t)ntohl((x) & 0xFFFFFFFFUL)) << 32) | ntohl((uint32_t)((x) >> 32)))
 #endif
 
 bool BaseConnection::IsServer() {
@@ -179,7 +179,7 @@ PacketError BaseConnection::GetPacketError(int result, int error) {
 
   spdlog::error("Socket operation failed. (Code={}, Str={})", error, strerror(error));
   if(error == SOCKET_ERROR_CONNECT_REFUSED || error == SOCKET_ERROR_HOST_UNREACHABLE || error == SOCKET_ERROR_CONNECT_ABORTED ||
-    error == SOCKET_ERROR_CONNECT_RESET || error == SOCKET_ERROR_NET_UNREACHABLE)
+     error == SOCKET_ERROR_CONNECT_RESET || error == SOCKET_ERROR_NET_UNREACHABLE)
     return PacketError::CLOSED_CONNECTION;
   if(error == SOCKET_ERROR_TIMEOUT)
     return PacketError::TIMEOUT;
