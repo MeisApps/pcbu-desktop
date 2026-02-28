@@ -30,7 +30,18 @@ BUILD_CORES=4
 if [[ "$PLATFORM" == "win" ]]; then
   WIN_QT_PATH="$(cygpath -u "$QT_BASE_DIR")/msvc2022_64"
   WIN_QT_PATH_ARM64="$(cygpath -u "$QT_BASE_DIR")/msvc2022_arm64"
-  WIN_MT_PATH="/c/Program Files (x86)/Windows Kits/10/bin/10.0.26100.0/x64/mt.exe"
+
+  win_sdk_ver_dir=$(find "/c/Program Files (x86)/Windows Kits/10/bin" \
+      -mindepth 1 -maxdepth 1 \
+      -type d \
+      -regex '.*/10\.0\.[0-9]+\.[0-9]+' \
+      -printf '%p\n' 2>/dev/null | sort -V | tail -n 1)
+  if [ -n "$win_sdk_ver_dir" ] && [ -f "${win_sdk_ver_dir}/x64/mt.exe" ]; then
+      WIN_MT_PATH="${win_sdk_ver_dir}/x64/mt.exe"
+  else
+      echo "No Windows SDK found."
+      exit 1
+  fi
 fi
 
 # Build
