@@ -1,17 +1,22 @@
 #include "Shell.h"
 
-#include <boost/asio.hpp>
 #include <boost/filesystem.hpp>
+#ifdef WINDOWS
+#include <boost/process/v1.hpp>
+#else
+#include <boost/asio.hpp>
 #include <boost/process/v2/environment.hpp>
 #include <boost/process/v2/process.hpp>
 #include <boost/process/v2/stdio.hpp>
+#endif
 #include <fstream>
 #include <spdlog/spdlog.h>
 
 #include "utils/StringUtils.h"
 
 #ifdef WINDOWS
-#include <boost/process/v2/windows/default_launcher.hpp>
+#include <boost/process/v1/windows.hpp>
+//#include <boost/process/v2/windows/creation_flags.hpp>
 #undef CreateFile
 
 #define SHELL_NAME "cmd.exe"
@@ -53,18 +58,27 @@ ShellCmdResult Shell::RunCommand(const std::string &cmd) {
 }
 
 ShellCmdResult Shell::RunUserCommand(const std::string &cmd) {
+#ifdef WINDOWS
+  boost::process::v1::ipstream outStream{};
+  boost::process::v1::ipstream errStream{};
+  boost::process::v1::child proc(fmt::format("{0} {1} \"{2}\"", SHELL_NAME, SHELL_CMD_ARG, cmd), boost::process::v1::std_out > outStream,
+                                 boost::process::v1::std_err > errStream, boost::process::v1::windows::create_no_window);
+  std::string output{};
+  std::string line{};
+  while(outStream && std::getline(outStream, line) && !line.empty())
+    output.append(line + "\n");
+  while(errStream && std::getline(errStream, line) && !line.empty())
+    output.append(line + "\n");
+  proc.wait();
+#else
   boost::asio::io_context ctx{};
   boost::asio::readable_pipe pipe{ctx};
-#ifdef WINDOWS
-  auto launcher = boost::process::v2::windows::default_launcher{};
-  launcher.creation_flags() |= CREATE_NO_WINDOW;
-#endif
   boost::process::v2::process proc(ctx, boost::process::v2::environment::find_executable(SHELL_NAME), {SHELL_CMD_ARG, cmd},
                                    boost::process::v2::process_stdio{{}, pipe, pipe}
 
 #ifdef WINDOWS
                                    ,
-                                   launcher
+                                   boost::process::v2::windows::process_creation_flags<CREATE_NO_WINDOW>{}
 #endif
   );
 
@@ -72,6 +86,7 @@ ShellCmdResult Shell::RunUserCommand(const std::string &cmd) {
   boost::system::error_code ec;
   boost::asio::read(pipe, boost::asio::dynamic_buffer(output), ec);
   proc.wait();
+#endif
 
   spdlog::debug("Process exit. Code: {} Command: '{}' Output: '{}'", proc.exit_code(), cmd, StringUtils::Trim(output));
   auto result = ShellCmdResult();
@@ -81,18 +96,19 @@ ShellCmdResult Shell::RunUserCommand(const std::string &cmd) {
 }
 
 void Shell::SpawnCommand(const std::string &cmd) {
-  boost::asio::io_context ctx{};
 #ifdef WINDOWS
-  auto launcher = boost::process::v2::windows::default_launcher{};
-  launcher.creation_flags() |= CREATE_NO_WINDOW;
-#endif
+  boost::process::v1::child proc(fmt::format("{0} {1} \"{2}\"", SHELL_NAME, SHELL_CMD_ARG, cmd), boost::process::v1::windows::create_no_window);
+  proc.detach();
+#else
+  boost::asio::io_context ctx{};
   boost::process::v2::process proc(ctx, boost::process::v2::environment::find_executable(SHELL_NAME), {SHELL_CMD_ARG, cmd}
 #ifdef WINDOWS
                                    ,
-                                   launcher
+                                   boost::process::v2::windows::process_creation_flags<CREATE_NO_WINDOW>{}
 #endif
   );
   proc.detach();
+#endif
 }
 
 bool Shell::CreateDir(const std::filesystem::path &path) {

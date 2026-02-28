@@ -127,6 +127,7 @@ target_link_libraries(pcbu_common PUBLIC
         Boost::system
         Boost::filesystem
         Boost::process
+        Boost::asio
         ${PLATFORM_LIBS}
 )
 
