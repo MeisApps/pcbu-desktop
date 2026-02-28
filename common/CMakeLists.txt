@@ -118,7 +118,6 @@ add_library(pcbu_common
 target_include_directories(pcbu_common PUBLIC
         src
         ../deps/headers
-        ${Boost_INCLUDE_DIRS}
 )
 target_link_libraries(pcbu_common PUBLIC
         Threads::Threads

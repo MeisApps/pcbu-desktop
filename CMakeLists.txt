@@ -3,6 +3,8 @@ project(pcbu_desktop_all)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 include(DetectArchitecture)
+include(FetchContent)
+
 if(NOT DEFINED TARGET_ARCH)
     detect_architecture(TARGET_ARCH)
 endif()
@@ -35,25 +37,25 @@ endif()
 
 message("-- Building for arch '${TARGET_ARCH}' on '${TARGET_OS}'")
 
-set(SPDLOG_BUILD_PIC ON CACHE BOOL "")
-add_subdirectory(deps/spdlog)
-set(Boost_USE_STATIC_LIBS ON CACHE BOOL "")
-add_subdirectory(deps/boost)
-set(Boost_INCLUDE_DIRS
-        "${CMAKE_CURRENT_SOURCE_DIR}/deps/boost/libs/align/include"
-        "${CMAKE_CURRENT_SOURCE_DIR}/deps/boost/libs/algorithm/include"
-        "${CMAKE_CURRENT_SOURCE_DIR}/deps/boost/libs/asio/include"
-        "${CMAKE_CURRENT_SOURCE_DIR}/deps/boost/libs/date_time/include"
-        "${CMAKE_CURRENT_SOURCE_DIR}/deps/boost/libs/exception/include"
-        "${CMAKE_CURRENT_SOURCE_DIR}/deps/boost/libs/filesystem/include"
-        "${CMAKE_CURRENT_SOURCE_DIR}/deps/boost/libs/move/include"
-        "${CMAKE_CURRENT_SOURCE_DIR}/deps/boost/libs/numeric/conversion/include"
-        "${CMAKE_CURRENT_SOURCE_DIR}/deps/boost/libs/process/include"
-        "${CMAKE_CURRENT_SOURCE_DIR}/deps/boost/libs/range/include"
-        "${CMAKE_CURRENT_SOURCE_DIR}/deps/boost/libs/system/include"
-        "${CMAKE_CURRENT_SOURCE_DIR}/deps/boost/libs/tokenizer/include"
-        "${CMAKE_CURRENT_SOURCE_DIR}/deps/boost/libs/type_index/include"
+FetchContent_Declare(
+    spdlog
+    GIT_REPOSITORY https://github.com/gabime/spdlog.git
+    GIT_TAG v1.17.0
 )
+FetchContent_Declare(
+    Boost
+    URL https://github.com/boostorg/boost/releases/download/boost-1.90.0/boost-1.90.0-cmake.7z
+    DOWNLOAD_EXTRACT_TIMESTAMP ON
+)
+
+message("-- Fetching boost...")
+set(BOOST_INCLUDE_LIBRARIES asio filesystem process system CACHE STRING "")
+set(Boost_USE_STATIC_LIBS ON CACHE BOOL "")
+FetchContent_MakeAvailable(Boost)
+
+message("-- Fetching spdlog...")
+set(SPDLOG_BUILD_PIC ON CACHE BOOL "")
+FetchContent_MakeAvailable(spdlog)
 
 add_subdirectory(common)
 add_subdirectory(desktop)
