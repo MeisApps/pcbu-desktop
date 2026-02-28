@@ -70,6 +70,7 @@ message("-- Fetching boost...")
 set(BOOST_INCLUDE_LIBRARIES asio filesystem process system CACHE STRING "")
 set(Boost_USE_STATIC_LIBS ON CACHE BOOL "")
 FetchContent_MakeAvailable(Boost)
+set_property(TARGET boost_process PROPERTY POSITION_INDEPENDENT_CODE ON)
 
 message("-- Fetching spdlog...")
 set(SPDLOG_BUILD_PIC ON CACHE BOOL "")
