@@ -6,9 +6,13 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
 
+include(FindQtInstallation)
 if(NOT DEFINED QT_BASE_DIR)
-    message(FATAL_ERROR "QT_BASE_DIR is not set.")
+    find_qt_installation(QT_BASE_DIR)
+else()
+    message(STATUS "Qt installation: ${QT_BASE_DIR}")
 endif()
+
 if(WIN32)
     set(QT_HOST_PATH "${QT_BASE_DIR}/msvc2022_64")
     if(TARGET_ARCH STREQUAL "x64")
@@ -31,6 +35,7 @@ elseif(APPLE)
 endif()
 
 find_package(Qt6 COMPONENTS Core Gui Quick QuickControls2 REQUIRED)
+qt_standard_project_setup()
 qt_policy(SET QTP0004 NEW)
 
 if(WIN32)
@@ -166,3 +171,13 @@ install(TARGETS pcbu_desktop
         RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
         LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
 )
+
+if(WIN32)
+    add_custom_command(TARGET pcbu_desktop POST_BUILD
+            COMMAND Qt6::windeployqt
+            --dir "$<TARGET_FILE_DIR:pcbu_desktop>"
+            --qmldir "${CMAKE_SOURCE_DIR}/desktop/qml/"
+            "$<TARGET_FILE:pcbu_desktop>"
+            COMMENT "Deploying Qt runtime dependencies..."
+    )
+endif()
