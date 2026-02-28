@@ -14,7 +14,7 @@ endif()
 add_executable(pcbu_auth
         src/main.cpp
 )
-target_include_directories(pcbu_auth PRIVATE common-cpp/src ../../deps/headers)
+target_include_directories(pcbu_auth PRIVATE common-cpp/src)
 target_link_libraries(pcbu_auth PRIVATE pcbu_common)
 add_custom_command(TARGET pcbu_auth
         POST_BUILD

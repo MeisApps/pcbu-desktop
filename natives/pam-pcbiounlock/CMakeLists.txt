@@ -19,7 +19,7 @@ add_library(pam_pcbiounlock SHARED
         src/pam_password.cpp
         src/pam_session.cpp
 )
-target_include_directories(pam_pcbiounlock PRIVATE common-cpp/src ../../deps/headers)
+target_include_directories(pam_pcbiounlock PRIVATE common-cpp/src)
 target_link_libraries(pam_pcbiounlock PRIVATE pam pcbu_common)
 add_custom_command(TARGET pam_pcbiounlock
         POST_BUILD

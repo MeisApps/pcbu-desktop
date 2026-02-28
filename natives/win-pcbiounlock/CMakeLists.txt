@@ -21,7 +21,7 @@ add_library(win-pcbiounlock SHARED
         src/CUnlockListener.h
         src/CUnlockListener.cpp
 )
-target_include_directories(win-pcbiounlock PUBLIC common-cpp/src ../../deps/headers)
+target_include_directories(win-pcbiounlock PUBLIC common-cpp/src)
 target_link_libraries(win-pcbiounlock PUBLIC Credui Shlwapi Secur32 pcbu_common)
 add_custom_command(TARGET win-pcbiounlock
         POST_BUILD

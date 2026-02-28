@@ -40,15 +40,31 @@ endif()
 message("-- Building for arch '${TARGET_ARCH}' on '${TARGET_OS}'")
 
 FetchContent_Declare(
-    spdlog
-    GIT_REPOSITORY https://github.com/gabime/spdlog.git
-    GIT_TAG v1.17.0
+        json
+        URL https://github.com/nlohmann/json/releases/download/v3.12.0/json.tar.xz
+        DOWNLOAD_EXTRACT_TIMESTAMP ON
 )
 FetchContent_Declare(
-    Boost
-    URL https://github.com/boostorg/boost/releases/download/boost-1.90.0/boost-1.90.0-cmake.7z
-    DOWNLOAD_EXTRACT_TIMESTAMP ON
+        cpp_httplib
+        URL https://github.com/yhirose/cpp-httplib/raw/v0.35.0/httplib.h
+        DOWNLOAD_NO_EXTRACT TRUE
 )
+FetchContent_Declare(
+        spdlog
+        GIT_REPOSITORY https://github.com/gabime/spdlog.git
+        GIT_TAG v1.17.0
+)
+FetchContent_Declare(
+        Boost
+        URL https://github.com/boostorg/boost/releases/download/boost-1.90.0/boost-1.90.0-cmake.7z
+        DOWNLOAD_EXTRACT_TIMESTAMP ON
+)
+
+message("-- Fetching json...")
+FetchContent_MakeAvailable(json)
+
+message("-- Fetching cpp-httplib...")
+FetchContent_MakeAvailable(cpp_httplib)
 
 message("-- Fetching boost...")
 set(BOOST_INCLUDE_LIBRARIES asio filesystem process system CACHE STRING "")

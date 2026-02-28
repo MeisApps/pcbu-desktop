@@ -87,7 +87,7 @@ elseif(UNIX)
     endif()
 endif()
 
-include_directories(src src/ui src/ui/helpers src/ui/models ../deps/headers)
+include_directories(src src/ui src/ui/helpers src/ui/models ../deps)
 set(QML_FILES
         qml/MainWindow.qml
         qml/AboutWindow.qml
@@ -130,7 +130,7 @@ set(UI_SRC_FILES
         src/ui/helpers/I18nWrapper.h
 )
 qt_add_executable(pcbu_desktop
-        ../deps/headers/qrcodegen.cpp
+        ../deps/qrcodegen.cpp
         qml/resources.qrc
         res/resources.qrc
         ${PLATFORM_RES}

@@ -117,10 +117,11 @@ add_library(pcbu_common
 )
 target_include_directories(pcbu_common PUBLIC
         src
-        ../deps/headers
+        ${cpp_httplib_SOURCE_DIR}
 )
 target_link_libraries(pcbu_common PUBLIC
         Threads::Threads
+        nlohmann_json::nlohmann_json
         spdlog::spdlog
         OpenSSL::Crypto
         OpenSSL::SSL
