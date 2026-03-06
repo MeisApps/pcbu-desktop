@@ -1,37 +1,35 @@
 #ifndef PCBU_DESKTOP_PAIRINGSERVER_H
 #define PCBU_DESKTOP_PAIRINGSERVER_H
 
-#include "nlohmann/json.hpp"
-#include <boost/asio.hpp>
+#include <nlohmann/json.hpp>
 #include <vector>
 
 #include "PairingStructs.h"
 #include "connection/BaseConnection.h"
 #include "connection/Packets.h"
-
-namespace boostnet = boost::asio::ip;
+#include "connection/SocketDefs.h"
 
 class PairingServer : public BaseConnection {
 public:
-  PairingServer();
+  PairingServer(const std::function<void(const std::string&)>& errorCallback);
   ~PairingServer() override;
 
-  void Start(const PairingUIData &uiData);
+  bool Start(const PairingUIData &uiData);
   void Stop();
 
 private:
-  void Accept();
+  void AcceptThread();
+  void ClientThread(SOCKET clientSocket);
 
-  std::vector<uint8_t> ReadEncryptedPacket();
-  void WriteEncryptedPacket(uint8_t packetId, const std::string &data);
+  std::vector<uint8_t> ReadEncryptedPacket(SOCKET clientSocket) const;
+  void WriteEncryptedPacket(SOCKET clientSocket, uint8_t packetId, const std::string &data) const;
 
-  boost::asio::io_context m_IOService{};
-  boostnet::tcp::acceptor m_Acceptor;
-  boostnet::tcp::socket m_Socket;
-
-  PairingUIData m_UIData{};
+  SOCKET m_ServerSocket = SOCKET_INVALID;
   std::thread m_AcceptThread{};
   std::atomic<bool> m_IsRunning{};
+
+  PairingUIData m_UIData{};
+  std::function<void(const std::string&)> m_ErrorCallback{};
 };
 
 #endif // PCBU_DESKTOP_PAIRINGSERVER_H

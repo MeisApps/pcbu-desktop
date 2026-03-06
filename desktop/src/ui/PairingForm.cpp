@@ -13,6 +13,8 @@ PairingForm::~PairingForm() {
     m_BluetoothScanThread.join();
   if(m_BluetoothPairThread.joinable())
     m_BluetoothPairThread.join();
+  if(m_PairingServer)
+    m_PairingServer->Stop();
 }
 
 PairingAssistantModel PairingForm::GetData() {
@@ -169,14 +171,11 @@ void PairingForm::Show(QObject *viewLoader, QObject *window) {
     QMetaObject::invokeMethod(window, "showErrorMessage", Q_ARG(QVariant, QString::fromUtf8(I18n::Get("error_pairing_not_installed"))));
     return;
   }
-  try {
-    m_PairingServer.reset();
-    m_PairingServer = std::make_unique<PairingServer>();
-  } catch(const std::exception &ex) {
-    spdlog::error("Error initializing pairing server: {}", ex.what());
-    QMetaObject::invokeMethod(window, "showErrorMessage", Q_ARG(QVariant, QString::fromUtf8(I18n::Get("error_pairing_server_init"))));
-    return;
-  }
+
+  m_PairingServer.reset();
+  m_PairingServer = std::make_unique<PairingServer>([window](const std::string &error) {
+    QMetaObject::invokeMethod(window, "showErrorMessage", Q_ARG(QVariant, QString::fromUtf8(error)));
+  });
 
   m_PairingData.pairingMethodType = "AUTO";
   m_PairingData.pairingMethod = QString::fromUtf8(PairingMethodUtils::ToString(PairingMethod::UDP));
