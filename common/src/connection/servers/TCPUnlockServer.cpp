@@ -32,14 +32,11 @@ bool TCPUnlockServer::Start() {
 }
 
 void TCPUnlockServer::Stop() {
-  if(!m_IsRunning)
-    return;
-
-  m_IsRunning = false;
-  m_HasConnection = false;
   SOCKET_CLOSE(m_ServerSocket);
   if(m_AcceptThread.joinable())
     m_AcceptThread.join();
+  m_IsRunning = false;
+  m_HasConnection = false;
 }
 
 void TCPUnlockServer::AcceptThread() {
@@ -77,7 +74,7 @@ void TCPUnlockServer::AcceptThread() {
     m_UnlockState = UnlockState::PORT_ERROR;
     goto threadEnd;
   }
-  if(listen(m_ServerSocket, 3) < 0) {
+  if(listen(m_ServerSocket, MAX_CLIENTS) < 0) {
     spdlog::error("listen() failed. (Code={})", SOCKET_LAST_ERROR);
     m_UnlockState = UnlockState::UNK_ERROR;
     goto threadEnd;
@@ -115,7 +112,6 @@ void TCPUnlockServer::AcceptThread() {
   }
 
 threadEnd:
-  m_IsRunning = false;
   for(auto clientSocket : clientSockets) {
     SOCKET_CLOSE(clientSocket);
   }
@@ -124,6 +120,7 @@ threadEnd:
     if(thread.joinable())
       thread.join();
   m_HasConnection = false;
+  m_IsRunning = false;
   spdlog::info("TCP server stopped.");
 }
 
