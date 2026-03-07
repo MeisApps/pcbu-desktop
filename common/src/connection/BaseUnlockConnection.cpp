@@ -126,7 +126,7 @@ bool BaseUnlockConnection::SendUnlockRequest(SOCKET socket) {
     return false;
   }
   auto requestPacket = PacketUnlockRequest();
-  requestPacket.protoVersion = AppInfo::GetProtocolVersion();
+  requestPacket.protoVersion = AppInfo::GetUnlockProtocolVersion();
   requestPacket.deviceId = m_PairedDevice.id;
   requestPacket.encData = StringUtils::ToHexString(cryptResult.data);
   auto requestStr = requestPacket.ToJson().dump();

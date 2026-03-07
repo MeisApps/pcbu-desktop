@@ -12,7 +12,11 @@ std::string AppInfo::GetVersion() {
   return version;
 }
 
-std::string AppInfo::GetProtocolVersion() {
+std::string AppInfo::GetPairingProtocolVersion() {
+  return "3.0.0";
+}
+
+std::string AppInfo::GetUnlockProtocolVersion() {
   return "3.0.0";
 }
 
