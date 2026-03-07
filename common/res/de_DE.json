@@ -116,7 +116,7 @@
   "pairing_form_qr_desc": "Öffne die App auf deinem Telefon und scanne den QR-Code. Alternativ kannst du auch den Kopplungscode in der App eingeben.",
   "pairing_method_type_automatic_select": "Automatisch",
   "pairing_method_type_manual_select": "Manuell",
-  "pairing_method_type_automatic_desc": "Öffnet automatisch eine Entsperrungsaufforderung auf deinem Smartphone, wenn dein PC dies anfordert.",
+  "pairing_method_type_automatic_desc": "Öffnet automatisch eine Entsperrungsaufforderung auf deinem Smartphone, wenn dein PC dies anfordert.<br>Für ein optimales Erlebnis musst du möglicherweise die <a href=\"https://dontkillmyapp.com/\">Batterieoptimierungen deaktivieren</a>.",
   "pairing_method_type_manual_desc": "Erfordert das manuelle Starten der App und das Anfordern der Entsperrung innerhalb der App.",
   "pairing_method_tcp_select": "TCP verwenden",
   "pairing_method_udp_select": "UDP verwenden",

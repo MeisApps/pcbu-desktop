@@ -34,6 +34,7 @@ StepForm {
                     Layout.leftMargin: 40
                     text: QI18n.Get('pairing_method_type_automatic_desc')
                     wrapMode: Label.WordWrap
+                    onLinkActivated: function(link) { Qt.openUrlExternally(link); }
                 }
             }
             ColumnLayout {
