@@ -80,20 +80,28 @@ PairingStep PairingForm::GetNextStep() {
 
 void PairingForm::UpdateStepForm(QObject *viewLoader, QObject *window) {
   // Pairing server
-  if(m_PairingServer) {
-    m_PairingServer->Stop();
-    if(m_CurrentStep == PairingStep::QR_SCAN) {
-      m_EncKey = StringUtils::RandomString(64);
-      auto uiData = PairingUIData();
-      uiData.userName = m_PairingData.userName.toStdString();
-      uiData.password = m_PairingData.password.toStdString();
-      uiData.encKey = m_EncKey;
-      uiData.method = PairingMethodUtils::FromString(m_PairingData.pairingMethod.toStdString());
-      uiData.macAddress = NetworkHelper::GetSavedNetworkInterface().macAddress;
-      uiData.btAddress = m_PairingData.bluetoothAddress.toStdString();
-      m_PairingServer->Start(uiData);
-    } else {
-      m_EncKey = {};
+  if(m_CurrentStep == PairingStep::QR_SCAN) {
+    if(m_PairingServer) {
+      m_PairingServer->Stop();
+    }
+    m_PairingServer.reset();
+    m_PairingServer = std::make_unique<PairingServer>([window](const std::string &error) {
+      QMetaObject::invokeMethod(window, "showErrorMessage", Q_ARG(QVariant, QString::fromUtf8(error)));
+    });
+
+    m_EncKey = StringUtils::RandomString(64);
+    auto uiData = PairingUIData();
+    uiData.userName = m_PairingData.userName.toStdString();
+    uiData.password = m_PairingData.password.toStdString();
+    uiData.encKey = m_EncKey;
+    uiData.method = PairingMethodUtils::FromString(m_PairingData.pairingMethod.toStdString());
+    uiData.macAddress = NetworkHelper::GetSavedNetworkInterface().macAddress;
+    uiData.btAddress = m_PairingData.bluetoothAddress.toStdString();
+    m_PairingServer->Start(uiData);
+  } else {
+    m_EncKey = {};
+    if(m_PairingServer) {
+      m_PairingServer->Stop();
     }
   }
 
@@ -171,11 +179,6 @@ void PairingForm::Show(QObject *viewLoader, QObject *window) {
     QMetaObject::invokeMethod(window, "showErrorMessage", Q_ARG(QVariant, QString::fromUtf8(I18n::Get("error_pairing_not_installed"))));
     return;
   }
-
-  m_PairingServer.reset();
-  m_PairingServer = std::make_unique<PairingServer>([window](const std::string &error) {
-    QMetaObject::invokeMethod(window, "showErrorMessage", Q_ARG(QVariant, QString::fromUtf8(error)));
-  });
 
   m_PairingData.pairingMethodType = "AUTO";
   m_PairingData.pairingMethod = QString::fromUtf8(PairingMethodUtils::ToString(PairingMethod::UDP));

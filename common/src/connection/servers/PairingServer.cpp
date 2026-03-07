@@ -60,6 +60,13 @@ void PairingServer::AcceptThread() {
   }
 
   int opt = 1;
+#ifdef LINUX
+  if(setsockopt(m_ServerSocket, SOL_SOCKET, SO_REUSEADDR, reinterpret_cast<const char *>(&opt), sizeof(opt))) {
+    spdlog::error("setsockopt(SO_REUSEADDR) failed. (Code={})", SOCKET_LAST_ERROR);
+    m_ErrorCallback(I18n::Get("error_pairing_server_init_unk"));
+    goto threadEnd;
+  }
+#endif
   if(setsockopt(m_ServerSocket, IPPROTO_TCP, TCP_NODELAY, reinterpret_cast<const char *>(&opt), sizeof(opt))) {
     spdlog::error("setsockopt(TCP_NODELAY) failed. (Code={})", SOCKET_LAST_ERROR);
     m_ErrorCallback(I18n::Get("error_pairing_server_init_unk"));
@@ -139,7 +146,7 @@ void PairingServer::ClientThread(SOCKET clientSocket) {
     auto initPacket = PacketPairInit::FromJson({packetData.begin(), packetData.end()});
     if(!initPacket.has_value())
       throw std::runtime_error(I18n::Get("error_pairing_packet_parse"));
-    if(AppInfo::CompareVersion(AppInfo::GetProtocolVersion(), initPacket->protoVersion) != 0)
+    if(AppInfo::CompareVersion(AppInfo::GetPairingProtocolVersion(), initPacket->protoVersion) != 0)
       throw std::runtime_error(I18n::Get("error_protocol_mismatch"));
     if(initPacket.value().deviceUUID.empty()) {
       spdlog::warn("Device ID is empty. Generating fallback...");
