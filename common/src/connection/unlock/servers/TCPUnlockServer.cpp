@@ -1,6 +1,6 @@
 #include "TCPUnlockServer.h"
 
-#include "../SocketDefs.h"
+#include "connection/SocketDefs.h"
 #include "handler/UnlockState.h"
 #include "storage/AppSettings.h"
 #include "storage/PairedDevicesStorage.h"

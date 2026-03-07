@@ -7,8 +7,8 @@
 #include <thread>
 #include <utility>
 
-#include "BaseConnection.h"
-#include "Packets.h"
+#include "../BaseConnection.h"
+#include "../Packets.h"
 #include "handler/UnlockState.h"
 #include "storage/PairedDevicesStorage.h"
 #include "utils/CryptUtils.h"

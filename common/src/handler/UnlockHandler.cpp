@@ -1,9 +1,9 @@
 #include "UnlockHandler.h"
 
 #include "KeyScanner.h"
-#include "connection/clients/BTUnlockClient.h"
-#include "connection/clients/TCPUnlockClient.h"
-#include "connection/servers/TCPUnlockServer.h"
+#include "connection/unlock/clients/BTUnlockClient.h"
+#include "connection/unlock/clients/TCPUnlockClient.h"
+#include "connection/unlock/servers/TCPUnlockServer.h"
 #include "platform/NetworkHelper.h"
 #include "storage/AppSettings.h"
 

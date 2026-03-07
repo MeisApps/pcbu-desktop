@@ -1,7 +1,7 @@
 #ifndef PCBU_DESKTOP_TCPUNLOCKSERVER_H
 #define PCBU_DESKTOP_TCPUNLOCKSERVER_H
 
-#include "connection/BaseUnlockConnection.h"
+#include "connection/unlock/BaseUnlockConnection.h"
 
 class TCPUnlockServer : public BaseUnlockConnection {
 public:

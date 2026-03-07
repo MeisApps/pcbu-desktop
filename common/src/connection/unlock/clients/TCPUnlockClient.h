@@ -1,7 +1,7 @@
 #ifndef PAM_PCBIOUNLOCK_TCPUNLOCKCLIENT_H
 #define PAM_PCBIOUNLOCK_TCPUNLOCKCLIENT_H
 
-#include "connection/BaseUnlockConnection.h"
+#include "connection/unlock/BaseUnlockConnection.h"
 
 class TCPUnlockClient : public BaseUnlockConnection {
 public:

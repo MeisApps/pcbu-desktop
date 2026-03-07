@@ -1,12 +1,10 @@
 #ifndef PCBU_DESKTOP_PAIRINGFORM_H
 #define PCBU_DESKTOP_PAIRINGFORM_H
 
-#include <QObject>
 #include <QtQmlIntegration>
 #include <stack>
 
-#include "connection/servers/PairingServer.h"
-#include "platform/NetworkHelper.h"
+#include "connection/pairing/PairingServer.h"
 
 enum class PairingStep { USER_PASSWORD_SELECT, METHOD_TYPE_SELECT, METHOD_SELECT, BLUETOOTH_DEVICE_SELECT, BLUETOOTH_PAIRING, QR_SCAN, NONE };
 

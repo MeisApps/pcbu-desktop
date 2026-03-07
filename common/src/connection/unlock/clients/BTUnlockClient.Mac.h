@@ -1,7 +1,7 @@
 #ifndef PCBU_DESKTOP_BTUNLOCKCLIENT_MAC_H
 #define PCBU_DESKTOP_BTUNLOCKCLIENT_MAC_H
 
-#include "connection/BaseUnlockConnection.h"
+#include "connection/unlock/BaseUnlockConnection.h"
 
 class BTUnlockClient : public BaseUnlockConnection {
 public:

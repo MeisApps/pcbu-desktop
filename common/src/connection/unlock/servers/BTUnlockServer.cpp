@@ -1,6 +1,6 @@
 #include "BTUnlockServer.h"
 
-#include "../SocketDefs.h"
+#include "connection/SocketDefs.h"
 #include "platform/BluetoothHelper.h"
 
 #ifdef WINDOWS

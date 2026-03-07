@@ -2,6 +2,7 @@
 
 #include "installer/ServiceInstaller.h"
 #include "platform/BluetoothHelper.h"
+#include "platform/NetworkHelper.h"
 #include "platform/PlatformHelper.h"
 #include "storage/AppSettings.h"
 #include "utils/QRUtils.h"

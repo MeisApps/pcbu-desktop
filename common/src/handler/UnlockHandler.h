@@ -6,7 +6,7 @@
 #include <string>
 
 #include "UnlockState.h"
-#include "connection/BaseUnlockConnection.h"
+#include "connection/unlock/BaseUnlockConnection.h"
 #include "connection/UDPBroadcaster.h"
 #include "storage/PairedDevicesStorage.h"
 

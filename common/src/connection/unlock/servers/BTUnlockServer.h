@@ -4,7 +4,7 @@
 #include "BTUnlockServer.Mac.h"
 #else
 
-#include "connection/BaseUnlockConnection.h"
+#include "connection/unlock/BaseUnlockConnection.h"
 
 class BTUnlockServer : public BaseUnlockConnection {
 public:

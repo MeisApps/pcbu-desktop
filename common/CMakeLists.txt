@@ -24,8 +24,8 @@ if(WIN32)
             Shell32
     )
     set(PLATFORM_SRC
-            src/connection/clients/BTUnlockClient.cpp
-            src/connection/servers/BTUnlockServer.cpp
+            src/connection/unlock/clients/BTUnlockClient.cpp
+            src/connection/unlock/servers/BTUnlockServer.cpp
             src/platform/PlatformHelper.Win.cpp
             src/platform/BluetoothHelper.Win.cpp
             src/utils/RegistryUtils.cpp
@@ -43,8 +43,8 @@ elseif(APPLE)
             "-framework IOBluetooth"
     )
     set(PLATFORM_SRC
-            src/connection/clients/BTUnlockClient.Mac.mm
-            src/connection/servers/BTUnlockServer.Mac.mm
+            src/connection/unlock/clients/BTUnlockClient.Mac.mm
+            src/connection/unlock/servers/BTUnlockServer.Mac.mm
             src/platform/PlatformHelper.Mac.cpp
             src/platform/BluetoothHelper.Mac.mm
     )
@@ -58,8 +58,8 @@ elseif(UNIX)
             bluetooth
     )
     set(PLATFORM_SRC
-            src/connection/clients/BTUnlockClient.cpp
-            src/connection/servers/BTUnlockServer.cpp
+            src/connection/unlock/clients/BTUnlockClient.cpp
+            src/connection/unlock/servers/BTUnlockServer.cpp
             src/platform/PlatformHelper.Linux.cpp
             src/platform/BluetoothHelper.Linux.cpp
     )
@@ -69,19 +69,19 @@ add_library(pcbu_common
         src/connection/SocketDefs.h
         src/connection/BaseConnection.cpp
         src/connection/BaseConnection.h
-        src/connection/BaseUnlockConnection.h
-        src/connection/BaseUnlockConnection.cpp
         src/connection/UDPBroadcaster.cpp
         src/connection/UDPBroadcaster.h
-        src/connection/clients/TCPUnlockClient.h
-        src/connection/clients/TCPUnlockClient.cpp
-        src/connection/clients/BTUnlockClient.h
-        src/connection/servers/PairingServer.cpp
-        src/connection/servers/PairingServer.h
-        src/connection/servers/PairingStructs.h
-        src/connection/servers/BTUnlockServer.h
-        src/connection/servers/TCPUnlockServer.cpp
-        src/connection/servers/TCPUnlockServer.h
+        src/connection/pairing/PairingServer.cpp
+        src/connection/pairing/PairingServer.h
+        src/connection/pairing/PairingStructs.h
+        src/connection/unlock/BaseUnlockConnection.h
+        src/connection/unlock/BaseUnlockConnection.cpp
+        src/connection/unlock/clients/TCPUnlockClient.h
+        src/connection/unlock/clients/TCPUnlockClient.cpp
+        src/connection/unlock/clients/BTUnlockClient.h
+        src/connection/unlock/servers/BTUnlockServer.h
+        src/connection/unlock/servers/TCPUnlockServer.cpp
+        src/connection/unlock/servers/TCPUnlockServer.h
         src/handler/KeyScanner.h
         src/handler/KeyScanner.cpp
         src/handler/UnlockHandler.h
