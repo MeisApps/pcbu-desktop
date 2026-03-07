@@ -136,14 +136,16 @@ void PairingServer::ClientThread(SOCKET clientSocket) {
   if(setsockopt(clientSocket, IPPROTO_TCP, TCP_NODELAY, reinterpret_cast<const char *>(&opt), sizeof(opt))) {
     spdlog::error("setsockopt(TCP_NODELAY) failed. (Code={})", SOCKET_LAST_ERROR);
   }
-  auto packetData = ReadEncryptedPacket(clientSocket);
-  if(packetData.empty()) {
+  auto packetRes = ReadEncryptedPacket(clientSocket);
+  if(packetRes.data.empty()) {
     spdlog::info("TCP pairing client closed.");
     SOCKET_CLOSE(clientSocket);
+    if(packetRes.result == PacketCryptResult::INVALID_TIMESTAMP)
+      m_ErrorCallback(I18n::Get("error_aes_time_mismatch"));
     return;
   }
   try {
-    auto initPacket = PacketPairInit::FromJson({packetData.begin(), packetData.end()});
+    auto initPacket = PacketPairInit::FromJson({packetRes.data.begin(), packetRes.data.end()});
     if(!initPacket.has_value())
       throw std::runtime_error(I18n::Get("error_pairing_packet_parse"));
     if(AppInfo::CompareVersion(AppInfo::GetPairingProtocolVersion(), initPacket->protoVersion) != 0)
@@ -185,47 +187,50 @@ void PairingServer::ClientThread(SOCKET clientSocket) {
     respPacket.data.userName = m_UIData.userName;
     respPacket.data.passwordKey = passwordKey;
 
-    WriteEncryptedPacket(clientSocket, PACKET_ID_PAIR_RESPONSE, respPacket.ToJson().dump());
-    PairedDevicesStorage::AddDevice(device);
-    spdlog::info("Successfully paired device. (ID={}, Method={})", device.id, PairingMethodUtils::ToString(device.pairingMethod));
+    if(WriteEncryptedPacket(clientSocket, PACKET_ID_PAIR_RESPONSE, respPacket.ToJson().dump())) {
+      PairedDevicesStorage::AddDevice(device);
+      spdlog::info("Successfully paired device. (ID={}, Method={})", device.id, PairingMethodUtils::ToString(device.pairingMethod));
 #ifdef WINDOWS
-    if(PlatformHelper::SetDefaultCredProv(m_UIData.userName, "{74A23DE2-B81D-46EC-E129-CD32507ED716}"))
-      spdlog::info("Successfully changed default credential provider for user '{}'.", m_UIData.userName);
-    else
-      spdlog::error("Failed setting default credential provider for user '{}'.", m_UIData.userName);
+      if(PlatformHelper::SetDefaultCredProv(m_UIData.userName, "{74A23DE2-B81D-46EC-E129-CD32507ED716}"))
+        spdlog::info("Successfully changed default credential provider for user '{}'.", m_UIData.userName);
+      else
+        spdlog::error("Failed setting default credential provider for user '{}'.", m_UIData.userName);
 #endif
+    }
   } catch(const std::exception &ex) {
     spdlog::error("Pairing server exception: {}", ex.what());
     auto respPacket = PacketPairResponse();
     respPacket.errMsg = ex.what();
-    WriteEncryptedPacket(clientSocket, PACKET_ID_PAIR_RESPONSE, respPacket.ToJson().dump());
+    if(!WriteEncryptedPacket(clientSocket, PACKET_ID_PAIR_RESPONSE, respPacket.ToJson().dump())) {
+      m_ErrorCallback(ex.what());
+    }
   }
   SOCKET_CLOSE(clientSocket);
   spdlog::info("TCP pairing client closed.");
 }
 
-std::vector<uint8_t> PairingServer::ReadEncryptedPacket(SOCKET clientSocket) const {
+CryptPacket PairingServer::ReadEncryptedPacket(SOCKET clientSocket) const {
   auto packet = ReadPacket(clientSocket);
   if(packet.error != PacketError::NONE) {
     spdlog::error("Error reading pairing packet. (Code={})", static_cast<int>(packet.error));
     return {};
   }
   auto decRes = CryptUtils::DecryptAESPacket(packet.data, m_UIData.encKey);
-  if(decRes.result != PacketCryptResult::OK) {
+  if(decRes.result != PacketCryptResult::OK)
     spdlog::error("Error decrypting pairing packet. (Code={})", static_cast<int>(decRes.result));
-    return {};
-  }
-  return decRes.data;
+  return decRes;
 }
 
-void PairingServer::WriteEncryptedPacket(SOCKET clientSocket, uint8_t packetId, const std::string &data) const {
+bool PairingServer::WriteEncryptedPacket(SOCKET clientSocket, uint8_t packetId, const std::string &data) const {
   auto encRes = CryptUtils::EncryptAESPacket({data.begin(), data.end()}, m_UIData.encKey);
   if(encRes.result != PacketCryptResult::OK) {
     spdlog::error("Error encrypting pairing packet. (Size={}, Code={})", data.size(), static_cast<int>(encRes.result));
-    return;
+    return false;
   }
   auto writeRes = WritePacket(clientSocket, packetId, {encRes.data.begin(), encRes.data.end()});
   if(writeRes != PacketError::NONE) {
     spdlog::error("Error writing pairing packet. (Code={})", static_cast<int>(writeRes));
+    return false;
   }
+  return true;
 }

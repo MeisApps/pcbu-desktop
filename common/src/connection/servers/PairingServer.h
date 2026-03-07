@@ -8,10 +8,11 @@
 #include "connection/BaseConnection.h"
 #include "connection/Packets.h"
 #include "connection/SocketDefs.h"
+#include "utils/CryptUtils.h"
 
 class PairingServer : public BaseConnection {
 public:
-  PairingServer(const std::function<void(const std::string&)>& errorCallback);
+  explicit PairingServer(const std::function<void(const std::string&)>& errorCallback);
   ~PairingServer() override;
 
   bool Start(const PairingUIData &uiData);
@@ -21,8 +22,8 @@ private:
   void AcceptThread();
   void ClientThread(SOCKET clientSocket);
 
-  std::vector<uint8_t> ReadEncryptedPacket(SOCKET clientSocket) const;
-  void WriteEncryptedPacket(SOCKET clientSocket, uint8_t packetId, const std::string &data) const;
+  CryptPacket ReadEncryptedPacket(SOCKET clientSocket) const;
+  bool WriteEncryptedPacket(SOCKET clientSocket, uint8_t packetId, const std::string &data) const;
 
   SOCKET m_ServerSocket = SOCKET_INVALID;
   std::thread m_AcceptThread{};
