@@ -41,6 +41,7 @@ elseif(APPLE)
             "-framework Carbon"
             "-framework IOKit"
             "-framework IOBluetooth"
+            "-framework Security"
     )
     set(PLATFORM_SRC
             src/connection/unlock/clients/BTUnlockClient.Mac.mm
