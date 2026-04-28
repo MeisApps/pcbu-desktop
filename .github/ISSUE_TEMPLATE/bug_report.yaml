@@ -1,0 +1,44 @@
+name: 🐞 Bug report
+description: File a bug/issue
+title: "[BUG] <title>"
+labels: ["Bug"]
+body:
+- type: textarea
+  attributes:
+    label: "Describe the bug"
+    description: "A clear and concise description of what the bug is."
+  validations:
+    required: true
+- type: textarea
+  attributes:
+    label: "Desktop"
+    description: "The desktop operating system you're using. (e.g. Windows 11, Ubuntu 24.04, Arch Linux)"
+  validations:
+    required: true
+- type: textarea
+  attributes:
+    label: "Mobile"
+    description: "The mobile phone you're using and the Android version. (e.g. Google Pixel 10 on Android 16, Samsung Galaxy S20 on Android 11)"
+  validations:
+    required: true
+- type: checkboxes
+  attributes:
+    label: "Pairing method"
+    description: "Please check all the pairing methods you've tried to use."
+    options:
+    - label: "UDP"
+    - label: "TCP"
+    - label: "Bluetooth"
+- type: markdown
+  attributes:
+    value: "**Logs**  Open the desktop app, click on logs, and paste both the desktop and module logs below."
+- type: textarea
+  attributes:
+    label: "Desktop Logs"
+  validations:
+    required: true
+- type: textarea
+  attributes:
+    label: "Module Logs"
+  validations:
+    required: true
