@@ -35,12 +35,12 @@ body:
 - type: textarea
   attributes:
     label: "Desktop Logs"
-    description: "Open the desktop app, click on logs, and paste the desktop logs here."
+    description: "Open the desktop app, click on logs, and paste the desktop logs here. The last ~50 lines should be enough."
   validations:
     required: true
 - type: textarea
   attributes:
     label: "Module Logs"
-    description: "Open the desktop app, click on logs, and paste the module logs here."
+    description: "Open the desktop app, click on logs, and paste the module logs here. The last ~50 lines should be enough."
   validations:
     required: true
