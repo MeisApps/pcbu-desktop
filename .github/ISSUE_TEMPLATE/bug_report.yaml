@@ -9,13 +9,13 @@ body:
     description: "A clear and concise description of what the bug is."
   validations:
     required: true
-- type: textarea
+- type: input
   attributes:
     label: "Desktop"
     description: "The desktop operating system you're using. (e.g. Windows 11, Ubuntu 24.04, Arch Linux)"
   validations:
     required: true
-- type: textarea
+- type: input
   attributes:
     label: "Mobile"
     description: "The mobile phone you're using and the Android version. (e.g. Google Pixel 10 on Android 16, Samsung Galaxy S20 on Android 11)"
@@ -31,14 +31,16 @@ body:
     - label: "Bluetooth"
 - type: markdown
   attributes:
-    value: "**Logs**  Open the desktop app, click on logs, and paste both the desktop and module logs below."
+    value: "## Logs"
 - type: textarea
   attributes:
     label: "Desktop Logs"
+    description: "Open the desktop app, click on logs, and paste the desktop logs here."
   validations:
     required: true
 - type: textarea
   attributes:
     label: "Module Logs"
+    description: "Open the desktop app, click on logs, and paste the module logs here."
   validations:
     required: true
