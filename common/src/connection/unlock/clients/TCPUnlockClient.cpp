@@ -69,6 +69,8 @@ socketStart:
   struct timeval connectTimeout{};
   connectTimeout.tv_sec = (long)settings.clientConnectTimeout;
   int opt = 1;
+  int error = 0;
+  socklen_t errorLen = sizeof(error);
   if(!SetSocketRWTimeout(m_ClientSocket, settings.clientSocketTimeout)) {
     spdlog::error("Failed setting R/W timeout for socket. (Code={})", SOCKET_LAST_ERROR);
     m_UnlockState = UnlockState::UNK_ERROR;
@@ -95,6 +97,22 @@ socketStart:
   }
   if(select((int)m_ClientSocket + 1, nullptr, &fdSet, nullptr, &connectTimeout) <= 0) {
     spdlog::error("select() timed out or failed. (Code={}, Retry={})", SOCKET_LAST_ERROR, numRetries);
+    if(numRetries < settings.clientConnectRetries && m_IsRunning) {
+      SOCKET_CLOSE(m_ClientSocket);
+      numRetries++;
+      goto socketStart;
+    }
+    m_UnlockState = UnlockState::CONNECT_ERROR;
+    goto threadEnd;
+  }
+
+  if (getsockopt(m_ClientSocket, SOL_SOCKET, SO_ERROR, reinterpret_cast<char *>(&error), &errorLen) < 0) {
+    spdlog::error("getsockopt(SO_ERROR) failed. (Code={})", SOCKET_LAST_ERROR);
+    m_UnlockState = UnlockState::UNK_ERROR;
+    goto threadEnd;
+  }
+  if (error != 0) {
+    spdlog::error("getsockopt(SO_ERROR) returned an error. (Code={}, Retry={})", error, numRetries);
     if(numRetries < settings.clientConnectRetries && m_IsRunning) {
       SOCKET_CLOSE(m_ClientSocket);
       numRetries++;

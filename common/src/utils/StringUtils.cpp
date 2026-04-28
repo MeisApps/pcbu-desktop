@@ -15,7 +15,7 @@ std::string StringUtils::Replace(const std::string &str, const std::string &from
   std::string result = str;
   size_t startPos = 0;
   size_t toLen = to.empty() ? 1 : to.length();
-  while((startPos = str.find(from, startPos)) != std::string::npos) {
+  while((startPos = result.find(from, startPos)) != std::string::npos) {
     result.replace(startPos, from.length(), to);
     startPos += toLen;
   }

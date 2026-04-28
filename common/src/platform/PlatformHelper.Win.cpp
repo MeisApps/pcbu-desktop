@@ -165,9 +165,10 @@ std::string PlatformHelper::GetCurrentUser() {
     spdlog::error("Failed to get user domain. (Code={})", GetLastError());
     return {};
   }
+  auto result = StringUtils::FromWideString(PlatformHelper_ResolveMSAccount(domainName, userName));
   WTSFreeMemory(userName);
   WTSFreeMemory(domainName);
-  return StringUtils::FromWideString(PlatformHelper_ResolveMSAccount(domainName, userName));
+  return result;
 }
 
 bool PlatformHelper::HasUserPassword(const std::string &userName) {

@@ -22,7 +22,6 @@ PairingServer::PairingServer(const std::function<void(const std::string&)>& erro
 }
 
 PairingServer::~PairingServer() {
-  BaseConnection::~BaseConnection();
   Stop();
 }
 
@@ -94,7 +93,7 @@ void PairingServer::AcceptThread() {
 
   spdlog::info("TCP pairing server started on port '{}'.", settings.pairingServerPort);
   while(m_IsRunning) {
-    if(clientSockets.size() >= MAX_CLIENTS) {
+    if(m_NumConnections >= MAX_CLIENTS) {
       std::this_thread::sleep_for(std::chrono::milliseconds(50));
       continue;
     }
@@ -132,6 +131,7 @@ threadEnd:
 
 void PairingServer::ClientThread(SOCKET clientSocket) {
   spdlog::info("TCP pairing client connected.");
+  ++m_NumConnections;
   int opt = 1;
   if(setsockopt(clientSocket, IPPROTO_TCP, TCP_NODELAY, reinterpret_cast<const char *>(&opt), sizeof(opt))) {
     spdlog::error("setsockopt(TCP_NODELAY) failed. (Code={})", SOCKET_LAST_ERROR);
@@ -205,6 +205,7 @@ void PairingServer::ClientThread(SOCKET clientSocket) {
       m_ErrorCallback(ex.what());
     }
   }
+  --m_NumConnections;
   SOCKET_CLOSE(clientSocket);
   spdlog::info("TCP pairing client closed.");
 }

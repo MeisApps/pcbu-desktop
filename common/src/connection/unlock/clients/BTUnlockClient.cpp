@@ -5,7 +5,9 @@
 #include "storage/AppSettings.h"
 
 #ifdef WINDOWS
+#include <Ws2tcpip.h>
 #include <ws2bth.h>
+
 #define AF_BLUETOOTH AF_BTH
 #define BTPROTO_RFCOMM BTHPROTO_RFCOMM
 #elif LINUX
@@ -87,17 +89,19 @@ socketStart:
   FD_SET(m_ClientSocket, &fdSet);
   struct timeval connectTimeout{};
   connectTimeout.tv_sec = (long)settings.clientConnectTimeout;
+  int error = 0;
+  socklen_t errorLen = sizeof(error);
   if(!SetSocketRWTimeout(m_ClientSocket, settings.clientSocketTimeout)) {
     spdlog::error("Failed setting R/W timeout for socket. (Code={})", SOCKET_LAST_ERROR);
     m_UnlockState = UnlockState::UNK_ERROR;
     goto threadEnd;
   }
-
   if(!SetSocketBlocking(m_ClientSocket, false)) {
     spdlog::error("Failed setting socket to non-blocking mode. (Code={})", SOCKET_LAST_ERROR);
     m_UnlockState = UnlockState::UNK_ERROR;
     goto threadEnd;
   }
+
   if(connect(m_ClientSocket, reinterpret_cast<struct sockaddr *>(&address), sizeof(address)) < 0) {
     auto error = SOCKET_LAST_ERROR;
     if(error != SOCKET_ERROR_IN_PROGRESS && error != SOCKET_ERROR_WOULD_BLOCK) {
@@ -108,6 +112,22 @@ socketStart:
   }
   if(select((int)m_ClientSocket + 1, nullptr, &fdSet, nullptr, &connectTimeout) <= 0) {
     spdlog::error("select() timed out or failed. (Code={}, Retry={})", SOCKET_LAST_ERROR, numRetries);
+    if(numRetries < settings.clientConnectRetries && m_IsRunning) {
+      SOCKET_CLOSE(m_ClientSocket);
+      numRetries++;
+      goto socketStart;
+    }
+    m_UnlockState = UnlockState::CONNECT_ERROR;
+    goto threadEnd;
+  }
+
+  if (getsockopt(m_ClientSocket, SOL_SOCKET, SO_ERROR, reinterpret_cast<char *>(&error), &errorLen) < 0) {
+    spdlog::error("getsockopt(SO_ERROR) failed. (Code={})", SOCKET_LAST_ERROR);
+    m_UnlockState = UnlockState::UNK_ERROR;
+    goto threadEnd;
+  }
+  if (error != 0) {
+    spdlog::error("getsockopt(SO_ERROR) returned an error. (Code={}, Retry={})", error, numRetries);
     if(numRetries < settings.clientConnectRetries && m_IsRunning) {
       SOCKET_CLOSE(m_ClientSocket);
       numRetries++;

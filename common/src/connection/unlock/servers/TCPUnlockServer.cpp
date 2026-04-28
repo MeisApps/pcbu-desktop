@@ -87,7 +87,7 @@ void TCPUnlockServer::AcceptThread() {
 
   spdlog::info("TCP server started on port '{}'.", settings.unlockServerPort);
   while(m_IsRunning) {
-    if(clientSockets.size() >= MAX_CLIENTS) {
+    if(m_NumConnections >= MAX_CLIENTS) {
       std::this_thread::sleep_for(std::chrono::milliseconds(50));
       continue;
     }

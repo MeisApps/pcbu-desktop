@@ -116,7 +116,7 @@ void BTUnlockServer::AcceptThread() {
 threadEnd:
   m_IsRunning = false;
   m_HasConnection = false;
-  if(!BluetoothHelper::CloseSDPService(sdpService.value()))
+  if(sdpService.has_value() && !BluetoothHelper::CloseSDPService(sdpService.value()))
     spdlog::warn("CloseSDPService() failed. (Code={})", SOCKET_LAST_ERROR);
   SOCKET_CLOSE(m_ServerSocket);
   for(auto &thread : m_ClientThreads)

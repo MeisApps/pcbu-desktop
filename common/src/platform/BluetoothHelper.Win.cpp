@@ -9,9 +9,12 @@ bool BluetoothHelper::IsAvailable() {
   params.dwSize = sizeof(params);
   HANDLE hRadio = nullptr;
   HANDLE result = BluetoothFindFirstRadio(&params, &hRadio);
-  if(result)
+  if(result) {
     CloseHandle(hRadio);
-  return result;
+    BluetoothFindRadioClose(result);
+    return true;
+  }
+  return false;
 }
 
 void BluetoothHelper::StartScan() {}
@@ -58,7 +61,7 @@ std::vector<BluetoothDevice> BluetoothHelper::ScanDevices() {
 
 bool BluetoothHelper::PairDevice(const BluetoothDevice &device) {
   BLUETOOTH_DEVICE_INFO deviceInfo = {sizeof(deviceInfo)};
-  BLUETOOTH_ADDRESS deviceAddress;
+  BLUETOOTH_ADDRESS deviceAddress{};
   sscanf_s(device.address.c_str(), "%hhx:%hhx:%hhx:%hhx:%hhx:%hhx", &deviceAddress.rgBytes[5], &deviceAddress.rgBytes[4], &deviceAddress.rgBytes[3],
            &deviceAddress.rgBytes[2], &deviceAddress.rgBytes[1], &deviceAddress.rgBytes[0]);
 
@@ -109,7 +112,7 @@ int BluetoothHelper::ba2str(const BTH_ADDR btaddr, char *straddr) {
   unsigned char bytes[6]{};
   for(int i = 0; i < 6; i++)
     bytes[5 - i] = static_cast<unsigned char>((btaddr >> (i * 8)) & 0xff);
-  if(sprintf_s(straddr, 18, "%02X:%02X:%02X:%02X:%02X:%02X", bytes[0], bytes[1], bytes[2], bytes[3], bytes[4], bytes[5]) != 6)
+  if(sprintf_s(straddr, 18, "%02X:%02X:%02X:%02X:%02X:%02X", bytes[0], bytes[1], bytes[2], bytes[3], bytes[4], bytes[5]) != 17)
     return 1;
   return 0;
 }

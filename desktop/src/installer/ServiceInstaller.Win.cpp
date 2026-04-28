@@ -18,7 +18,7 @@
 
 std::filesystem::path ServiceInstaller_GetSysDir() {
   wchar_t sysDir[MAX_PATH]{};
-  if(GetSystemDirectoryW(sysDir, sizeof(sysDir)) > 0)
+  if(GetSystemDirectoryW(sysDir, MAX_PATH) > 0)
     return sysDir;
   return "C:\\Windows\\System32";
 }

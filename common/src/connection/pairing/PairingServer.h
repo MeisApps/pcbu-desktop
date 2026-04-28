@@ -28,6 +28,7 @@ private:
   SOCKET m_ServerSocket = SOCKET_INVALID;
   std::thread m_AcceptThread{};
   std::atomic<bool> m_IsRunning{};
+  std::atomic<int> m_NumConnections{};
 
   PairingUIData m_UIData{};
   std::function<void(const std::string&)> m_ErrorCallback{};
