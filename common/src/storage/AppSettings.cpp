@@ -1,8 +1,11 @@
 #include "AppSettings.h"
 
+#include <filesystem>
+#include <fstream>
 #include <nlohmann/json.hpp>
 #include <spdlog/spdlog.h>
 
+#include "shell/LocalShell.h"
 #include "shell/Shell.h"
 #include "utils/AppInfo.h"
 #include "utils/StringUtils.h"
@@ -10,6 +13,8 @@
 #ifdef WINDOWS
 #include <ShlObj_core.h>
 #include <spdlog/fmt/xchar.h>
+#else
+#include <pwd.h>
 #endif
 
 PCBUAppStorage AppSettings::g_Cache{};
@@ -22,7 +27,27 @@ std::filesystem::path AppSettings::GetBaseDir() {
     return fmt::format(L"{}\\PCBioUnlock", szPath);
   return "C:\\ProgramData\\PCBioUnlock";
 #else
-  return {"/etc/pc-bio-unlock"};
+  return "/etc/pc-bio-unlock";
+#endif
+}
+
+std::filesystem::path AppSettings::GetLogsDir() {
+  if(LocalShell::IsRunningAsAdmin())
+    return GetBaseDir() / "logs";
+#ifdef WINDOWS
+#error ToDo
+#else
+  auto homeDir = std::getenv("HOME");
+  if(!homeDir) {
+    uid_t uid = getuid();
+    auto pw = getpwuid(uid);
+    if(pw) {
+      homeDir = pw->pw_dir;
+    }
+  }
+  if(homeDir && homeDir[0] != '\0')
+    return std::filesystem::path(homeDir) / ".local/share/PCBioUnlock/logs";
+  return "/tmp";
 #endif
 }
 
