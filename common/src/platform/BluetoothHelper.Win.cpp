@@ -22,78 +22,26 @@ void BluetoothHelper::StartScan() {}
 void BluetoothHelper::StopScan() {}
 
 std::vector<BluetoothDevice> BluetoothHelper::ScanDevices() {
-  WSADATA data;
-  int result = WSAStartup(MAKEWORD(2, 2), &data);
-  if(result != 0) {
-    spdlog::error("WSAStartup() failed. (Code={})", result);
+  BLUETOOTH_DEVICE_INFO deviceInfo = {sizeof(deviceInfo)};
+  BLUETOOTH_DEVICE_SEARCH_PARAMS searchParams = {sizeof(searchParams), TRUE, TRUE, TRUE, TRUE, TRUE, 5, nullptr};
+  HANDLE searchHandle = BluetoothFindFirstDevice(&searchParams, &deviceInfo);
+  if(!searchHandle) {
+    auto error = GetLastError();
+    if(error != ERROR_NO_MORE_ITEMS)
+      spdlog::error("Error getting bluetooth search handle. (Code={})", error);
     return {};
   }
-
-  WSAQUERYSETW queryset{};
-  queryset.dwSize = sizeof(WSAQUERYSETW);
-  queryset.dwNameSpace = NS_BTH;
-  HANDLE hLookup{};
-  result = WSALookupServiceBeginW(
-      &queryset, LUP_CONTAINERS | LUP_FLUSHCACHE | LUP_RETURN_NAME | LUP_RETURN_ADDR | LUP_RETURN_TYPE | LUP_RETURN_BLOB | LUP_RES_SERVICE, &hLookup);
-  if(result != 0) {
-    spdlog::error("WSALookupServiceBeginW() failed. (Code={})", WSAGetLastError());
-    WSACleanup();
-    return {};
-  }
-
-  SIZE_T resultBufferSize = 8192;
-  auto resultBuffer = static_cast<LPWSAQUERYSETW>(HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, resultBufferSize));
-  if(resultBuffer == nullptr) {
-    spdlog::error("Failed to allocate memory for bluetooth scanning. (Size={})", resultBufferSize);
-    WSALookupServiceEnd(hLookup);
-    WSACleanup();
-    return {};
-  }
-
-  auto devices = std::vector<BluetoothDevice>();
-  while(true) {
-    DWORD queryLength = resultBufferSize;
-    result = WSALookupServiceNextW(
-        hLookup, LUP_RETURN_NAME | LUP_RETURN_ADDR | LUP_RETURN_TYPE | LUP_RETURN_BLOB | LUP_RES_SERVICE,
-        &queryLength, resultBuffer);
-    if(result != 0) {
-      auto error = WSAGetLastError();
-      if(error != WSA_E_NO_MORE) {
-        spdlog::error("WSALookupServiceNextW() failed. (Code={}, Len={})", error, queryLength);
-        if(error == WSAEFAULT && queryLength > resultBufferSize) {
-          spdlog::info("WSALookupServiceNextW(): Allocating more memory...");
-          HeapFree(GetProcessHeap(), 0, resultBuffer);
-          resultBuffer = static_cast<LPWSAQUERYSETW>(HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, queryLength));
-          resultBufferSize = queryLength;
-          if(resultBuffer == nullptr) {
-            spdlog::error("Failed to allocate memory for bluetooth scanning. (Size={})", resultBufferSize);
-            break;
-          }
-          continue;
-        }
-      }
-      break;
-    }
-
-    if (resultBuffer->lpcsaBuffer == nullptr || resultBuffer->lpcsaBuffer->RemoteAddr.lpSockaddr == nullptr) {
-      spdlog::warn("Found a bluetooth device with an invalid address. Skipping...");
-      continue;
-    }
-
-    auto pBtAddr = reinterpret_cast<SOCKADDR_BTH *>(resultBuffer->lpcsaBuffer->RemoteAddr.lpSockaddr);
-    char addr[18]{};
-    ba2str(pBtAddr->btAddr, addr);
-    auto name = StringUtils::FromWideString(resultBuffer->lpszServiceInstanceName);
-    auto address = std::string(addr);
+  std::vector<BluetoothDevice> result{};
+  do {
+    char devAddr[18]{};
+    ba2str(deviceInfo.Address.ullLong, devAddr);
+    auto name = StringUtils::FromWideString(deviceInfo.szName);
     if(name.empty())
       name = "Unknown device";
-    devices.push_back({name, address});
-  }
-
-  HeapFree(GetProcessHeap(), 0, resultBuffer);
-  WSALookupServiceEnd(hLookup);
-  WSACleanup();
-  return devices;
+    result.emplace_back(name, devAddr);
+  } while(BluetoothFindNextDevice(searchHandle, &deviceInfo));
+  BluetoothFindDeviceClose(searchHandle);
+  return result;
 }
 
 bool BluetoothHelper::PairDevice(const BluetoothDevice &device) {
@@ -102,7 +50,7 @@ bool BluetoothHelper::PairDevice(const BluetoothDevice &device) {
   sscanf_s(device.address.c_str(), "%hhx:%hhx:%hhx:%hhx:%hhx:%hhx", &deviceAddress.rgBytes[5], &deviceAddress.rgBytes[4], &deviceAddress.rgBytes[3],
            &deviceAddress.rgBytes[2], &deviceAddress.rgBytes[1], &deviceAddress.rgBytes[0]);
 
-  BLUETOOTH_DEVICE_SEARCH_PARAMS searchParams = {sizeof(searchParams), TRUE, FALSE, TRUE, TRUE, TRUE, 5, nullptr};
+  BLUETOOTH_DEVICE_SEARCH_PARAMS searchParams = {sizeof(searchParams), TRUE, TRUE, TRUE, TRUE, TRUE, 5, nullptr};
   HANDLE searchHandle = BluetoothFindFirstDevice(&searchParams, &deviceInfo);
   if(!searchHandle) {
     spdlog::error("Error getting bluetooth search handle. (Code={})", GetLastError());
