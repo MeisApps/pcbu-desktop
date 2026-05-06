@@ -46,7 +46,7 @@ FetchContent_Declare(
 )
 FetchContent_Declare(
         cpp_httplib
-        URL https://github.com/yhirose/cpp-httplib/raw/v0.43.1/httplib.h
+        URL https://github.com/yhirose/cpp-httplib/raw/v0.43.3/httplib.h
         DOWNLOAD_NO_EXTRACT TRUE
 )
 FetchContent_Declare(
