@@ -17,19 +17,23 @@ ApplicationWindow {
     property bool canClose: true
     onClosing: function(close) { close.accepted = window.canClose }
 
-    ColumnLayout {
+    Item {
         anchors.fill: parent
-        anchors.margins: 25
-        Label {
-            id: title
-            text: 'PC Bio Unlock'
-            font.pointSize: 36
-        }
-        Loader {
-            id: viewLoader
-            Layout.fillWidth: true
-            Layout.fillHeight: true
-            source: "qrc:/ui/forms/MainForm.qml"
+        enabled: window.hasInitialized
+        ColumnLayout {
+            anchors.fill: parent
+            anchors.margins: 25
+            Label {
+                id: title
+                text: 'PC Bio Unlock'
+                font.pointSize: 36
+            }
+            Loader {
+                id: viewLoader
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                source: "qrc:/ui/forms/MainForm.qml"
+            }
         }
     }
 
@@ -112,9 +116,13 @@ ApplicationWindow {
         updaterWin.show();
     }
 
-    Component.onCompleted: {
-        if(MainWindow.PerformStartupChecks(viewLoader, window)) {
-            UpdaterWindow.CheckForUpdates(window);
+    property bool hasInitialized: false
+    onFrameSwapped: {
+        if (!hasInitialized) {
+            hasInitialized = true
+            if(MainWindow.PerformStartupChecks(viewLoader, window)) {
+                UpdaterWindow.CheckForUpdates(window);
+            }
         }
     }
 }

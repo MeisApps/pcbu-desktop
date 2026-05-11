@@ -5,7 +5,7 @@
 
 class LoggingSystem {
 public:
-  static void Init(const std::string &logName, bool printToConsole = true);
+  static void Init(const std::string &logName, bool printToConsole = true, bool userDir = false);
   static void Destroy();
 
 private:

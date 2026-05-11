@@ -2,6 +2,7 @@
 
 #include "installer/ServiceInstaller.h"
 #include "platform/PlatformHelper.h"
+#include "shell/ElevatorService.h"
 #include "shell/Shell.h"
 #include "storage/AppSettings.h"
 #include "storage/PairedDevicesStorage.h"
@@ -37,10 +38,13 @@ QString MainWindow::GetLicenseText() {
 }
 
 bool MainWindow::PerformStartupChecks(QObject *viewLoader, QObject *window) {
-  if(!Shell::IsRunningAsAdmin()) {
+  Shell::Init(true);
+  auto testCmdResult = Shell::RunCommand("echo");
+  if(!Shell::HasAdmin() || testCmdResult.exitCode != 0) {
     QMetaObject::invokeMethod(window, "showFatalErrorMessage", Q_ARG(QVariant, QString::fromUtf8(I18n::Get("error_not_admin"))));
     return false;
   }
+
 #if defined(LINUX) || defined(APPLE)
   if(Shell::RunUserCommand("which bash").exitCode != 0) {
     QMetaObject::invokeMethod(window, "showFatalErrorMessage", Q_ARG(QVariant, QString::fromUtf8(I18n::Get("error_unix_missing_dep", "bash"))));
@@ -68,9 +72,19 @@ bool MainWindow::PerformStartupChecks(QObject *viewLoader, QObject *window) {
   }
 #endif
 #endif
-  const auto installedVersion = AppSettings::Get().installedVersion;
+
+  AppSettings::InvalidateCache();
+  PairedDevicesStorage::InvalidateCache();
+  auto settings = AppSettings::Get();
+  auto pairedDevices = PairedDevicesStorage::GetDevices();
+  AppSettings::Save(settings);
+  PairedDevicesStorage::SaveDevices(pairedDevices);
+
+  const auto installedVersion = settings.installedVersion;
   if(ServiceInstaller::IsInstalled() && (AppInfo::CompareVersion(installedVersion, AppInfo::GetVersion()) == 1 || installedVersion.empty()))
     OnReinstallClicked(window);
+  else
+    Show(viewLoader);
   return true;
 }
 

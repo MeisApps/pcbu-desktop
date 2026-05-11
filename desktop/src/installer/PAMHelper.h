@@ -24,6 +24,10 @@ private:
 
   bool SetPolkitRestrictions(bool enabled);
 
+#ifdef APPLE
+  void WriteBytesMac(const std::filesystem::path &filePath, const std::string &data);
+#endif
+
   std::function<void(const std::string &)> m_Logger{};
 };
 

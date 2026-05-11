@@ -17,6 +17,7 @@
 #include "CSampleProvider.h"
 #include "CUnlockCredential.h"
 #include "guid.h"
+#include "shell/Shell.h"
 #include "storage/LoggingSystem.h"
 #include "storage/PairedDevicesStorage.h"
 #include "utils/StringUtils.h"
@@ -27,6 +28,7 @@ CSampleProvider::CSampleProvider()
       _fRecreateEnumeratedCredentials(true), _cpus() {
   DllAddRef();
   LoggingSystem::Init("module");
+  Shell::Init(false);
 
   AddFieldDescriptor(SFI_TILEIMAGE, CPFT_TILE_IMAGE, "Image", CPFG_CREDENTIAL_PROVIDER_LOGO);
   AddFieldDescriptor(SFI_USERNAME, CPFT_SMALL_TEXT, "Username");
@@ -47,6 +49,7 @@ CSampleProvider::~CSampleProvider() {
   for(auto &desc : _rgCredProvFieldDescriptors)
     CoTaskMemFree(desc.pszLabel);
   DllRelease();
+  Shell::Destroy();
   LoggingSystem::Destroy();
 }
 
