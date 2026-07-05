@@ -64,7 +64,7 @@ StepForm {
             CheckBox {
                 id: legacyCheckBox
                 text: QI18n.Get('pairing_use_legacy_select')
-                font.pointSize: 11
+                font.pointSize: 9
                 checked: PairingForm.GetData().useLegacyPairing
                 onToggled: {
                     let data = PairingForm.GetData();
@@ -77,7 +77,7 @@ StepForm {
                 Layout.leftMargin: 40
                 text: QI18n.Get('pairing_use_legacy_desc')
                 wrapMode: Label.WordWrap
-                font.pointSize: 10
+                font.pointSize: 8
             }
         }
     }
