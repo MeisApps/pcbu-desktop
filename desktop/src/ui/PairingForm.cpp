@@ -16,6 +16,8 @@ PairingForm::~PairingForm() {
     m_BluetoothPairThread.join();
   if(m_PairingServer)
     m_PairingServer->Stop();
+  if(m_DiscoveryBeacon)
+    m_DiscoveryBeacon->Stop();
 }
 
 PairingAssistantModel PairingForm::GetData() {
@@ -27,20 +29,23 @@ void PairingForm::SetData(const PairingAssistantModel &data) {
 }
 
 QUrl PairingForm::GetQRImage() {
-  auto qrData = PairingQRData(NetworkHelper::GetSavedNetworkInterface().ipAddress, AppSettings::Get().pairingServerPort,
-                              PairingMethodUtils::FromString(m_PairingData.pairingMethod.toStdString()), m_EncKey);
-  auto qrSvg = QRUtils::GenerateSVG(qrData.ToJson().dump());
+  auto qrSvg = QRUtils::GenerateSVG(BuildPairingPayload());
   qrSvg = "data:image/svg+xml;utf8," + qrSvg;
   return {QString::fromUtf8(qrSvg.c_str())};
 }
 
 QString PairingForm::GetPairingCode() {
-  auto qrStr = PairingQRData(NetworkHelper::GetSavedNetworkInterface().ipAddress, AppSettings::Get().pairingServerPort,
-                             PairingMethodUtils::FromString(m_PairingData.pairingMethod.toStdString()), m_EncKey)
-                   .ToJson()
-                   .dump();
-  auto codeStr = StringUtils::WithSeperators(StringUtils::ToBase32String(qrStr), "-", 5);
+  auto codeStr = StringUtils::WithSeperators(StringUtils::ToBase32String(BuildPairingPayload()), "-", 5);
   return QString::fromUtf8(codeStr);
+}
+
+std::string PairingForm::BuildPairingPayload() {
+  auto settings = AppSettings::Get();
+  auto method = PairingMethodUtils::FromString(m_PairingData.pairingMethod.toStdString());
+  if(m_PairingData.useLegacyPairing) {
+    return LegacyPairingQRData(NetworkHelper::GetSavedNetworkInterface().ipAddress, settings.pairingServerPort, method, m_EncKey).ToJson().dump();
+  }
+  return PairingQRData(m_ServerId, settings.pairingDiscoveryPort, method, m_EncKey).ToJson().dump();
 }
 
 bool PairingForm::HasBluetooth() {
@@ -86,10 +91,14 @@ void PairingForm::UpdateStepForm(QObject *viewLoader, QObject *window) {
       m_PairingServer->Stop();
     }
     m_PairingServer.reset();
-    m_PairingServer = std::make_unique<PairingServer>([window](const std::string &error) {
-      QMetaObject::invokeMethod(window, "showErrorMessage", Q_ARG(QVariant, QString::fromUtf8(error)));
-    });
+    if(m_DiscoveryBeacon) {
+      m_DiscoveryBeacon->Stop();
+      m_DiscoveryBeacon.reset();
+    }
+    m_PairingServer = std::make_unique<PairingServer>(
+        [window](const std::string &error) { QMetaObject::invokeMethod(window, "showErrorMessage", Q_ARG(QVariant, QString::fromUtf8(error))); });
 
+    m_ServerId = StringUtils::RandomString(8);
     m_EncKey = StringUtils::RandomString(64);
     auto uiData = PairingUIData();
     uiData.userName = m_PairingData.userName.toStdString();
@@ -98,11 +107,22 @@ void PairingForm::UpdateStepForm(QObject *viewLoader, QObject *window) {
     uiData.method = PairingMethodUtils::FromString(m_PairingData.pairingMethod.toStdString());
     uiData.macAddress = NetworkHelper::GetSavedNetworkInterface().macAddress;
     uiData.btAddress = m_PairingData.bluetoothAddress.toStdString();
+    uiData.useLegacy = m_PairingData.useLegacyPairing;
     m_PairingServer->Start(uiData);
+
+    if(!m_PairingData.useLegacyPairing) {
+      m_DiscoveryBeacon = std::make_unique<UDPPairingBroadcaster>(m_ServerId, m_EncKey);
+      m_DiscoveryBeacon->Start();
+    }
   } else {
+    m_ServerId = {};
     m_EncKey = {};
     if(m_PairingServer) {
       m_PairingServer->Stop();
+    }
+    if(m_DiscoveryBeacon) {
+      m_DiscoveryBeacon->Stop();
+      m_DiscoveryBeacon.reset();
     }
   }
 
@@ -183,6 +203,7 @@ void PairingForm::Show(QObject *viewLoader, QObject *window) {
 
   m_PairingData.pairingMethodType = "AUTO";
   m_PairingData.pairingMethod = QString::fromUtf8(PairingMethodUtils::ToString(PairingMethod::UDP));
+  m_PairingData.useLegacyPairing = false;
   m_CurrentStep = PairingStep::USER_PASSWORD_SELECT;
   m_StepStack = {};
   QMetaObject::invokeMethod(viewLoader, "setSource", Q_ARG(QUrl, QUrl("qrc:/ui/pairing/PairingPasswordForm.qml")));

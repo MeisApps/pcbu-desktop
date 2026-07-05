@@ -7,8 +7,14 @@
 struct NetworkInterface {
   std::string ifName{};
   std::string ipAddress{};
+  std::string netmask{};
   std::string macAddress{};
   std::string gateway{};
+};
+
+struct BroadcastTarget {
+  std::string sourceIP{};
+  std::string broadcastIP{};
 };
 
 class NetworkHelper {
@@ -18,6 +24,8 @@ public:
   static bool HasLANConnection();
 
   static NetworkInterface GetSavedNetworkInterface();
+
+  static std::vector<BroadcastTarget> GetBroadcastTargets();
 
 private:
   NetworkHelper() = default;

@@ -1,5 +1,5 @@
-#ifndef UDPBROADCASTER_H
-#define UDPBROADCASTER_H
+#ifndef PCBU_DESKTOP_UDPBROADCASTER_H
+#define PCBU_DESKTOP_UDPBROADCASTER_H
 
 #include <atomic>
 #include <cstdint>
@@ -7,25 +7,28 @@
 #include <thread>
 #include <vector>
 
-struct UDPBroadcastDevice {
-  std::string deviceID;
-  uint16_t devicePort;
-  bool isManual;
-};
+#include "platform/NetworkHelper.h"
 
 class UDPBroadcaster {
 public:
-  ~UDPBroadcaster();
+  virtual ~UDPBroadcaster();
 
   void Start();
   void Stop();
 
-  void AddDevice(const std::string &deviceID, uint16_t devicePort, bool isManual);
+protected:
+  UDPBroadcaster(std::string name, int intervalMs);
+
+  virtual void SendToTarget(const BroadcastTarget &target) = 0;
+  void SendBroadcast(const BroadcastTarget &target, const std::vector<uint8_t> &payload, uint16_t destPort);
 
 private:
+  void Run();
+
+  std::string m_Name;
+  int m_IntervalMs;
   std::thread m_Thread{};
   std::atomic<bool> m_IsRunning{};
-  std::vector<UDPBroadcastDevice> m_Devices{};
 };
 
-#endif
+#endif // PCBU_DESKTOP_UDPBROADCASTER_H

@@ -118,6 +118,8 @@
   "pairing_method_type_manual_select": "Manual",
   "pairing_method_type_automatic_desc": "Automatically opens an unlock prompt on your phone when your PC requests it.<br>For the best experience, you may need to <a href=\"https://dontkillmyapp.com/\">disable battery optimizations</a>.",
   "pairing_method_type_manual_desc": "Requires launching the app manually and requesting unlocking from within it.",
+  "pairing_use_legacy_select": "Use legacy pairing",
+  "pairing_use_legacy_desc": "Uses the selected network interface from settings for pairing. Enable this when connecting over a VPN, where automatic discovery may not work.",
   "pairing_method_tcp_select": "Use TCP",
   "pairing_method_udp_select": "Use UDP",
   "pairing_method_bt_select": "Use Bluetooth",

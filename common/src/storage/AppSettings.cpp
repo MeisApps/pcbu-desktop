@@ -52,6 +52,7 @@ PCBUAppStorage AppSettings::Load() {
     settings.language = json["language"];
     settings.serverIP = json["serverIP"];
     settings.serverMAC = json["serverMAC"];
+    settings.pairingDiscoveryPort = json.value("pairingDiscoveryPort", 43297);
     settings.pairingServerPort = json["pairingServerPort"];
     settings.unlockServerPort = json["unlockServerPort"];
     settings.clientSocketTimeout = json["clientSocketTimeout"];
@@ -73,6 +74,7 @@ PCBUAppStorage AppSettings::Load() {
     def.machineID = machineID.empty() ? StringUtils::RandomString(32) : machineID;
     def.language = "auto";
     def.serverIP = "auto";
+    def.pairingDiscoveryPort = 43297;
     def.pairingServerPort = 43295;
     def.unlockServerPort = 43296;
     def.clientSocketTimeout = 120;
@@ -98,6 +100,7 @@ void AppSettings::Save(const PCBUAppStorage &storage) {
         {"language", storage.language},
         {"serverIP", storage.serverIP},
         {"serverMAC", storage.serverMAC},
+        {"pairingDiscoveryPort", storage.pairingDiscoveryPort},
         {"pairingServerPort", storage.pairingServerPort},
         {"unlockServerPort", storage.unlockServerPort},
         {"clientSocketTimeout", storage.clientSocketTimeout},

@@ -66,6 +66,15 @@ std::vector<NetworkInterface> NetworkHelper::GetLocalNetInterfaces() {
       inet_ntop(AF_INET, &(ipv4->sin_addr), strBuffer, INET_ADDRSTRLEN);
       auto ifAddr = std::string(strBuffer);
       netIf.ipAddress = ifAddr;
+
+      ULONG mask = 0;
+      if(ConvertLengthToIpv4Mask(unicast->OnLinkPrefixLength, &mask) == NO_ERROR) {
+        in_addr maskAddr{};
+        maskAddr.s_addr = mask;
+        char maskBuffer[INET_ADDRSTRLEN]{};
+        inet_ntop(AF_INET, &maskAddr, maskBuffer, INET_ADDRSTRLEN);
+        netIf.netmask = maskBuffer;
+      }
     }
     for(PIP_ADAPTER_GATEWAY_ADDRESS gateway = adapter->FirstGatewayAddress; gateway; gateway = gateway->Next) {
       auto family = gateway->Address.lpSockaddr->sa_family;
@@ -104,8 +113,15 @@ std::vector<NetworkInterface> NetworkHelper::GetLocalNetInterfaces() {
         ifMap[ifName] = NetworkInterface();
         ifMap[ifName].ifName = ifName;
       }
-      if(family == AF_INET)
+      if(family == AF_INET) {
         ifMap[ifName].ipAddress = addr;
+        if(ifa->ifa_netmask != nullptr) {
+          char maskBuffer[NI_MAXHOST]{};
+          auto maskRes = getnameinfo(ifa->ifa_netmask, sizeof(struct sockaddr_in), maskBuffer, NI_MAXHOST, nullptr, 0, NI_NUMERICHOST);
+          if(maskRes == 0)
+            ifMap[ifName].netmask = maskBuffer;
+        }
+      }
       if(family == AF_PACKET) {
 #ifdef LINUX
         auto sll = reinterpret_cast<struct sockaddr_ll *>(ifa->ifa_addr);
@@ -151,7 +167,8 @@ std::vector<NetworkInterface> NetworkHelper::GetLocalNetInterfaces() {
     return rankA > rankB;
   });
   for(const auto &netIf : result) {
-    spdlog::debug("Network interface: Name='" + netIf.ifName + "' IP='" + netIf.ipAddress + "' Gateway='" + netIf.gateway + "' Rank=" + std::to_string(rankIp(netIf)));
+    spdlog::debug("Network interface: Name='" + netIf.ifName + "' IP='" + netIf.ipAddress + "' Gateway='" + netIf.gateway +
+                  "' Rank=" + std::to_string(rankIp(netIf)));
   }
   return result;
 }
@@ -226,6 +243,32 @@ NetworkInterface NetworkHelper::GetSavedNetworkInterface() {
     }
   } else {
     result.ipAddress = settings.serverIP;
+  }
+  return result;
+}
+
+std::vector<BroadcastTarget> NetworkHelper::GetBroadcastTargets() {
+  std::vector<BroadcastTarget> result{};
+  for(const auto &netIf : GetLocalNetInterfaces()) {
+    if(netIf.ipAddress.empty())
+      continue;
+    if(!std::regex_match(netIf.ipAddress, g_LocalIPv4Regex) && !netIf.ipAddress.starts_with("169.254."))
+      continue;
+
+    in_addr ipAddr{};
+    if(inet_pton(AF_INET, netIf.ipAddress.c_str(), &ipAddr) != 1)
+      continue;
+
+    std::string broadcastIP = "255.255.255.255";
+    in_addr maskAddr{};
+    if(!netIf.netmask.empty() && inet_pton(AF_INET, netIf.netmask.c_str(), &maskAddr) == 1) {
+      in_addr bcast{};
+      bcast.s_addr = ipAddr.s_addr | ~maskAddr.s_addr; // directed broadcast = ip | ~mask
+      char buffer[INET_ADDRSTRLEN]{};
+      if(inet_ntop(AF_INET, &bcast, buffer, INET_ADDRSTRLEN) != nullptr)
+        broadcastIP = buffer;
+    }
+    result.emplace_back(BroadcastTarget{netIf.ipAddress, broadcastIP});
   }
   return result;
 }

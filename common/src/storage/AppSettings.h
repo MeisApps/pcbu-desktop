@@ -13,6 +13,7 @@ struct PCBUAppStorage {
   std::string language{};
   std::string serverIP{};
   std::string serverMAC{};
+  uint16_t pairingDiscoveryPort{};
   uint16_t pairingServerPort{};
   uint16_t unlockServerPort{};
   uint32_t clientSocketTimeout{};

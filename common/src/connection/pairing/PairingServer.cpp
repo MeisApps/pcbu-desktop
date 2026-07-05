@@ -12,12 +12,13 @@
 #ifdef WINDOWS
 #include <Ws2tcpip.h>
 #else
+#include <arpa/inet.h>
 #include <netinet/tcp.h>
 #endif
 
 constexpr int MAX_CLIENTS = 10;
 
-PairingServer::PairingServer(const std::function<void(const std::string&)>& errorCallback) {
+PairingServer::PairingServer(const std::function<void(const std::string &)> &errorCallback) {
   m_ErrorCallback = errorCallback;
 }
 
@@ -44,7 +45,7 @@ void PairingServer::Stop() {
 }
 
 void PairingServer::AcceptThread() {
-  struct sockaddr_in address {};
+  struct sockaddr_in address{};
   socklen_t addrLen = sizeof(address);
   auto settings = AppSettings::Get();
   auto clientSockets = std::vector<SOCKET>();
@@ -180,7 +181,7 @@ void PairingServer::ClientThread(SOCKET clientSocket) {
     respPacket.data.deviceId = device.id;
     respPacket.data.deviceName = NetworkHelper::GetHostName();
     respPacket.data.deviceOS = AppInfo::GetOperatingSystem();
-    respPacket.data.ipAddress = NetworkHelper::GetSavedNetworkInterface().ipAddress;
+    respPacket.data.ipAddress = ""; // NOTE: Unused
     respPacket.data.port = AppSettings::Get().unlockServerPort;
     respPacket.data.pairingMethod = device.pairingMethod;
     respPacket.data.macAddress = m_UIData.macAddress;

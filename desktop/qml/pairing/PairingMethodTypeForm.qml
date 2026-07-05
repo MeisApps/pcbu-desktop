@@ -3,7 +3,7 @@ import QtQuick.Controls
 import QtQuick.Layouts
 
 import PCBioUnlock
-import 'qrc:/ui/base'
+import "qrc:/ui/base"
 
 StepForm {
     description: QI18n.Get('pairing_form_method_type_desc')
@@ -16,7 +16,7 @@ StepForm {
             spacing: 25
             ButtonGroup {
                 id: methodRadioGroup
-                onClicked: function(button) {
+                onClicked: function (button) {
                     let data = PairingForm.GetData();
                     data.pairingMethodType = button.methodStr;
                     PairingForm.SetData(data);
@@ -34,7 +34,9 @@ StepForm {
                     Layout.leftMargin: 40
                     text: QI18n.Get('pairing_method_type_automatic_desc')
                     wrapMode: Label.WordWrap
-                    onLinkActivated: function(link) { Qt.openUrlExternally(link); }
+                    onLinkActivated: function (link) {
+                        Qt.openUrlExternally(link);
+                    }
                 }
             }
             ColumnLayout {
@@ -50,6 +52,32 @@ StepForm {
                     text: QI18n.Get('pairing_method_type_manual_desc')
                     wrapMode: Label.WordWrap
                 }
+            }
+        }
+
+        ColumnLayout {
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.bottom: parent.bottom
+            anchors.bottomMargin: 15
+            spacing: 2
+            CheckBox {
+                id: legacyCheckBox
+                text: QI18n.Get('pairing_use_legacy_select')
+                font.pointSize: 11
+                checked: PairingForm.GetData().useLegacyPairing
+                onToggled: {
+                    let data = PairingForm.GetData();
+                    data.useLegacyPairing = checked;
+                    PairingForm.SetData(data);
+                }
+            }
+            Label {
+                Layout.preferredWidth: 500
+                Layout.leftMargin: 40
+                text: QI18n.Get('pairing_use_legacy_desc')
+                wrapMode: Label.WordWrap
+                font.pointSize: 10
             }
         }
     }

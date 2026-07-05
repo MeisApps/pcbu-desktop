@@ -4,7 +4,6 @@
 #include "connection/unlock/clients/BTUnlockClient.h"
 #include "connection/unlock/clients/TCPUnlockClient.h"
 #include "connection/unlock/servers/TCPUnlockServer.h"
-#include "platform/NetworkHelper.h"
 #include "storage/AppSettings.h"
 
 #ifdef WINDOWS
@@ -25,11 +24,10 @@ UnlockHandler::UnlockHandler(const std::function<void(std::string)> &printMessag
 
 UnlockResult UnlockHandler::GetResult(const std::string &authUser, const std::string &authProgram, std::atomic<bool> *isRunning) {
   auto settings = AppSettings::Get();
-  auto netIf = NetworkHelper::GetSavedNetworkInterface();
   auto devices = PairedDevicesStorage::GetDevicesForUser(authUser);
   auto hasTCPServer = false;
 
-  UDPBroadcaster *udpBroadcaster{};
+  UDPUnlockBroadcaster *udpBroadcaster{};
   std::vector<BaseUnlockConnection *> connections{};
   for(const auto &device : devices) {
     BaseUnlockConnection *connection{};
@@ -43,7 +41,7 @@ UnlockResult UnlockHandler::GetResult(const std::string &authUser, const std::st
       case PairingMethod::MANUAL_UDP:
       case PairingMethod::UDP: {
         if(udpBroadcaster == nullptr)
-          udpBroadcaster = new UDPBroadcaster();
+          udpBroadcaster = new UDPUnlockBroadcaster();
         auto port = device.pairingMethod == PairingMethod::UDP ? device.udpPort : device.udpManualPort;
         udpBroadcaster->AddDevice(device.id, port, device.pairingMethod == PairingMethod::MANUAL_UDP);
       }
@@ -119,7 +117,8 @@ UnlockResult UnlockHandler::GetResult(const std::string &authUser, const std::st
   return result;
 }
 
-UnlockResult UnlockHandler::RunServer(BaseUnlockConnection *connection, UDPBroadcaster *udpBroadcaster, AtomicUnlockResult *currentResult, std::atomic<bool> *isRunning) {
+UnlockResult UnlockHandler::RunServer(BaseUnlockConnection *connection, UDPUnlockBroadcaster *udpBroadcaster, AtomicUnlockResult *currentResult,
+                                      std::atomic<bool> *isRunning) {
   if(!connection->Start()) {
     auto errorMsg = I18n::Get("error_start_handler");
     spdlog::error(errorMsg);

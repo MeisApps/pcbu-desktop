@@ -145,4 +145,14 @@ struct PacketUDPBroadcast {
   }
 };
 
+struct PacketUDPPairBeacon {
+  std::string serverId;
+  std::string ip;
+  uint16_t port;
+
+  nlohmann::json ToJson() {
+    return {{"serverId", serverId}, {"ip", ip}, {"port", port}};
+  }
+};
+
 #endif // PCBU_DESKTOP_PACKETS_H
