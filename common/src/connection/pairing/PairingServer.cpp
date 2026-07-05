@@ -181,10 +181,10 @@ void PairingServer::ClientThread(SOCKET clientSocket) {
     respPacket.data.deviceId = device.id;
     respPacket.data.deviceName = NetworkHelper::GetHostName();
     respPacket.data.deviceOS = AppInfo::GetOperatingSystem();
-    respPacket.data.ipAddress = ""; // NOTE: Unused
-    respPacket.data.port = AppSettings::Get().unlockServerPort;
+    respPacket.data.unlockServerPort = AppSettings::Get().unlockServerPort;
     respPacket.data.pairingMethod = device.pairingMethod;
-    respPacket.data.macAddress = m_UIData.macAddress;
+    for(const auto &netIf : NetworkHelper::GetWakeOnLanInterfaces())
+      respPacket.data.macAddresses.emplace_back(netIf.macAddress);
     respPacket.data.userName = m_UIData.userName;
     respPacket.data.passwordKey = passwordKey;
 

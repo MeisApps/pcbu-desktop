@@ -2,6 +2,9 @@
 #define PCBU_DESKTOP_PACKETS_H
 
 #include <cstdint>
+#include <string>
+#include <vector>
+
 #include <nlohmann/json.hpp>
 
 #include "storage/PairingMethod.h"
@@ -52,9 +55,8 @@ struct PacketPairResponseData { // From PC
   std::string deviceId{};
   std::string deviceName{};
   std::string deviceOS{};
-  std::string ipAddress{};
-  uint16_t port{};
-  std::string macAddress{};
+  uint16_t unlockServerPort{};
+  std::vector<std::string> macAddresses{};
   std::string userName{};
   std::string passwordKey{};
 
@@ -63,9 +65,8 @@ struct PacketPairResponseData { // From PC
             {"deviceId", deviceId},
             {"deviceName", deviceName},
             {"deviceOS", deviceOS},
-            {"ipAddress", ipAddress},
-            {"port", port},
-            {"macAddress", macAddress},
+            {"unlockServerPort", unlockServerPort},
+            {"macAddresses", macAddresses},
             {"userName", userName},
             {"passwordKey", passwordKey}};
   }

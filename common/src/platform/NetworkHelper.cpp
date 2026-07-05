@@ -1,6 +1,7 @@
 #include "NetworkHelper.h"
 
 #include <algorithm>
+#include <fstream>
 #include <iostream>
 #include <map>
 #include <regex>
@@ -26,6 +27,7 @@
 #include <unistd.h>
 #ifdef LINUX
 #include <netpacket/packet.h>
+#include <sys/stat.h>
 #elif APPLE
 #define AF_PACKET AF_LINK
 #endif
@@ -34,7 +36,7 @@
 std::regex g_LocalIPv4Regex(
     R"((^10\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$)|(^172\.1[6-9]{1}[0-9]{0,1}\.[0-9]{1,3}\.[0-9]{1,3}$)|(^172\.2[0-9]{1}[0-9]{0,1}\.[0-9]{1,3}\.[0-9]{1,3}$)|(^172\.3[0-1]{1}[0-9]{0,1}\.[0-9]{1,3}\.[0-9]{1,3}$)|(^192\.168\.[0-9]{1,3}\.[0-9]{1,3}$))");
 
-std::vector<NetworkInterface> NetworkHelper::GetLocalNetInterfaces() {
+std::vector<NetworkInterface> NetworkHelper::GetLocalNetInterfaces(bool onlyValid) {
   std::vector<NetworkInterface> result{};
 #ifdef WINDOWS
   ULONG bufferSize = 0;
@@ -57,6 +59,7 @@ std::vector<NetworkInterface> NetworkHelper::GetLocalNetInterfaces() {
     auto netIf = NetworkInterface();
     netIf.ifName = StringUtils::FromWideString(ifName);
     netIf.macAddress = macAddr;
+    netIf.isWired = adapter->IfType == IF_TYPE_ETHERNET_CSMACD;
     for(PIP_ADAPTER_UNICAST_ADDRESS unicast = adapter->FirstUnicastAddress; unicast; unicast = unicast->Next) {
       auto family = unicast->Address.lpSockaddr->sa_family;
       if(family != AF_INET)
@@ -112,6 +115,7 @@ std::vector<NetworkInterface> NetworkHelper::GetLocalNetInterfaces() {
       if(!ifMap.contains(ifName)) {
         ifMap[ifName] = NetworkInterface();
         ifMap[ifName].ifName = ifName;
+        ifMap[ifName].isWired = IsWiredEthernet(ifName);
       }
       if(family == AF_INET) {
         ifMap[ifName].ipAddress = addr;
@@ -139,7 +143,22 @@ std::vector<NetworkInterface> NetworkHelper::GetLocalNetInterfaces() {
   freeifaddrs(ifaddr);
 #endif
 
-  auto rankIp = [](const NetworkInterface &netIf) {
+  auto isVirtual = [](const NetworkInterface &netIf) {
+#ifdef WINDOWS
+    return netIf.ifName.contains("Bluetooth") || netIf.ifName.contains("vEthernet") || netIf.ifName.contains("VMware") ||
+           netIf.ifName.contains("VirtualBox") || netIf.ifName.contains("Docker");
+#else
+    return netIf.ifName.starts_with("vir") || netIf.ifName.starts_with("docker") || netIf.ifName.starts_with("ham") ||
+           netIf.ifName.starts_with("bridge");
+#endif
+  };
+
+  if(onlyValid) {
+    std::erase_if(result,
+                  [&isVirtual](const NetworkInterface &netIf) { return isVirtual(netIf) || !std::regex_match(netIf.ipAddress, g_LocalIPv4Regex); });
+  }
+
+  auto rankIp = [&isVirtual](const NetworkInterface &netIf) {
     auto rank = 0;
     if(std::regex_match(netIf.ipAddress, g_LocalIPv4Regex))
       rank += 1000;
@@ -149,14 +168,8 @@ std::vector<NetworkInterface> NetworkHelper::GetLocalNetInterfaces() {
       rank += 50;
     if(netIf.ipAddress.starts_with("169.254."))
       rank -= 10;
-#ifdef WINDOWS
-    if(netIf.ifName.contains("Bluetooth") || netIf.ifName.contains("vEthernet") || netIf.ifName.contains("VMware") ||
-       netIf.ifName.contains("VirtualBox") || netIf.ifName.contains("Docker"))
+    if(isVirtual(netIf))
       rank -= 100;
-#else
-    if(netIf.ifName.starts_with("vir") || netIf.ifName.starts_with("docker") || netIf.ifName.starts_with("ham") || netIf.ifName.starts_with("bridge"))
-      rank -= 100;
-#endif
     return rank;
   };
   std::sort(result.begin(), result.end(), [rankIp](const NetworkInterface &a, const NetworkInterface &b) {
@@ -247,6 +260,19 @@ NetworkInterface NetworkHelper::GetSavedNetworkInterface() {
   return result;
 }
 
+std::vector<NetworkInterface> NetworkHelper::GetWakeOnLanInterfaces() {
+  std::vector<NetworkInterface> result{};
+  for(const auto &netIf : GetLocalNetInterfaces(true)) {
+    if(!netIf.isWired)
+      continue;
+    if(netIf.macAddress.empty() || netIf.macAddress == "00:00:00:00:00:00")
+      continue;
+    spdlog::debug("Wake-on-LAN interface: Name='{}'", netIf.ifName);
+    result.emplace_back(netIf);
+  }
+  return result;
+}
+
 std::vector<BroadcastTarget> NetworkHelper::GetBroadcastTargets() {
   std::vector<BroadcastTarget> result{};
   for(const auto &netIf : GetLocalNetInterfaces()) {
@@ -271,4 +297,20 @@ std::vector<BroadcastTarget> NetworkHelper::GetBroadcastTargets() {
     result.emplace_back(BroadcastTarget{netIf.ipAddress, broadcastIP});
   }
   return result;
+}
+
+bool NetworkHelper::IsWiredEthernet(const std::string &ifName) {
+#ifdef LINUX
+  auto base = "/sys/class/net/" + ifName;
+  struct stat st{};
+  if(stat((base + "/wireless").c_str(), &st) == 0 || stat((base + "/phy80211").c_str(), &st) == 0)
+    return false; // Wi-Fi
+  if(stat((base + "/device").c_str(), &st) != 0)
+    return false; // virtual adapters have no device
+  std::ifstream typeFile(base + "/type");
+  int type = -1;
+  if(typeFile >> type)
+    return type == 1; // ARPHRD_ETHER
+#endif
+  return false;
 }
