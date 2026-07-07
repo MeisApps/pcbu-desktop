@@ -112,7 +112,7 @@ void ServiceInstaller::Install() {
              Shell::RunCommand(fmt::format("ufw allow {}/tcp", settings.pairingServerPort)).exitCode == 0 &&
              Shell::RunCommand(fmt::format("ufw allow {}/tcp", settings.unlockServerPort)).exitCode == 0;
     if(!result)
-      m_Logger(I18n::Get("warning_firewall_rule_add", "ufw"));
+      m_Logger(I18n::Get("error_firewall_rule_add", "ufw"));
   }
   if(IsProgramInstalled(FIREWALLD_NAME)) {
     m_Logger("Adding firewall rules (firewalld)...");
@@ -122,7 +122,7 @@ void ServiceInstaller::Install() {
         Shell::RunCommand(fmt::format("firewall-cmd --zone=public --add-port={}/tcp --permanent", settings.unlockServerPort)).exitCode == 0 &&
         Shell::RunCommand("firewall-cmd --reload").exitCode == 0;
     if(!result)
-      m_Logger(I18n::Get("warning_firewall_rule_add", "firewalld"));
+      m_Logger(I18n::Get("error_firewall_rule_add", "firewalld"));
   }
   if(IsProgramInstalled(SELINUX_NAME)) {
     m_Logger("Installing SELinux policy...");
@@ -161,7 +161,7 @@ void ServiceInstaller::Uninstall() {
              Shell::RunCommand(fmt::format("ufw delete allow {}/tcp", settings.pairingServerPort)).exitCode == 0 &&
              Shell::RunCommand(fmt::format("ufw delete allow {}/tcp", settings.unlockServerPort)).exitCode == 0;
     if(!result)
-      m_Logger(I18n::Get("warning_firewall_rule_remove", "ufw"));
+      m_Logger(I18n::Get("error_firewall_rule_remove", "ufw"));
   }
   if(IsProgramInstalled(FIREWALLD_NAME)) {
     m_Logger("Removing firewall rules (firewalld)...");
@@ -171,7 +171,7 @@ void ServiceInstaller::Uninstall() {
         Shell::RunCommand(fmt::format("firewall-cmd --zone=public --remove-port={}/tcp --permanent", settings.unlockServerPort)).exitCode == 0 &&
         Shell::RunCommand("firewall-cmd --reload").exitCode == 0;
     if(!result)
-      m_Logger(I18n::Get("warning_firewall_rule_remove", "firewalld"));
+      m_Logger(I18n::Get("error_firewall_rule_remove", "firewalld"));
   }
   if(IsProgramInstalled(SELINUX_NAME)) {
     m_Logger("Removing SELinux policy...");
