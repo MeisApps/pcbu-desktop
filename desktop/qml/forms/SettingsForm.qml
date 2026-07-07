@@ -388,7 +388,6 @@ Form {
             // OS settings
             GroupBox {
                 id: serviceGroup
-                Layout.preferredWidth: 260
                 Layout.preferredHeight: serviceSettingsLayout.implicitHeight + topPadding + bottomPadding
                 Layout.alignment: Qt.AlignVCenter
                 title: '%1 %2'.arg(SettingsForm.GetOperatingSystem()).arg(QI18n.Get('service_settings'))
