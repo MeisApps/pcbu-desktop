@@ -78,7 +78,6 @@
   "uninstall": "卸载",
   "reinstall": "重新安装",
   "settings": "设置",
-  "common_settings": "通用设置",
   "service_settings": "设置",
 
   "confirm_remove_device": "你确定要删除这个设备吗？",

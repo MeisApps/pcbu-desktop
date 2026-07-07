@@ -17,6 +17,7 @@ public:
     language = QString::fromUtf8(settings.language);
     serverIP = QString::fromUtf8(settings.serverIP);
     serverMAC = QString::fromUtf8(settings.serverMAC);
+    pairingDiscoveryPort = settings.pairingDiscoveryPort;
     pairingServerPort = settings.pairingServerPort;
     unlockServerPort = settings.unlockServerPort;
     clientSocketTimeout = settings.clientSocketTimeout;
@@ -33,6 +34,7 @@ public:
     settings.language = language.toStdString();
     settings.serverIP = serverIP.toStdString();
     settings.serverMAC = serverMAC.toStdString();
+    settings.pairingDiscoveryPort = pairingDiscoveryPort;
     settings.pairingServerPort = pairingServerPort;
     settings.unlockServerPort = unlockServerPort;
     settings.clientSocketTimeout = clientSocketTimeout;
@@ -49,6 +51,7 @@ public:
   QString language{};
   QString serverIP{};
   QString serverMAC{};
+  uint16_t pairingDiscoveryPort{};
   uint16_t pairingServerPort{};
   uint16_t unlockServerPort{};
   uint32_t clientSocketTimeout{};
@@ -62,6 +65,7 @@ public:
   Q_PROPERTY(QString language MEMBER language)
   Q_PROPERTY(QString serverIP MEMBER serverIP)
   Q_PROPERTY(QString serverMAC MEMBER serverMAC)
+  Q_PROPERTY(uint16_t pairingDiscoveryPort MEMBER pairingDiscoveryPort)
   Q_PROPERTY(uint16_t pairingServerPort MEMBER pairingServerPort)
   Q_PROPERTY(uint16_t unlockServerPort MEMBER unlockServerPort)
   Q_PROPERTY(uint32_t clientSocketTimeout MEMBER clientSocketTimeout)

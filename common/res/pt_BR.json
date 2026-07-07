@@ -79,7 +79,6 @@
   "uninstall": "Desinstalar",
   "reinstall": "Reinstalar",
   "settings": "Configurações",
-  "common_settings": "Configurações padrão",
   "service_settings": "Configurações",
 
   "confirm_remove_device": "Tem certeza de que deseja remover este dispositivo?",
