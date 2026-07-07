@@ -103,6 +103,9 @@ public:
 
   Q_INVOKABLE QString GetOperatingSystem();
 
+  Q_INVOKABLE bool HasUDPDevices();
+  Q_INVOKABLE void RemoveUDPDevices();
+
 public slots:
   void Show(QObject *viewLoader);
   void OnSaveSettingsClicked(QObject *viewLoader, QObject *window);

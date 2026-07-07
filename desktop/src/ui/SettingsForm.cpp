@@ -1,6 +1,9 @@
 #include "SettingsForm.h"
 
+#include <algorithm>
+
 #include "shell/Shell.h"
+#include "storage/PairedDevicesStorage.h"
 #include "utils/AppInfo.h"
 
 AppSettingsModel SettingsForm::GetSettings() {
@@ -45,6 +48,20 @@ void SettingsForm::SetDebugLoggingEnabled(bool enabled) {
 
 QString SettingsForm::GetOperatingSystem() {
   return QString::fromUtf8(AppInfo::GetOperatingSystem());
+}
+
+static bool IsUDPMethod(PairingMethod method) {
+  return method == PairingMethod::UDP || method == PairingMethod::MANUAL_UDP;
+}
+
+bool SettingsForm::HasUDPDevices() {
+  return std::ranges::any_of(PairedDevicesStorage::GetDevices(), [](PairedDevice &device) { return IsUDPMethod(device.pairingMethod); });
+}
+
+void SettingsForm::RemoveUDPDevices() {
+  auto devices = PairedDevicesStorage::GetDevices();
+  std::erase_if(devices, [](const PairedDevice &device) { return IsUDPMethod(device.pairingMethod); });
+  PairedDevicesStorage::SaveDevices(devices);
 }
 
 void SettingsForm::Show(QObject *viewLoader) {

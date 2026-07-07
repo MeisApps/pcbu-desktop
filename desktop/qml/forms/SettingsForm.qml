@@ -253,7 +253,7 @@ Form {
                                     }
                                 }
                                 Label {
-                                    text: 'UDP'
+                                    text: QI18n.Get('method_tag_udp')
                                     opacity: 0.6
                                     font.italic: true
                                 }
@@ -301,7 +301,7 @@ Form {
                                     }
                                 }
                                 Label {
-                                    text: 'TCP/BT'
+                                    text: QI18n.Get('method_tag_tcp_bt')
                                     opacity: 0.6
                                     font.italic: true
                                 }
@@ -332,7 +332,7 @@ Form {
                                     }
                                 }
                                 Label {
-                                    text: 'TCP/BT'
+                                    text: QI18n.Get('method_tag_tcp_bt')
                                     opacity: 0.6
                                     font.italic: true
                                 }
@@ -363,7 +363,7 @@ Form {
                                     }
                                 }
                                 Label {
-                                    text: 'TCP/BT'
+                                    text: QI18n.Get('method_tag_tcp_bt')
                                     opacity: 0.6
                                     font.italic: true
                                 }
@@ -446,17 +446,28 @@ Form {
                     clientConnectRetriesNum = 0;
                 }
 
-                let settings = SettingsForm.GetSettings();
-                settings.serverIP = serverIp;
-                settings.serverMAC = serverIp === 'auto' ? networkListModel.get(ipSelectComboBox.currentIndex).macAddress : '';
-                settings.pairingDiscoveryPort = pairingDiscoveryPortNum;
-                settings.pairingServerPort = pairingServerPortNum;
-                settings.unlockServerPort = unlockServerPortNum;
-                settings.clientSocketTimeout = clientSocketTimeoutNum;
-                settings.clientConnectTimeout = clientConnectTimeoutNum;
-                settings.clientConnectRetries = clientConnectRetriesNum;
-                SettingsForm.SetSettings(settings);
-                SettingsForm.OnSaveSettingsClicked(viewLoader, window);
+                let doSave = function () {
+                    let settings = SettingsForm.GetSettings();
+                    settings.serverIP = serverIp;
+                    settings.serverMAC = serverIp === 'auto' ? networkListModel.get(ipSelectComboBox.currentIndex).macAddress : '';
+                    settings.pairingDiscoveryPort = pairingDiscoveryPortNum;
+                    settings.pairingServerPort = pairingServerPortNum;
+                    settings.unlockServerPort = unlockServerPortNum;
+                    settings.clientSocketTimeout = clientSocketTimeoutNum;
+                    settings.clientConnectTimeout = clientConnectTimeoutNum;
+                    settings.clientConnectRetries = clientConnectRetriesNum;
+                    SettingsForm.SetSettings(settings);
+                    SettingsForm.OnSaveSettingsClicked(viewLoader, window);
+                };
+
+                if (unlockServerPortNum !== SettingsForm.GetSettings().unlockServerPort && SettingsForm.HasUDPDevices()) {
+                    showConfirmMessage(QI18n.Get('confirm_unlock_port_change'), function () {
+                        SettingsForm.RemoveUDPDevices();
+                        doSave();
+                    });
+                } else {
+                    doSave();
+                }
             }
         }
     }
