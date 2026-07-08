@@ -76,6 +76,8 @@ std::vector<PairedDevice> PairedDevicesStorage::GetDevices() {
       device.encryptionKey = entry["encryptionKey"];
 
       device.ipAddress = entry["ipAddress"];
+      device.secondaryIpAddress = entry.value("secondaryIpAddress", "");
+      device.lastSuccessfulIpAddress = entry.value("lastSuccessfulIpAddress", "");
       device.bluetoothAddress = entry["bluetoothAddress"];
       device.cloudToken = entry["cloudToken"];
       device.tcpPort = entry["tcpPort"];
@@ -104,6 +106,8 @@ void PairedDevicesStorage::SaveDevices(const std::vector<PairedDevice> &devices)
                                    {"encryptionKey", device.encryptionKey},
 
                                    {"ipAddress", device.ipAddress},
+                                   {"secondaryIpAddress", device.secondaryIpAddress},
+                                   {"lastSuccessfulIpAddress", device.lastSuccessfulIpAddress},
                                    {"tcpPort", device.tcpPort},
                                    {"udpPort", device.udpPort},
                                    {"udpManualPort", device.udpManualPort},

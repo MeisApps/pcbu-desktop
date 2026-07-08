@@ -90,6 +90,8 @@ Form {
                             devicesTableView.selectedRow = row
                             deviceRemoveBtn.enabled = row !== -1;
                             deviceTestUnlockBtn.enabled = row !== -1;
+                            let selDevice = devicesTableModel.get(row);
+                            deviceEditTcpBtn.enabled = row !== -1 && selDevice[3] === 'TCP';
                         }
                         text: model.tableData
                     }
@@ -120,6 +122,19 @@ Form {
                         Layout.fillWidth: true
                         Layout.preferredWidth: 50
                         Layout.preferredHeight: 60
+                        id: deviceEditTcpBtn
+                        text: QI18n.Get('edit_tcp_addresses')
+                        enabled: false
+                        onClicked: {
+                            let selDevice = devicesTableModel.get(devicesTableView.selectedRow);
+                            tcpAddressDialog.deviceId = selDevice[0];
+                            tcpAddressDialog.openForDevice();
+                        }
+                    }
+                    Button {
+                        Layout.fillWidth: true
+                        Layout.preferredWidth: 50
+                        Layout.preferredHeight: 60
                         id: deviceTestUnlockBtn
                         text: QI18n.Get('unlock_test')
                         enabled: false
@@ -129,6 +144,62 @@ Form {
                             unlockWin.show();
                         }
                     }
+                }
+            }
+        }
+    }
+    Item {
+        id: tcpAddressDialogHost
+        anchors.fill: parent
+
+        Dialog {
+            id: tcpAddressDialog
+            modal: true
+            title: QI18n.Get('tcp_addresses')
+            standardButtons: Dialog.Save | Dialog.Cancel
+            anchors.centerIn: parent
+            width: Math.min(tcpAddressDialogHost.width * 0.75, 520)
+
+            property string deviceId: ''
+
+            function openForDevice() {
+                let addresses = MainWindow.GetDeviceTcpAddresses(deviceId);
+                primaryIpField.text = addresses.primaryIpAddress || '';
+                secondaryIpField.text = addresses.secondaryIpAddress || '';
+                lastUsedLabel.text = addresses.lastSuccessfulIpAddress ? '%1: %2'.arg(QI18n.Get('last_successful_ip')).arg(addresses.lastSuccessfulIpAddress) : '';
+                open();
+            }
+
+            onAccepted: {
+                if (!MainWindow.SetDeviceTcpAddresses(deviceId, primaryIpField.text, secondaryIpField.text)) {
+                    showErrorMessage(QI18n.Get('error_invalid_ip'));
+                    open();
+                } else {
+                    MainWindow.Show(viewLoader);
+                }
+            }
+
+            GridLayout {
+                columns: 2
+                width: parent.width
+                Label {
+                    text: QI18n.Get('primary_ip_address')
+                }
+                TextField {
+                    id: primaryIpField
+                    Layout.fillWidth: true
+                }
+                Label {
+                    text: QI18n.Get('secondary_ip_address')
+                }
+                TextField {
+                    id: secondaryIpField
+                    Layout.fillWidth: true
+                }
+                Label {
+                    id: lastUsedLabel
+                    Layout.columnSpan: 2
+                    Layout.fillWidth: true
                 }
             }
         }

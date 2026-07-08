@@ -3,6 +3,7 @@
 
 #include <QObject>
 #include <QQmlApplicationEngine>
+#include <QVariantMap>
 #include <QtQmlIntegration>
 
 class MainWindow : public QObject {
@@ -16,6 +17,8 @@ public:
   Q_INVOKABLE bool IsPaired();
   Q_INVOKABLE QString GetInstalledVersion();
   Q_INVOKABLE QString GetLicenseText();
+  Q_INVOKABLE QVariantMap GetDeviceTcpAddresses(const QString &pairingId);
+  Q_INVOKABLE bool SetDeviceTcpAddresses(const QString &pairingId, const QString &primaryIpAddress, const QString &secondaryIpAddress);
 
   Q_INVOKABLE bool PerformStartupChecks(QObject *viewLoader, QObject *window);
 

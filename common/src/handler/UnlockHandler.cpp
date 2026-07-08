@@ -6,6 +6,8 @@
 #include "connection/unlock/servers/TCPUnlockServer.h"
 #include "storage/AppSettings.h"
 
+#include <algorithm>
+
 #ifdef WINDOWS
 #include <Windows.h>
 #define KEY_LEFTCTRL VK_LCONTROL
@@ -33,7 +35,7 @@ UnlockResult UnlockHandler::GetResult(const std::string &authUser, const std::st
     BaseUnlockConnection *connection{};
     switch(device.pairingMethod) {
       case PairingMethod::TCP:
-        connection = new TCPUnlockClient(device.ipAddress, device.tcpPort, device);
+        connection = new TCPUnlockClient(device);
         break;
       case PairingMethod::BLUETOOTH:
         connection = new BTUnlockClient(device.bluetoothAddress, device);
@@ -189,5 +191,13 @@ UnlockResult UnlockHandler::RunServer(BaseUnlockConnection *connection, UDPUnloc
   result.state = state;
   result.device = connection->GetDevice();
   result.password = pwDec.has_value() ? pwDec.value() : "";
+  if(state == UnlockState::SUCCESS && !result.device.lastSuccessfulIpAddress.empty()) {
+    auto devices = PairedDevicesStorage::GetDevices();
+    auto deviceIt = std::ranges::find_if(devices, [&result](const PairedDevice &device) { return device.id == result.device.id; });
+    if(deviceIt != devices.end()) {
+      deviceIt->lastSuccessfulIpAddress = result.device.lastSuccessfulIpAddress;
+      PairedDevicesStorage::SaveDevices(devices);
+    }
+  }
   return result;
 }

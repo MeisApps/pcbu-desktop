@@ -5,15 +5,15 @@
 
 class TCPUnlockClient : public BaseUnlockConnection {
 public:
-  TCPUnlockClient(const std::string &ipAddress, int port, const PairedDevice &device);
+  TCPUnlockClient(const PairedDevice &device);
 
   bool Start() override;
   void Stop() override;
 
 private:
+  bool ConnectToAddress(const std::string &ipAddress, uint32_t timeoutSeconds);
   void ConnectThread();
 
-  std::string m_IP;
   int m_Port;
   SOCKET m_ClientSocket;
 };

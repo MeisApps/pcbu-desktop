@@ -17,6 +17,8 @@ struct PairedDevice {
   std::string encryptionKey{};
 
   std::string ipAddress{};
+  std::string secondaryIpAddress{};
+  std::string lastSuccessfulIpAddress{};
   uint16_t tcpPort{};
   uint16_t udpPort{};
   uint16_t udpManualPort{};

@@ -11,7 +11,10 @@ std::string LoggingSystem::g_LogName{};
 
 void LoggingSystem::Init(const std::string &logName, bool printToConsole) {
   g_LogName = logName;
-  auto logPath = AppSettings::GetBaseDir() / fmt::format("{}.log", g_LogName);
+  auto baseDir = AppSettings::GetBaseDir();
+  if(!std::filesystem::exists(baseDir))
+    Shell::CreateDir(baseDir);
+  auto logPath = baseDir / fmt::format("{}.log", g_LogName);
   std::ifstream logFile(logPath, std::ifstream::ate | std::ifstream::binary);
   if(logFile) {
     auto sizeKb = logFile.tellg() / 1000;
