@@ -1,13 +1,26 @@
 #!/usr/bin/env bash
 set -e
-if [[ "$OSTYPE" == "linux-gnu"* ]]; then
-  PLATFORM=linux
-elif [[ "$OSTYPE" == "darwin"* ]]; then
-  PLATFORM=mac
-elif [[ "$OSTYPE" == "msys" ]]; then
-  PLATFORM=win
-else
-  echo 'Could not detect OS.'
+
+# Detect parameters
+if [ -z "$PLATFORM" ] || [ -z "$ARCH" ] || [ -z "$QT_BASE_DIR" ]; then
+    cmake_build_helper_output=$(cmake -P ../cmake/BuildHelper.cmake)
+fi
+if [ -z "$PLATFORM" ]; then
+    PLATFORM=$(echo "$cmake_build_helper_output" | sed -n '1p' | tr -d '\r' | xargs)
+fi
+if [ -z "$ARCH" ]; then
+    ARCH=$(echo "$cmake_build_helper_output" | sed -n '2p' | tr -d '\r' | xargs)
+fi
+if [ -z "$QT_BASE_DIR" ]; then
+    QT_BASE_DIR=$(echo "$cmake_build_helper_output" | sed -n '3p' | tr -d '\r' | xargs)
+fi
+
+echo "OS: $PLATFORM"
+echo "Arch: $ARCH"
+echo "Qt: $QT_BASE_DIR"
+
+if [[ "$PLATFORM" != "win" && "$PLATFORM" != "linux" && "$PLATFORM" != "mac" ]]; then
+  echo 'Invalid OS.'
   exit 1
 fi
 if [[ "$ARCH" == "x64" ]]; then
@@ -20,13 +33,12 @@ else
   echo 'Invalid architecture.'
   exit 1
 fi
-
-if [ -z "$QT_BASE_DIR" ]; then
-  echo 'QT_BASE_DIR is not set.'
+if [ ! -d "$QT_BASE_DIR" ]; then
+  echo 'Invalid QT directory.'
   exit 1
 fi
 
-BUILD_CORES=4
+# Find Windows SDK
 if [[ "$PLATFORM" == "win" ]]; then
   WIN_QT_PATH="$(cygpath -u "$QT_BASE_DIR")/msvc2022_64"
   WIN_QT_PATH_ARM64="$(cygpath -u "$QT_BASE_DIR")/msvc2022_arm64"
@@ -45,20 +57,21 @@ if [[ "$PLATFORM" == "win" ]]; then
 fi
 
 # Build
+BUILD_CORES=4
 mkdir build || true
 cd build
 if [[ "$PLATFORM" == "win" ]]; then
-  cmake ../../ -DCMAKE_BUILD_TYPE=Release -DTARGET_ARCH=$ARCH -DQT_BASE_DIR=$QT_BASE_DIR -G "Visual Studio 17 2022" -A $VS_ARCH -DCMAKE_GENERATOR_PLATFORM=$VS_ARCH -DMSVC_STATIC_LINK=1
-  cmake --build . --target "win-pcbiounlock" --config Release -- /maxcpucount:$BUILD_CORES
+  cmake ../../ -DCMAKE_BUILD_TYPE=Release -DTARGET_ARCH="$ARCH" -DQT_BASE_DIR="$QT_BASE_DIR" -G "Visual Studio 17 2022" -A "$VS_ARCH" -DCMAKE_GENERATOR_PLATFORM="$VS_ARCH" -DMSVC_STATIC_LINK=1
+  cmake --build . --target "win-pcbiounlock" --config Release -- /maxcpucount:"$BUILD_CORES"
 
   rm -Rf ./*
-  cmake ../../ -DCMAKE_BUILD_TYPE=Release -DTARGET_ARCH=$ARCH -DQT_BASE_DIR=$QT_BASE_DIR -G "Visual Studio 17 2022" -A $VS_ARCH -DCMAKE_GENERATOR_PLATFORM=$VS_ARCH
-  cmake --build . --target "pcbu_desktop" --config Release -- /maxcpucount:$BUILD_CORES
+  cmake ../../ -DCMAKE_BUILD_TYPE=Release -DTARGET_ARCH="$ARCH" -DQT_BASE_DIR="$QT_BASE_DIR" -G "Visual Studio 17 2022" -A "$VS_ARCH" -DCMAKE_GENERATOR_PLATFORM="$VS_ARCH"
+  cmake --build . --target "pcbu_desktop" --config Release -- /maxcpucount:"$BUILD_CORES"
 else
-  cmake ../../ -DCMAKE_BUILD_TYPE=Release -DTARGET_ARCH=$ARCH -DQT_BASE_DIR=$QT_BASE_DIR
-  cmake --build . --target "pcbu_auth" --config Release -- -j$BUILD_CORES
-  cmake --build . --target "pam_pcbiounlock" --config Release -- -j$BUILD_CORES
-  cmake --build . --target "pcbu_desktop" --config Release -- -j$BUILD_CORES
+  cmake ../../ -DCMAKE_BUILD_TYPE=Release -DTARGET_ARCH="$ARCH" -DQT_BASE_DIR="$QT_BASE_DIR"
+  cmake --build . --target "pcbu_auth" --config Release -- -j"$BUILD_CORES"
+  cmake --build . --target "pam_pcbiounlock" --config Release -- -j"$BUILD_CORES"
+  cmake --build . --target "pcbu_desktop" --config Release -- -j"$BUILD_CORES"
 fi
 
 # Package
@@ -83,9 +96,9 @@ if [[ "$PLATFORM" == "win" ]]; then
   fi
 
   iscc ../win/installer.iss
-  mv mysetup.exe PCBioUnlock-Setup-$ARCH.exe
+  mv mysetup.exe PCBioUnlock-Setup-"$ARCH".exe
 elif [[ "$PLATFORM" == "linux" ]]; then
-  wget "https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-$LINUX_ARCH.AppImage" && chmod +x ./linuxdeploy-$LINUX_ARCH.AppImage
+  wget "https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-$LINUX_ARCH.AppImage" && chmod +x ./linuxdeploy-"$LINUX_ARCH".AppImage
   wget "https://github.com/darealshinji/linuxdeploy-plugin-checkrt/releases/download/continuous/linuxdeploy-plugin-checkrt.sh" && chmod +x ./linuxdeploy-plugin-checkrt.sh
 
   rm -Rf appimage_dir/ || true
@@ -99,11 +112,11 @@ elif [[ "$PLATFORM" == "linux" ]]; then
   export QML_SOURCES_PATHS="../../desktop/qml"
   export EXTRA_QT_MODULES="svg;waylandcompositor"
   export EXTRA_PLATFORM_PLUGINS="libqwayland.so"
-  ./linuxdeploy-$LINUX_ARCH.AppImage --appdir appimage_dir --plugin checkrt --desktop-file ../linux/PCBioUnlock.desktop
-  wget "https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-$LINUX_ARCH.AppImage" && chmod +x ./linuxdeploy-plugin-qt-$LINUX_ARCH.AppImage
-  ./linuxdeploy-plugin-qt-$LINUX_ARCH.AppImage --appdir appimage_dir
-  rm ./linuxdeploy-plugin-qt-$LINUX_ARCH.AppImage
-  ./linuxdeploy-$LINUX_ARCH.AppImage --appdir appimage_dir --plugin checkrt --output appimage --desktop-file ../linux/PCBioUnlock.desktop
+  ./linuxdeploy-"$LINUX_ARCH".AppImage --appdir appimage_dir --plugin checkrt --desktop-file ../linux/PCBioUnlock.desktop
+  wget "https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-$LINUX_ARCH.AppImage" && chmod +x ./linuxdeploy-plugin-qt-"$LINUX_ARCH".AppImage
+  ./linuxdeploy-plugin-qt-"$LINUX_ARCH".AppImage --appdir appimage_dir
+  rm ./linuxdeploy-plugin-qt-"$LINUX_ARCH".AppImage
+  ./linuxdeploy-"$LINUX_ARCH".AppImage --appdir appimage_dir --plugin checkrt --output appimage --desktop-file ../linux/PCBioUnlock.desktop
   mv PC_Bio_Unlock*.AppImage PCBioUnlock.AppImage
   chmod +x PCBioUnlock.AppImage
 elif [[ "$PLATFORM" == "mac" ]]; then
@@ -124,5 +137,5 @@ elif [[ "$PLATFORM" == "mac" ]]; then
     echo "Waiting for XProtect..."
     while pgrep XProtect; do sleep 3; done
   fi
-  hdiutil create -volname "PC Bio Unlock" -srcfolder dmg_dir/ -ov -format UDZO ./PCBioUnlock-$ARCH.dmg
+  hdiutil create -volname "PC Bio Unlock" -srcfolder dmg_dir/ -ov -format UDZO ./PCBioUnlock-"$ARCH".dmg
 fi

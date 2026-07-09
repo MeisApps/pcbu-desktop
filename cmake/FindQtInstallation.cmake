@@ -6,7 +6,7 @@ function(find_qt_installation RESULT_VAR)
     elseif(APPLE)
         list(APPEND _qt_base_dirs "/opt/Qt" "/usr/local/Qt")
     else()
-        list(APPEND _qt_base_dirs "/opt/Qt" "/usr/local/Qt")
+        list(APPEND _qt_base_dirs "/opt/Qt" "/opt/qt" "/usr/local/Qt" "/usr/local/qt")
     endif()
 
     if(DEFINED ENV{HOME})
