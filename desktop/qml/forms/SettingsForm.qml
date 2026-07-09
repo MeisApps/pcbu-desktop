@@ -474,27 +474,69 @@ Form {
     Component.onCompleted: {
         let settings = SettingsForm.GetServiceSettings();
         for (let i = 0; i < settings.length; i++) {
-            Qt.createQmlObject("
-                import QtQuick
-                import QtQuick.Controls
-                import PCBioUnlock
+            if (settings[i].type === 'choice') {
+                let names = JSON.stringify(settings[i].optionNames);
+                let values = JSON.stringify(settings[i].optionValues);
+                let selIdx = settings[i].optionValues.indexOf(settings[i].selectedValue);
+                if (selIdx < 0) {
+                    selIdx = 0;
+                }
+                Qt.createQmlObject("
+                    import QtQuick
+                    import QtQuick.Controls
+                    import QtQuick.Layouts
+                    import PCBioUnlock
 
-                CheckBox {
-                    id: serviceSettingCheckBox%1
-                    text: \"%2\"
-                    checked: %3
-                    onToggled: {
-                        let settings = SettingsForm.GetServiceSettings();
-                        for(let i = 0; i < settings.length; i++) {
-                            if(settings[i].name === serviceSettingCheckBox%1.text) {
-                                settings[i].enabled = serviceSettingCheckBox%1.checked;
-                                break;
+                    ColumnLayout {
+                        id: serviceSettingChoice%1
+                        Layout.fillWidth: true
+                        spacing: 2
+                        property string settingId: \"%5\"
+                        property var optionValues: %4
+                        Label {
+                            text: \"%2\"
+                        }
+                        ComboBox {
+                            Layout.fillWidth: true
+                            Layout.minimumWidth: 0
+                            model: %3
+                            currentIndex: %6
+                            onActivated: {
+                                let settings = SettingsForm.GetServiceSettings();
+                                for(let j = 0; j < settings.length; j++) {
+                                    if(settings[j].id === serviceSettingChoice%1.settingId) {
+                                        settings[j].selectedValue = serviceSettingChoice%1.optionValues[currentIndex];
+                                        break;
+                                    }
+                                }
+                                SettingsForm.SetServiceSettings(settings);
                             }
                         }
-                        SettingsForm.SetServiceSettings(settings);
                     }
-                }
-            ".arg(i).arg(settings[i].name).arg(settings[i].enabled ? 'true' : 'false'), serviceSettingsLayout);
+                ".arg(i).arg(settings[i].name).arg(names).arg(values).arg(settings[i].id).arg(selIdx), serviceSettingsLayout);
+            } else {
+                Qt.createQmlObject("
+                    import QtQuick
+                    import QtQuick.Controls
+                    import PCBioUnlock
+
+                    CheckBox {
+                        id: serviceSettingCheckBox%1
+                        text: \"%2\"
+                        checked: %3
+                        onToggled: {
+                            let settings = SettingsForm.GetServiceSettings();
+                            for(let i = 0; i < settings.length; i++) {
+                                if(settings[i].name === serviceSettingCheckBox%1.text) {
+                                    settings[i].enabled = serviceSettingCheckBox%1.checked;
+                                    break;
+                                }
+                            }
+                            SettingsForm.SetServiceSettings(settings);
+                        }
+                    }
+                ".arg(i).arg(settings[i].name).arg(settings[i].enabled ? 'true' : 'false'), serviceSettingsLayout);
+            }
         }
     }
 }

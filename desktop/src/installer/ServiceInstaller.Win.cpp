@@ -28,20 +28,33 @@ ServiceInstaller::ServiceInstaller(const std::function<void(const std::string &)
 }
 
 std::vector<ServiceSetting> ServiceInstaller::GetSettings() {
-  return {{"waitForKey", I18n::Get("service_setting_wait_for_key"), AppSettings::Get().winWaitForKeyPress, true},
-  {"hidePasswordField", I18n::Get("service_setting_hide_pw_field"), AppSettings::Get().winHidePasswordField, false}};
+  return {
+      {"unlockBehavior", I18n::Get("service_setting_unlock_behavior"),
+       {
+           {"foreground_lock_only", I18n::Get("unlock_behavior_foreground_lock_only")},
+           {"foreground_always", I18n::Get("unlock_behavior_foreground_always")},
+           {"key_press", I18n::Get("unlock_behavior_key_press")},
+           {"none", I18n::Get("unlock_behavior_none")},
+       },
+       AppSettings::Get().winUnlockBehavior, "foreground_lock_only"},
+      {"hidePasswordField", I18n::Get("service_setting_hide_pw_field"), AppSettings::Get().winHidePasswordField, false},
+      {"forceCredProv", I18n::Get("service_setting_force_cred_prov"), AppSettings::Get().winForceDefaultCredProv, true},
+  };
 }
 
 void ServiceInstaller::ApplySettings(const std::vector<ServiceSetting> &settings, bool useDefault) {
   for(auto setting : settings) {
-    auto isEnabled = useDefault ? setting.defaultVal : setting.enabled;
-    if(setting.id == "waitForKey") {
+    if(setting.id == "unlockBehavior") {
       auto storage = AppSettings::Get();
-      storage.winWaitForKeyPress = isEnabled;
+      storage.winUnlockBehavior = useDefault ? setting.defaultValue : setting.selectedValue;
       AppSettings::Save(storage);
     } else if(setting.id == "hidePasswordField") {
       auto storage = AppSettings::Get();
-      storage.winHidePasswordField = isEnabled;
+      storage.winHidePasswordField = useDefault ? setting.defaultVal : setting.enabled;
+      AppSettings::Save(storage);
+    } else if(setting.id == "forceCredProv") {
+      auto storage = AppSettings::Get();
+      storage.winForceDefaultCredProv = useDefault ? setting.defaultVal : setting.enabled;
       AppSettings::Save(storage);
     } else {
       spdlog::warn("Unknown service setting {}.", setting.id);

@@ -145,7 +145,13 @@
   "pairing_method_manual_udp_desc": "Works on any local network or Wi-Fi. Both devices have to be on the same network.",
 
   "service_setting_wait_for_key": "Wait for key press at login",
+  "service_setting_unlock_behavior": "Unlock behavior",
+  "unlock_behavior_foreground_lock_only": "Wait on lock, instant on login",
+  "unlock_behavior_foreground_always": "Wait until login screen is shown",
+  "unlock_behavior_key_press": "Wait for key press",
+  "unlock_behavior_none": "Trigger immediately",
   "service_setting_hide_pw_field": "Hide password field on login screen",
+  "service_setting_force_cred_prov": "Always pre-select this login provider",
   "service_setting_sudo": "Enable sudo integration",
   "service_setting_polkit": "Enable polkit integration",
   "service_setting_login_manager": "Enable login manager integration",

@@ -4,17 +4,43 @@
 #include <functional>
 #include <spdlog/spdlog.h>
 #include <string>
+#include <vector>
 
 #include "utils/I18n.h"
 #if defined(LINUX) || defined(APPLE)
 #include "PAMHelper.h"
 #endif
 
+struct ServiceSettingOption {
+  std::string value{};
+  std::string name{};
+};
+
 struct ServiceSetting {
+  std::string type{};
   std::string id{};
   std::string name{};
+
+  // Toggle
   bool enabled{};
   bool defaultVal{};
+
+  // Choice
+  std::vector<ServiceSettingOption> options{};
+  std::string selectedValue{};
+  std::string defaultValue{};
+
+  // Toggle setting
+  ServiceSetting(std::string id, std::string name, bool enabled, bool defaultVal)
+      : type("toggle"), id(std::move(id)), name(std::move(name)), enabled(enabled), defaultVal(defaultVal) {}
+
+  // Choice setting
+  ServiceSetting(std::string id, std::string name, std::vector<ServiceSettingOption> options, std::string selectedValue,
+                 std::string defaultValue)
+      : type("choice"), id(std::move(id)), name(std::move(name)), options(std::move(options)), selectedValue(std::move(selectedValue)),
+        defaultValue(std::move(defaultValue)) {}
+
+  ServiceSetting() = default;
 };
 
 class ServiceInstaller {

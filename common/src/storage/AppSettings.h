@@ -20,7 +20,7 @@ struct PCBUAppStorage {
   uint32_t clientConnectTimeout{};
   uint32_t clientConnectRetries{};
 
-  bool winWaitForKeyPress{};
+  std::string winUnlockBehavior{};
   bool winHidePasswordField{};
   bool winForceDefaultCredProv{};
   bool unixSetPasswordPAM{};
