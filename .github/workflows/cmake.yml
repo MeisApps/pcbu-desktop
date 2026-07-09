@@ -31,7 +31,7 @@ jobs:
           cache-key-prefix: "qt-x64"
 
       - name: vcpkg build x64
-        uses: johnwason/vcpkg-action@v7
+        uses: johnwason/vcpkg-action@v8
         with:
           pkgs: openssl
           triplet: x64-windows-static
@@ -44,7 +44,7 @@ jobs:
           VCPKG_ROOT: ${{github.workspace}}/vcpkg
 
       - name: Upload x64
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           files: |
             pkg/build/PCBioUnlock-Setup-x64.exe
@@ -52,7 +52,7 @@ jobs:
   build-windows-arm64:
     runs-on: windows-11-arm
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           submodules: recursive
 
@@ -99,7 +99,7 @@ jobs:
           cache-key-prefix: "qt-arm64"
 
       - name: vcpkg build arm64
-        uses: johnwason/vcpkg-action@v7
+        uses: johnwason/vcpkg-action@v8
         with:
           pkgs: openssl
           triplet: arm64-windows-static
@@ -112,7 +112,7 @@ jobs:
           VCPKG_ROOT: ${{github.workspace}}/vcpkg
 
       - name: Upload arm64
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           files: |
             pkg/build/PCBioUnlock-Setup-arm64.exe
@@ -120,7 +120,7 @@ jobs:
   build-linux-x64:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           submodules: recursive
 
@@ -128,7 +128,7 @@ jobs:
         run: bash -c "cd ${{github.workspace}}/pkg/linux && chmod +x docker-build.sh && ARCH=x64 ./docker-build.sh"
 
       - name: Upload
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           files: |
             pkg/build/PCBioUnlock-x64.AppImage
@@ -136,7 +136,7 @@ jobs:
   build-linux-arm64:
     runs-on: ubuntu-24.04-arm
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           submodules: recursive
 
@@ -144,7 +144,7 @@ jobs:
         run: bash -c "cd ${{github.workspace}}/pkg/linux && chmod +x docker-build.sh && ARCH=arm64 ./docker-build.sh"
 
       - name: Upload
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           files: |
             pkg/build/PCBioUnlock-arm64.AppImage
@@ -152,7 +152,7 @@ jobs:
   build-mac-arm64:
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           submodules: recursive
 
@@ -172,7 +172,7 @@ jobs:
         run: bash -c "cd pkg && rm -Rf ./build/ && ARCH=arm64 QT_BASE_DIR=/opt/Qt/${{env.QT_VERSION}} CI_BUILD=1 ./build-desktop.sh"
 
       - name: Upload
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           files: |
             pkg/build/PCBioUnlock-arm64.dmg
