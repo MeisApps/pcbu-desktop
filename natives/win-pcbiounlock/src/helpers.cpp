@@ -11,6 +11,7 @@
 
 #include "helpers.h"
 #include <intsafe.h>
+#include <wtsapi32.h>
 
 //
 // Copies the field descriptor pointed to by rcpfd into a buffer allocated
@@ -551,4 +552,47 @@ HRESULT SplitDomainAndUsername(_In_ PCWSTR pszQualifiedUserName, _Outptr_result_
     }
   }
   return hr;
+}
+
+static bool WEqualsIgnoreCase(const std::wstring &a, const std::wstring &b) {
+  return CompareStringOrdinal(a.c_str(), -1, b.c_str(), -1, TRUE) == CSTR_EQUAL;
+}
+
+static bool SessionMatchesUser(DWORD sessionId, const std::wstring &domain, const std::wstring &user) {
+  bool match = false;
+  LPWSTR pUser = nullptr;
+  DWORD userBytes = 0;
+  if(WTSQuerySessionInformationW(WTS_CURRENT_SERVER_HANDLE, sessionId, WTSUserName, &pUser, &userBytes) && pUser) {
+    if(pUser[0] != L'\0' && WEqualsIgnoreCase(pUser, user)) {
+      LPWSTR pDomain = nullptr;
+      DWORD domainBytes = 0;
+      if(WTSQuerySessionInformationW(WTS_CURRENT_SERVER_HANDLE, sessionId, WTSDomainName, &pDomain, &domainBytes) && pDomain) {
+        match = WEqualsIgnoreCase(pDomain, domain);
+        WTSFreeMemory(pDomain);
+      } else {
+        match = true;
+      }
+    }
+    WTSFreeMemory(pUser);
+  }
+  return match;
+}
+
+bool IsUserLoggedOn(const std::wstring &userDomain) {
+  const auto sep = userDomain.find(L'\\');
+  if(sep == std::wstring::npos)
+    return false;
+  const std::wstring domain = userDomain.substr(0, sep);
+  const std::wstring user = userDomain.substr(sep + 1);
+
+  PWTS_SESSION_INFOW pSessions = nullptr;
+  DWORD count = 0;
+  if(!WTSEnumerateSessionsW(WTS_CURRENT_SERVER_HANDLE, 0, 1, &pSessions, &count))
+    return false;
+
+  bool loggedOn = false;
+  for(DWORD i = 0; i < count && !loggedOn; i++)
+    loggedOn = SessionMatchesUser(pSessions[i].SessionId, domain, user);
+  WTSFreeMemory(pSessions);
+  return loggedOn;
 }

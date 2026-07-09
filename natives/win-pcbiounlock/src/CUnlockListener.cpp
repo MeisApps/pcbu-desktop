@@ -2,6 +2,7 @@
 
 #include "CSampleProvider.h"
 #include "handler/UnlockHandler.h"
+#include "helpers.h"
 #include "platform/NetworkHelper.h"
 #include "storage/AppSettings.h"
 #include "utils/StringUtils.h"
@@ -87,6 +88,7 @@ void CUnlockListener::ListenThread() {
 
     // Unlock behavior
     if(!m_IgnoreWaitKeyPress) {
+      const bool isUnlock = m_ProviderUsage == CPUS_UNLOCK_WORKSTATION || (m_ProviderUsage == CPUS_LOGON && IsUserLoggedOn(m_UserDomain));
       if(storage.winUnlockBehavior == "key_press") {
         Sleep(500);
         m_Credential->UpdateMessage(I18n::Get("wait_key_press"));
@@ -99,7 +101,7 @@ void CUnlockListener::ListenThread() {
             break;
           Sleep(10);
         }
-      } else if(storage.winUnlockBehavior == "foreground_always" || (storage.winUnlockBehavior == "foreground_lock_only" && m_ProviderUsage == CPUS_UNLOCK_WORKSTATION)) {
+      } else if(storage.winUnlockBehavior == "foreground_always" || (storage.winUnlockBehavior == "foreground_lock_only" && isUnlock)) {
         // HACK: Might not be 100% reliable
         DWORD currentProcessId = GetCurrentProcessId();
         while(m_IsRunning) {
