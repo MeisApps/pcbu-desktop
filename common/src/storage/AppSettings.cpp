@@ -61,6 +61,7 @@ PCBUAppStorage AppSettings::Load() {
 
     settings.winWaitForKeyPress = json["winWaitForKeyPress"];
     settings.winHidePasswordField = json["winHidePasswordField"];
+    settings.winForceDefaultCredProv = json.value("winForceDefaultCredProv", true);
     settings.unixSetPasswordPAM = json["unixSetPasswordPAM"];
     if(save) {
       g_Mutex.unlock();
@@ -83,6 +84,7 @@ PCBUAppStorage AppSettings::Load() {
 
     def.winWaitForKeyPress = true;
     def.winHidePasswordField = false;
+    def.winForceDefaultCredProv = true;
     def.unixSetPasswordPAM = false;
     g_Mutex.unlock();
     Save(def);
@@ -109,6 +111,7 @@ void AppSettings::Save(const PCBUAppStorage &storage) {
 
         {"winWaitForKeyPress", storage.winWaitForKeyPress},
         {"winHidePasswordField", storage.winHidePasswordField},
+        {"winForceDefaultCredProv", storage.winForceDefaultCredProv},
         {"unixSetPasswordPAM", storage.unixSetPasswordPAM},
     };
     auto baseDir = GetBaseDir();

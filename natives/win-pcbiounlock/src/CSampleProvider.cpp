@@ -17,6 +17,7 @@
 #include "CSampleProvider.h"
 #include "CUnlockCredential.h"
 #include "guid.h"
+#include "storage/AppSettings.h"
 #include "storage/LoggingSystem.h"
 #include "storage/PairedDevicesStorage.h"
 #include "utils/StringUtils.h"
@@ -162,18 +163,27 @@ HRESULT CSampleProvider::GetFieldDescriptorAt(DWORD dwIndex, _Outptr_result_null
 // GetSerialization on the credential you've specified as the default and will submit
 // that credential for authentication without showing any further UI.
 HRESULT CSampleProvider::GetCredentialCount(_Out_ DWORD *pdwCount, _Out_ DWORD *pdwDefault, _Out_ BOOL *pbAutoLogonWithDefault) {
+  *pdwDefault = CREDENTIAL_PROVIDER_NO_DEFAULT;
   *pbAutoLogonWithDefault = FALSE;
+
+  bool recreated = false;
   if(_fRecreateEnumeratedCredentials) {
     _fRecreateEnumeratedCredentials = false;
     _ReleaseEnumeratedCredentials();
     _CreateEnumeratedCredentials();
+    recreated = true;
   }
 
   int idx{};
+  bool forceDefaultProv = AppSettings::Get().winForceDefaultCredProv;
   for(const auto cred : _pCredentials) {
-    if(cred->_unlockResult.state == UnlockState::SUCCESS) {
+    if(cred->IsUnlockSuccess()) {
       *pdwDefault = idx;
       *pbAutoLogonWithDefault = TRUE;
+      break;
+    }
+    if (recreated && forceDefaultProv && *pdwDefault == CREDENTIAL_PROVIDER_NO_DEFAULT) {
+      *pdwDefault = idx;
     }
     idx++;
   }
@@ -231,9 +241,9 @@ void CSampleProvider::_ReleaseEnumeratedCredentials() {
 HRESULT CSampleProvider::_EnumerateCredentials() {
   HRESULT hr = S_OK;
   if(_pCredProviderUserArray != nullptr) {
-    DWORD dwUserCount;
-    _pCredProviderUserArray->GetCount(&dwUserCount);
-    if(dwUserCount > 0) {
+    DWORD dwUserCount = 0;
+    hr = _pCredProviderUserArray->GetCount(&dwUserCount);
+    if(SUCCEEDED(hr) && dwUserCount > 0) {
       for(DWORD i = 0; i < dwUserCount; i++) {
         ICredentialProviderUser *pCredUser;
         hr = _pCredProviderUserArray->GetAt(i, &pCredUser);
@@ -243,7 +253,7 @@ HRESULT CSampleProvider::_EnumerateCredentials() {
           if(SUCCEEDED(hr)) {
             auto userDomainStr = StringUtils::FromWideString(std::wstring(userDomain));
             auto userDevices = PairedDevicesStorage::GetDevicesForUser(userDomainStr);
-            for(auto userDevice : userDevices) {
+            if(!userDevices.empty()) {
               auto cred = new(std::nothrow) CUnlockCredential();
               if(cred != nullptr) {
                 hr = cred->Initialize(_cpus, _rgCredProvFieldDescriptors.data(), s_rgFieldStatePairs, pCredUser, this, userDomain);
@@ -259,9 +269,11 @@ HRESULT CSampleProvider::_EnumerateCredentials() {
                 hr = E_OUTOFMEMORY;
               }
             }
+            CoTaskMemFree(userDomain);
           } else {
             spdlog::error("Failed to get QualifiedUserName.");
           }
+          pCredUser->Release();
         } else {
           spdlog::error("Failed to get user in credProviderUserArray.");
           hr = E_OUTOFMEMORY;

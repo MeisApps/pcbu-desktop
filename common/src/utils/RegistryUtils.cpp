@@ -47,6 +47,14 @@ bool RegistryUtils::SetStringValue(HKEY hKeyParent, const std::string &subKey, c
   return true;
 }
 
+bool RegistryUtils::SetStringValueOrCreate(HKEY hKeyParent, const std::string &subKey, const std::string &valueName, const std::string &newValue) {
+  if (SetStringValue(hKeyParent, subKey, valueName, newValue))
+    return true;
+  if (!CreateKey(hKeyParent, subKey))
+    return false;
+  return SetStringValue(hKeyParent, subKey, valueName, newValue);
+}
+
 bool RegistryUtils::CreateKey(HKEY hKeyParent, const std::string &subKey) {
   HKEY hKey;
   LONG result = RegCreateKeyExA(hKeyParent, subKey.c_str(), 0, nullptr, 0, KEY_CREATE_SUB_KEY, nullptr, &hKey, nullptr);

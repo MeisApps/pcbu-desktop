@@ -16,6 +16,7 @@
 #pragma once
 
 // clang-format off
+#include <mutex>
 #include <string>
 #include <windows.h>
 #include <strsafe.h>
@@ -96,6 +97,7 @@ public:
   CUnlockCredential();
 
   bool IsSelected() const;
+  bool IsUnlockSuccess() const;
   void SetUnlockData(const UnlockResult &result);
   void UpdateMessage(const std::string &message);
 
@@ -119,4 +121,5 @@ public:
   CUnlockListener *_pUnlockListener{};
   UnlockResult _unlockResult{};
   bool _isSelected{};
+  mutable std::mutex _mutex{};
 };

@@ -31,6 +31,7 @@ CUnlockCredential::CUnlockCredential()
 CUnlockCredential::~CUnlockCredential() {
   if(_pUnlockListener != nullptr) {
     _pUnlockListener->Release();
+    delete _pUnlockListener;
     _pUnlockListener = nullptr;
   }
   if(_rgFieldStrings[SFI_PASSWORD]) {
@@ -104,33 +105,69 @@ bool CUnlockCredential::IsSelected() const {
   return _isSelected;
 }
 
+bool CUnlockCredential::IsUnlockSuccess() const {
+  std::lock_guard<std::mutex> lock(_mutex);
+  return _unlockResult.state == UnlockState::SUCCESS;
+}
+
 void CUnlockCredential::SetUnlockData(const UnlockResult &result) {
-  _unlockResult = result;
+  {
+    std::lock_guard<std::mutex> lock(_mutex);
+    _unlockResult = result;
+  }
   UpdateMessage(UnlockStateUtils::ToString(result.state));
 }
 
 void CUnlockCredential::UpdateMessage(const std::string &message) {
-  if(_rgFieldStrings[SFI_MESSAGE])
-    CoTaskMemFree(_rgFieldStrings[SFI_MESSAGE]);
-  SHStrDupW(StringUtils::ToWideString(message).c_str(), &_rgFieldStrings[SFI_MESSAGE]);
-  if(_pCredProvCredentialEvents)
-    _pCredProvCredentialEvents->SetFieldString(this, SFI_MESSAGE, _rgFieldStrings[SFI_MESSAGE]);
+  const auto wideMessage = StringUtils::ToWideString(message);
+  ICredentialProviderCredentialEvents2 *events = nullptr;
+  PWSTR messageCopy = nullptr;
+  {
+    std::lock_guard<std::mutex> lock(_mutex);
+    if(_rgFieldStrings[SFI_MESSAGE])
+      CoTaskMemFree(_rgFieldStrings[SFI_MESSAGE]);
+    SHStrDupW(wideMessage.c_str(), &_rgFieldStrings[SFI_MESSAGE]);
+    if(_pCredProvCredentialEvents) {
+      events = _pCredProvCredentialEvents;
+      events->AddRef();
+      SHStrDupW(_rgFieldStrings[SFI_MESSAGE] ? _rgFieldStrings[SFI_MESSAGE] : L"", &messageCopy);
+    }
+  }
+  if(events) {
+    events->SetFieldString(this, SFI_MESSAGE, messageCopy);
+    events->Release();
+  }
+  CoTaskMemFree(messageCopy);
 }
 
 // LogonUI calls this in order to give us a callback in case we need to notify it of anything.
 HRESULT CUnlockCredential::Advise(_In_ ICredentialProviderCredentialEvents *pcpce) {
-  if(_pCredProvCredentialEvents != nullptr) {
-    _pCredProvCredentialEvents->Release();
+  ICredentialProviderCredentialEvents2 *events = nullptr;
+  PWSTR messageCopy = nullptr;
+  HRESULT result;
+  {
+    std::lock_guard<std::mutex> lock(_mutex);
+    if(_pCredProvCredentialEvents != nullptr) {
+      _pCredProvCredentialEvents->Release();
+    }
+    result = pcpce->QueryInterface(IID_PPV_ARGS(&_pCredProvCredentialEvents));
+    if(_pCredProvCredentialEvents) {
+      events = _pCredProvCredentialEvents;
+      events->AddRef();
+      SHStrDupW(_rgFieldStrings[SFI_MESSAGE] ? _rgFieldStrings[SFI_MESSAGE] : L"", &messageCopy);
+    }
   }
-
-  auto result = pcpce->QueryInterface(IID_PPV_ARGS(&_pCredProvCredentialEvents));
-  if(_pCredProvCredentialEvents)
-    _pCredProvCredentialEvents->SetFieldString(this, SFI_MESSAGE, _rgFieldStrings[SFI_MESSAGE]);
+  if(events) {
+    events->SetFieldString(this, SFI_MESSAGE, messageCopy);
+    events->Release();
+  }
+  CoTaskMemFree(messageCopy);
   return result;
 }
 
 // LogonUI calls this to tell us to release the callback.
 HRESULT CUnlockCredential::UnAdvise() {
+  std::lock_guard<std::mutex> lock(_mutex);
   if(_pCredProvCredentialEvents) {
     _pCredProvCredentialEvents->Release();
   }
@@ -149,7 +186,7 @@ HRESULT CUnlockCredential::SetSelected(_Out_ BOOL *pbAutoLogon) {
   if(_pUnlockListener != nullptr) {
     _pUnlockListener->Start();
   }
-  *pbAutoLogon = _unlockResult.state == UnlockState::SUCCESS;
+  *pbAutoLogon = IsUnlockSuccess();
   return S_OK;
 }
 
@@ -183,9 +220,14 @@ HRESULT CUnlockCredential::GetFieldState(DWORD dwFieldID, _Out_ CREDENTIAL_PROVI
   HRESULT hr;
   // Validate our parameters.
   if((dwFieldID < ARRAYSIZE(_rgFieldStatePairs))) {
+    UnlockState unlockState;
+    {
+      std::lock_guard<std::mutex> lock(_mutex);
+      unlockState = _unlockResult.state;
+    }
     auto hideUsername = dwFieldID == SFI_USERNAME && _cpus != CPUS_CREDUI;
     auto hidePasswordField = dwFieldID == SFI_PASSWORD && AppSettings::Get().winHidePasswordField;
-    auto hideRetryButton = dwFieldID == SFI_RETRY_BUTTON && (_unlockResult.state == UnlockState::UNKNOWN || _unlockResult.state == UnlockState::SUCCESS);
+    auto hideRetryButton = dwFieldID == SFI_RETRY_BUTTON && (unlockState == UnlockState::UNKNOWN || unlockState == UnlockState::SUCCESS);
     if(hideUsername || hidePasswordField || hideRetryButton)
     {
       *pcpfs = CPFS_HIDDEN;
@@ -210,6 +252,7 @@ HRESULT CUnlockCredential::GetStringValue(DWORD dwFieldID, _Outptr_result_nullon
   if(dwFieldID < ARRAYSIZE(_rgCredProvFieldDescriptors)) {
     // Make a copy of the string and return that. The caller
     // is responsible for freeing it.
+    std::lock_guard<std::mutex> lock(_mutex);
     hr = SHStrDupW(_rgFieldStrings[dwFieldID], ppwsz);
   } else {
     hr = E_INVALIDARG;
@@ -278,6 +321,7 @@ HRESULT CUnlockCredential::SetStringValue(DWORD dwFieldID, _In_ PCWSTR pwz) {
   // Validate parameters.
   if(dwFieldID < ARRAYSIZE(_rgCredProvFieldDescriptors) &&
      (CPFT_EDIT_TEXT == _rgCredProvFieldDescriptors[dwFieldID].cpft || CPFT_PASSWORD_TEXT == _rgCredProvFieldDescriptors[dwFieldID].cpft)) {
+    std::lock_guard<std::mutex> lock(_mutex);
     PWSTR *ppwszStored = &_rgFieldStrings[dwFieldID];
     CoTaskMemFree(*ppwszStored);
     hr = SHStrDupW(pwz, ppwszStored);
@@ -330,7 +374,10 @@ HRESULT CUnlockCredential::SetComboBoxSelectedValue(__in DWORD dwFieldId, __in D
 HRESULT CUnlockCredential::CommandLinkClicked(__in DWORD dwFieldID) {
   HRESULT hr;
   if(dwFieldID == SFI_RETRY_BUTTON) {
-    _unlockResult = {};
+    {
+      std::lock_guard<std::mutex> lock(_mutex);
+      _unlockResult = {};
+    }
     if(_pUnlockListener != nullptr) {
       _pUnlockListener->Stop();
       _pUnlockListener->Start(true);
@@ -360,12 +407,16 @@ HRESULT CUnlockCredential::GetSerialization(_Out_ CREDENTIAL_PROVIDER_GET_SERIAL
 
   // Check for password or unlock success
   std::wstring pwd;
-  if(_unlockResult.state == UnlockState::SUCCESS) {
-    pwd = StringUtils::ToWideString(_unlockResult.password);
-  } else if(_rgFieldStrings[SFI_PASSWORD] && lstrlenW(_rgFieldStrings[SFI_PASSWORD]) >= 1) {
-    pwd = std::wstring(_rgFieldStrings[SFI_PASSWORD]);
-  } else {
-    return E_ABORT;
+  {
+    std::lock_guard<std::mutex> lock(_mutex);
+    if(_unlockResult.state == UnlockState::SUCCESS) {
+      pwd = StringUtils::ToWideString(_unlockResult.password);
+      _unlockResult.state = UnlockState::UNKNOWN;
+    } else if(_rgFieldStrings[SFI_PASSWORD] && lstrlenW(_rgFieldStrings[SFI_PASSWORD]) >= 1) {
+      pwd = std::wstring(_rgFieldStrings[SFI_PASSWORD]);
+    } else {
+      return E_ABORT;
+    }
   }
 
   // For local user, the domain and user name can be split from _pszQualifiedUserName (domain\username).
@@ -472,7 +523,10 @@ HRESULT CUnlockCredential::ReportResult(NTSTATUS ntsStatus, NTSTATUS ntsSubstatu
       },
       {STATUS_ACCOUNT_RESTRICTION, STATUS_ACCOUNT_DISABLED, StringUtils::ToWideString(I18n::Get("error_account_disabled")), CPSI_WARNING},
   };
-  _unlockResult = UnlockResult(UnlockState::UNKNOWN);
+  {
+    std::lock_guard<std::mutex> lock(_mutex);
+    _unlockResult = UnlockResult(UnlockState::UNKNOWN);
+  }
   DWORD dwStatusInfo = (DWORD)-1;
 
   // Look for a match on status and substatus.
