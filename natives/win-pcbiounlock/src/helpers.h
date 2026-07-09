@@ -74,3 +74,4 @@ HRESULT SplitDomainAndUsername(_In_ PCWSTR pszQualifiedUserName, _Outptr_result_
                                _Outptr_result_nullonfailure_ PWSTR *ppszUsername);
 
 bool IsUserLoggedOn(const std::wstring &userDomain);
+bool IsAnyUserLoggedOn();

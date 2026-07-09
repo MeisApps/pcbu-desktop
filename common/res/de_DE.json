@@ -149,6 +149,7 @@
   "unlock_behavior_foreground_lock_only": "Beim Sperren warten, bei Anmeldung sofort",
   "unlock_behavior_foreground_always": "Warten, bis der Anmeldebildschirm erscheint",
   "unlock_behavior_key_press": "Auf Tastendruck warten",
+  "unlock_behavior_key_press_lock_only": "Bei Sperre auf Tastendruck warten, bei Anmeldung sofort",
   "unlock_behavior_none": "Sofort auslösen",
   "service_setting_hide_pw_field": "Passwortfeld auf Anmeldebildschirm ausblenden",
   "service_setting_force_cred_prov": "Anmeldeanbieter immer vorauswählen",

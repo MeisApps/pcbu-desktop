@@ -596,3 +596,22 @@ bool IsUserLoggedOn(const std::wstring &userDomain) {
   WTSFreeMemory(pSessions);
   return loggedOn;
 }
+
+bool IsAnyUserLoggedOn() {
+  PWTS_SESSION_INFOW pSessions = nullptr;
+  DWORD count = 0;
+  if(!WTSEnumerateSessionsW(WTS_CURRENT_SERVER_HANDLE, 0, 1, &pSessions, &count))
+    return false;
+
+  bool loggedOn = false;
+  for(DWORD i = 0; i < count && !loggedOn; i++) {
+    LPWSTR pUser = nullptr;
+    DWORD userBytes = 0;
+    if(WTSQuerySessionInformationW(WTS_CURRENT_SERVER_HANDLE, pSessions[i].SessionId, WTSUserName, &pUser, &userBytes) && pUser) {
+      loggedOn = pUser[0] != L'\0';
+      WTSFreeMemory(pUser);
+    }
+  }
+  WTSFreeMemory(pSessions);
+  return loggedOn;
+}

@@ -89,7 +89,8 @@ void CUnlockListener::ListenThread() {
     // Unlock behavior
     if(!m_IgnoreWaitKeyPress) {
       const bool isUnlock = m_ProviderUsage == CPUS_UNLOCK_WORKSTATION || (m_ProviderUsage == CPUS_LOGON && IsUserLoggedOn(m_UserDomain));
-      if(storage.winUnlockBehavior == "key_press") {
+      const bool hasExistingSession = m_ProviderUsage == CPUS_UNLOCK_WORKSTATION || (m_ProviderUsage == CPUS_LOGON && IsAnyUserLoggedOn());
+      if(storage.winUnlockBehavior == "key_press" || (storage.winUnlockBehavior == "key_press_lock_only" && hasExistingSession)) {
         Sleep(500);
         m_Credential->UpdateMessage(I18n::Get("wait_key_press"));
         byte lastKeys[KEY_RANGE];
