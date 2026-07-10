@@ -13,9 +13,9 @@ env:
 
 jobs:
   build-windows-x64:
-    runs-on: windows-2022
+    runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           submodules: recursive
 
@@ -50,7 +50,7 @@ jobs:
             pkg/build/PCBioUnlock-Setup-x64.exe
 
   build-windows-arm64:
-    runs-on: windows-11-arm
+    runs-on: windows-11-vs2026-arm
     steps:
       - uses: actions/checkout@v7
         with:
