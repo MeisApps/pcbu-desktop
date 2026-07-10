@@ -22,7 +22,7 @@ add_library(win-pcbiounlock SHARED
         src/CUnlockListener.cpp
 )
 target_include_directories(win-pcbiounlock PUBLIC common-cpp/src)
-target_link_libraries(win-pcbiounlock PUBLIC Credui Shlwapi Secur32 Wtsapi32 pcbu_common)
+target_link_libraries(win-pcbiounlock PUBLIC Credui Netapi32 Shlwapi Secur32 Wtsapi32 pcbu_common)
 add_custom_command(TARGET win-pcbiounlock
         POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_SOURCE_DIR}/desktop/res/natives/${TARGET_OS}/${TARGET_ARCH}

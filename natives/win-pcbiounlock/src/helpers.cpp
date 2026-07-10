@@ -11,6 +11,7 @@
 
 #include "helpers.h"
 #include <intsafe.h>
+#include <lm.h>
 #include <wtsapi32.h>
 
 //
@@ -558,19 +559,36 @@ static bool WEqualsIgnoreCase(const std::wstring &a, const std::wstring &b) {
   return CompareStringOrdinal(a.c_str(), -1, b.c_str(), -1, TRUE) == CSTR_EQUAL;
 }
 
+static std::wstring GetMicrosoftAccountEmail(const std::wstring &userName) {
+  LPUSER_INFO_24 info = nullptr;
+  std::wstring email{};
+  if(NetUserGetInfo(nullptr, userName.c_str(), 24, reinterpret_cast<LPBYTE *>(&info)) == NERR_Success && info != nullptr) {
+    if(info->usri24_internet_identity && info->usri24_internet_principal_name != nullptr)
+      email = info->usri24_internet_principal_name;
+  }
+  if(info != nullptr)
+    NetApiBufferFree(info);
+  return email;
+}
+
 static bool SessionMatchesUser(DWORD sessionId, const std::wstring &domain, const std::wstring &user) {
   bool match = false;
   LPWSTR pUser = nullptr;
   DWORD userBytes = 0;
   if(WTSQuerySessionInformationW(WTS_CURRENT_SERVER_HANDLE, sessionId, WTSUserName, &pUser, &userBytes) && pUser) {
-    if(pUser[0] != L'\0' && WEqualsIgnoreCase(pUser, user)) {
-      LPWSTR pDomain = nullptr;
-      DWORD domainBytes = 0;
-      if(WTSQuerySessionInformationW(WTS_CURRENT_SERVER_HANDLE, sessionId, WTSDomainName, &pDomain, &domainBytes) && pDomain) {
-        match = WEqualsIgnoreCase(pDomain, domain);
-        WTSFreeMemory(pDomain);
-      } else {
-        match = true;
+    if(pUser[0] != L'\0') {
+      if(WEqualsIgnoreCase(domain, L"MicrosoftAccount")) {
+        const auto email = GetMicrosoftAccountEmail(pUser);
+        match = !email.empty() && WEqualsIgnoreCase(email, user);
+      } else if(WEqualsIgnoreCase(pUser, user)) {
+        LPWSTR pDomain = nullptr;
+        DWORD domainBytes = 0;
+        if(WTSQuerySessionInformationW(WTS_CURRENT_SERVER_HANDLE, sessionId, WTSDomainName, &pDomain, &domainBytes) && pDomain) {
+          match = WEqualsIgnoreCase(pDomain, domain);
+          WTSFreeMemory(pDomain);
+        } else {
+          match = true;
+        }
       }
     }
     WTSFreeMemory(pUser);
