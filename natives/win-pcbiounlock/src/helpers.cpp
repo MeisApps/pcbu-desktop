@@ -596,7 +596,27 @@ static bool SessionMatchesUser(DWORD sessionId, const std::wstring &domain, cons
   return match;
 }
 
-bool IsUserLoggedOn(const std::wstring &userDomain) {
+static LONGLONG GetSessionLogonTimeSeconds(DWORD sessionId) {
+  LPWSTR pInfo = nullptr;
+  DWORD infoBytes = 0;
+  LONGLONG seconds = 0;
+  if(WTSQuerySessionInformationW(WTS_CURRENT_SERVER_HANDLE, sessionId, WTSSessionInfo, &pInfo, &infoBytes) && pInfo) {
+    const auto info = reinterpret_cast<PWTSINFOW>(pInfo);
+    if(info->LogonTime.QuadPart > 0) {
+      FILETIME ftNow{};
+      GetSystemTimeAsFileTime(&ftNow);
+      ULARGE_INTEGER now{};
+      now.LowPart = ftNow.dwLowDateTime;
+      now.HighPart = ftNow.dwHighDateTime;
+      if(static_cast<LONGLONG>(now.QuadPart) >= info->LogonTime.QuadPart)
+        seconds = (static_cast<LONGLONG>(now.QuadPart) - info->LogonTime.QuadPart) / 10000000LL;
+    }
+    WTSFreeMemory(pInfo);
+  }
+  return seconds;
+}
+
+bool IsUserLoggedOn(const std::wstring &userDomain, LONGLONG minLogonTimeSecs) {
   const auto sep = userDomain.find(L'\\');
   if(sep == std::wstring::npos)
     return false;
@@ -609,8 +629,11 @@ bool IsUserLoggedOn(const std::wstring &userDomain) {
     return false;
 
   bool loggedOn = false;
-  for(DWORD i = 0; i < count && !loggedOn; i++)
-    loggedOn = SessionMatchesUser(pSessions[i].SessionId, domain, user);
+  for(DWORD i = 0; i < count && !loggedOn; i++) {
+    const auto &session = pSessions[i];
+    if(SessionMatchesUser(session.SessionId, domain, user) && GetSessionLogonTimeSeconds(session.SessionId) >= minLogonTimeSecs)
+      loggedOn = true;
+  }
   WTSFreeMemory(pSessions);
   return loggedOn;
 }

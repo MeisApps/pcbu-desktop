@@ -73,4 +73,4 @@ HRESULT DomainUsernameStringAlloc(_In_ PCWSTR pwszDomain, _In_ PCWSTR pwszUserna
 HRESULT SplitDomainAndUsername(_In_ PCWSTR pszQualifiedUserName, _Outptr_result_nullonfailure_ PWSTR *ppszDomain,
                                _Outptr_result_nullonfailure_ PWSTR *ppszUsername);
 
-bool IsUserLoggedOn(const std::wstring &userDomain);
+bool IsUserLoggedOn(const std::wstring &userDomain, LONGLONG minLogonTimeSecs);

@@ -69,6 +69,8 @@ void CUnlockListener::ListenThread() {
     return device.pairingMethod == PairingMethod::TCP || device.pairingMethod == PairingMethod::UDP || device.pairingMethod == PairingMethod::MANUAL_UDP;
   });
   if(m_ProviderUsage == CPUS_LOGON || m_ProviderUsage == CPUS_UNLOCK_WORKSTATION) {
+    const bool isUserLoggedOn = IsUserLoggedOn(m_UserDomain, 15);
+
     // Network
     if(waitForNetwork) {
       m_Credential->UpdateMessage(I18n::Get("wait_network"));
@@ -88,7 +90,7 @@ void CUnlockListener::ListenThread() {
 
     // Unlock behavior
     if(!m_IgnoreWaitKeyPress) {
-      const bool isUnlock = m_ProviderUsage == CPUS_UNLOCK_WORKSTATION || (m_ProviderUsage == CPUS_LOGON && IsUserLoggedOn(m_UserDomain));
+      const bool isUnlock = m_ProviderUsage == CPUS_UNLOCK_WORKSTATION || (m_ProviderUsage == CPUS_LOGON && isUserLoggedOn);
       if(storage.winUnlockBehavior == "key_press") {
         Sleep(500);
         m_Credential->UpdateMessage(I18n::Get("wait_key_press"));
