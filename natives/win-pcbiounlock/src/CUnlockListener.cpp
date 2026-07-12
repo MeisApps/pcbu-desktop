@@ -91,7 +91,7 @@ void CUnlockListener::ListenThread() {
     // Unlock behavior
     if(!m_IgnoreWaitKeyPress) {
       const bool isUnlock = m_ProviderUsage == CPUS_UNLOCK_WORKSTATION || (m_ProviderUsage == CPUS_LOGON && isUserLoggedOn);
-      if(storage.winUnlockBehavior == "key_press") {
+      const auto waitForKeyPress = [this]() {
         Sleep(500);
         m_Credential->UpdateMessage(I18n::Get("wait_key_press"));
         byte lastKeys[KEY_RANGE];
@@ -103,7 +103,10 @@ void CUnlockListener::ListenThread() {
             break;
           Sleep(10);
         }
-      } else if(storage.winUnlockBehavior == "foreground_always" || (storage.winUnlockBehavior == "foreground_lock_only" && isUnlock)) {
+      };
+      if(storage.winUnlockBehavior == "key_press" || (storage.winUnlockBehavior == "foreground_lock_only" && isUnlock)) {
+        waitForKeyPress();
+      } else if(storage.winUnlockBehavior == "foreground_always") {
         // HACK: Might not be 100% reliable
         DWORD currentProcessId = GetCurrentProcessId();
         while(m_IsRunning) {
