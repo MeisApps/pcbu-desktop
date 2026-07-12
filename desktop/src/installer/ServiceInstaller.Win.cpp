@@ -33,10 +33,11 @@ std::vector<ServiceSetting> ServiceInstaller::GetSettings() {
        {
            {"foreground_lock_only", I18n::Get("unlock_behavior_foreground_lock_only")},
            {"foreground_always", I18n::Get("unlock_behavior_foreground_always")},
+           {"key_press_lock_only", I18n::Get("unlock_behavior_key_press_lock_only")},
            {"key_press", I18n::Get("unlock_behavior_key_press")},
            {"none", I18n::Get("unlock_behavior_none")},
        },
-       AppSettings::Get().winUnlockBehavior, "foreground_lock_only"},
+       AppSettings::Get().winUnlockBehavior, "key_press_lock_only"},
       {"hidePasswordField", I18n::Get("service_setting_hide_pw_field"), AppSettings::Get().winHidePasswordField, false},
       {"forceCredProv", I18n::Get("service_setting_force_cred_prov"), AppSettings::Get().winForceDefaultCredProv, true},
   };

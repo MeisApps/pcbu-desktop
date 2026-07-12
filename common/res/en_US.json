@@ -148,6 +148,7 @@
   "service_setting_unlock_behavior": "Unlock behavior",
   "unlock_behavior_foreground_lock_only": "Wait on lock, instant on login",
   "unlock_behavior_foreground_always": "Wait until login screen is shown",
+  "unlock_behavior_key_press_lock_only": "Key press on lock, instant on login",
   "unlock_behavior_key_press": "Wait for key press",
   "unlock_behavior_none": "Trigger immediately",
   "service_setting_hide_pw_field": "Hide password field on login screen",

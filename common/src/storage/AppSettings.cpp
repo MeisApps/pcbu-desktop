@@ -59,7 +59,7 @@ PCBUAppStorage AppSettings::Load() {
     settings.clientConnectTimeout = json["clientConnectTimeout"];
     settings.clientConnectRetries = json["clientConnectRetries"];
 
-    settings.winUnlockBehavior = json.value("winUnlockBehavior", "foreground_lock_only");
+    settings.winUnlockBehavior = json.value("winUnlockBehavior", "key_press_lock_only");
     settings.winHidePasswordField = json["winHidePasswordField"];
     settings.winForceDefaultCredProv = json.value("winForceDefaultCredProv", true);
     settings.unixSetPasswordPAM = json["unixSetPasswordPAM"];
@@ -82,7 +82,7 @@ PCBUAppStorage AppSettings::Load() {
     def.clientConnectTimeout = 5;
     def.clientConnectRetries = 2;
 
-    def.winUnlockBehavior = "foreground_lock_only";
+    def.winUnlockBehavior = "key_press_lock_only";
     def.winHidePasswordField = false;
     def.winForceDefaultCredProv = true;
     def.unixSetPasswordPAM = false;
