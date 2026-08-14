@@ -30,13 +30,38 @@ jobs:
           cache: "true"
           cache-key-prefix: "qt-x64"
 
-      - name: vcpkg build x64
-        uses: johnwason/vcpkg-action@v8
+      - name: Checkout vcpkg
+        uses: actions/checkout@v7
         with:
-          pkgs: openssl
-          triplet: x64-windows-static
-          token: ${{github.token}}
-          cache-key: "vcpkg-x64"
+          repository: microsoft/vcpkg
+          path: vcpkg
+          fetch-depth: 1
+
+      - name: Resolve vcpkg revision
+        id: vcpkg-rev
+        shell: bash
+        run: echo "sha=$(git -C vcpkg rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Cache vcpkg binaries x64
+        uses: actions/cache@v4
+        with:
+          path: ${{runner.temp}}/vcpkg_cache
+          key: "${{runner.os}}-x64-vcpkg-${{steps.vcpkg-rev.outputs.sha}}-openssl"
+          restore-keys: "${{runner.os}}-x64-vcpkg-"
+
+      - name: Bootstrap vcpkg
+        shell: cmd
+        working-directory: vcpkg
+        run: bootstrap-vcpkg.bat
+
+      - name: vcpkg build x64
+        shell: bash
+        env:
+          VCPKG_DEFAULT_BINARY_CACHE: ${{runner.temp}}/vcpkg_cache
+        run: |
+          mkdir -p "$VCPKG_DEFAULT_BINARY_CACHE"
+          ./vcpkg/vcpkg.exe install --triplet x64-windows-static openssl
+          ./vcpkg/vcpkg.exe install --triplet x64-windows-static-md openssl
 
       - name: Build x64
         run: bash -c "cd pkg && chmod +x build-desktop.sh && ARCH=x64 QT_BASE_DIR=C:/Qt/${{env.QT_VERSION}} ./build-desktop.sh"
@@ -98,13 +123,38 @@ jobs:
           cache: "true"
           cache-key-prefix: "qt-arm64"
 
-      - name: vcpkg build arm64
-        uses: johnwason/vcpkg-action@v8
+      - name: Checkout vcpkg
+        uses: actions/checkout@v7
         with:
-          pkgs: openssl
-          triplet: arm64-windows-static
-          token: ${{github.token}}
-          cache-key: "vcpkg-arm64"
+          repository: microsoft/vcpkg
+          path: vcpkg
+          fetch-depth: 1
+
+      - name: Resolve vcpkg revision
+        id: vcpkg-rev
+        shell: bash
+        run: echo "sha=$(git -C vcpkg rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Cache vcpkg binaries arm64
+        uses: actions/cache@v4
+        with:
+          path: ${{runner.temp}}/vcpkg_cache
+          key: "${{runner.os}}-arm64-vcpkg-${{steps.vcpkg-rev.outputs.sha}}-openssl"
+          restore-keys: "${{runner.os}}-arm64-vcpkg-"
+
+      - name: Bootstrap vcpkg
+        shell: cmd
+        working-directory: vcpkg
+        run: bootstrap-vcpkg.bat
+
+      - name: vcpkg build arm64
+        shell: bash
+        env:
+          VCPKG_DEFAULT_BINARY_CACHE: ${{runner.temp}}/vcpkg_cache
+        run: |
+          mkdir -p "$VCPKG_DEFAULT_BINARY_CACHE"
+          ./vcpkg/vcpkg.exe install --triplet arm64-windows-static openssl
+          ./vcpkg/vcpkg.exe install --triplet arm64-windows-static-md openssl
 
       - name: Build arm64
         run: bash -c "cd pkg && rm -Rf ./build/ && ARCH=arm64 QT_BASE_DIR=C:/Qt/${{env.QT_VERSION}} ./build-desktop.sh"

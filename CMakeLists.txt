@@ -25,6 +25,25 @@ if(WIN32)
     endif()
     file(TO_CMAKE_PATH $ENV{VCPKG_ROOT} VCPKG_ROOT)
     message(STATUS "VCPKG_ROOT set to ${VCPKG_ROOT}")
+
+    if(MSVC_STATIC_LINK)
+        set(PCBU_VCPKG_TRIPLET "${TARGET_ARCH}-windows-static")
+    else()
+        set(PCBU_VCPKG_TRIPLET "${TARGET_ARCH}-windows-static-md")
+    endif()
+    set(VCPKG_TARGET_TRIPLET "${PCBU_VCPKG_TRIPLET}" CACHE STRING "vcpkg target triplet" FORCE)
+    message(STATUS "vcpkg triplet set to ${VCPKG_TARGET_TRIPLET}")
+
+    if(NOT "${PCBU_VCPKG_TRIPLET}" STREQUAL "$CACHE{PCBU_VCPKG_TRIPLET_LAST}")
+        foreach(_pcbu_var OPENSSL_INCLUDE_DIR OPENSSL_SSL_LIBRARY OPENSSL_CRYPTO_LIBRARY
+                LIB_EAY_DEBUG LIB_EAY_RELEASE SSL_EAY_DEBUG SSL_EAY_RELEASE
+                LIB_EAY_LIBRARY_DEBUG LIB_EAY_LIBRARY_RELEASE
+                SSL_EAY_LIBRARY_DEBUG SSL_EAY_LIBRARY_RELEASE)
+            unset(${_pcbu_var} CACHE)
+        endforeach()
+        set(PCBU_VCPKG_TRIPLET_LAST "${PCBU_VCPKG_TRIPLET}" CACHE INTERNAL "last configured vcpkg triplet")
+    endif()
+
     include("${VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake")
 
     if(MSVC_STATIC_LINK)
@@ -33,7 +52,6 @@ if(WIN32)
         set(BOOST_RUNTIME_LINK static)
     endif()
     set(OPENSSL_USE_STATIC_LIBS TRUE)
-    set(OpenSSL_ROOT "${VCPKG_ROOT}/installed/${TARGET_ARCH}-windows-static")
     add_compile_definitions(_WIN32_WINNT=0x0A00)
 endif()
 
