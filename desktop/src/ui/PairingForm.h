@@ -50,6 +50,7 @@ public:
   Q_INVOKABLE QUrl GetQRImage();
   Q_INVOKABLE QString GetPairingCode();
   Q_INVOKABLE bool HasBluetooth();
+  Q_INVOKABLE void SetSkipPasswordCheck(bool skip);
 
 public slots:
   void OnBackClicked(QObject *viewLoader, QObject *window);
@@ -67,6 +68,7 @@ private:
   std::string m_EncKey{};
   std::string m_ServerId{};
   PairingAssistantModel m_PairingData{};
+  bool m_SkipPasswordCheck{};
 
   bool m_IsBluetoothScanRunning{};
   std::thread m_BluetoothScanThread{};

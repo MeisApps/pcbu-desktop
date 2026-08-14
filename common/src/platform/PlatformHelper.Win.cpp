@@ -14,13 +14,13 @@
 #include "utils/RegistryUtils.h"
 #include "utils/StringUtils.h"
 
-std::wstring PlatformHelper_ResolveMSAccount(const std::wstring &domainStr, const std::wstring &userNameStr) {
+static std::wstring PlatformHelper_ResolveMSAccount(const std::wstring &domainStr, const std::wstring &userNameStr) {
   auto qualifiedName = fmt::format(L"{}\\{}", domainStr, userNameStr);
   LPBYTE bufPtr = nullptr;
   NET_API_STATUS resultCode = NetUserGetInfo(nullptr, userNameStr.c_str(), 24, &bufPtr);
   if(resultCode == NERR_Success) {
-    auto pInfo = (LPUSER_INFO_24)bufPtr;
-    if(pInfo != nullptr) {
+    auto pInfo = reinterpret_cast<LPUSER_INFO_24>(bufPtr);
+    if(pInfo != nullptr && pInfo->usri24_internet_identity) {
       std::wstring internetProviderName = pInfo->usri24_internet_provider_name ? pInfo->usri24_internet_provider_name : L"";
       std::wstring internetPrincipalName = pInfo->usri24_internet_principal_name ? pInfo->usri24_internet_principal_name : L"";
       if(!internetProviderName.empty() && !internetPrincipalName.empty())
@@ -32,9 +32,10 @@ std::wstring PlatformHelper_ResolveMSAccount(const std::wstring &domainStr, cons
   return qualifiedName;
 }
 
-std::string PlatformHelper_GetSidFromUserName(const std::string &userName) {
+static std::string PlatformHelper_GetSidFromUserName(const std::string &userName) {
   auto accountUserName = StringUtils::ToWideString(userName);
-  if(userName.starts_with("MicrosoftAccount\\")) {
+  auto isPrincipalName = userName.find('\\') == std::string::npos && userName.find('@') != std::string::npos;
+  if(userName.starts_with("MicrosoftAccount\\") || isPrincipalName) {
     LPUSER_INFO_1 pBuf = nullptr;
     DWORD dwEntriesRead = 0;
     DWORD dwTotalEntries = 0;
@@ -55,7 +56,10 @@ std::string PlatformHelper_GetSidFromUserName(const std::string &userName) {
           continue;
         }
         auto nameStr = std::wstring(pTmpBuf->usri1_name);
-        if(PlatformHelper_ResolveMSAccount(computerName, nameStr) == accountUserName) {
+        auto resolvedName = PlatformHelper_ResolveMSAccount(computerName, nameStr);
+        auto separatorPos = resolvedName.find(L'\\');
+        auto principalName = separatorPos == std::wstring::npos ? resolvedName : resolvedName.substr(separatorPos + 1);
+        if(resolvedName == accountUserName || (isPrincipalName && _wcsicmp(principalName.c_str(), accountUserName.c_str()) == 0)) {
           accountUserName = fmt::format(L"{}\\{}", computerName, nameStr);
           break;
         }
@@ -102,14 +106,19 @@ struct WinUserName {
   std::wstring userName{};
 };
 
-std::optional<WinUserName> PlatformHelper_SplitUserName(const std::string &userName) {
+static std::optional<WinUserName> PlatformHelper_SplitUserName(const std::string &userName) {
   auto split = StringUtils::Split(userName, "\\");
-  if(split.size() != 2)
-    return {};
   WinUserName winUser{};
-  winUser.domain = StringUtils::ToWideString(split[0]);
-  winUser.userName = StringUtils::ToWideString(split[1]);
-  return winUser;
+  if(split.size() == 2) {
+    winUser.domain = StringUtils::ToWideString(split[0]);
+    winUser.userName = StringUtils::ToWideString(split[1]);
+    return winUser;
+  }
+  if(split.size() == 1 && userName.find('@') != std::string::npos) {
+    winUser.userName = StringUtils::ToWideString(split[0]);
+    return winUser;
+  }
+  return {};
 }
 
 bool PlatformHelper::HasNativeLibrary(const std::string &libName) {
@@ -176,29 +185,46 @@ bool PlatformHelper::HasUserPassword(const std::string &userName) {
   if(!winUser.has_value())
     return false;
   HANDLE hToken = nullptr;
-  LogonUserW(winUser.value().userName.c_str(), winUser.value().domain.c_str(), L"", LOGON32_LOGON_INTERACTIVE, LOGON32_PROVIDER_DEFAULT, &hToken);
+  LogonUserW(winUser.value().userName.c_str(), winUser.value().domain.empty() ? nullptr : winUser.value().domain.c_str(),
+    L"", LOGON32_LOGON_INTERACTIVE, LOGON32_PROVIDER_DEFAULT, &hToken);
   DWORD error = GetLastError();
   if(hToken != nullptr)
     CloseHandle(hToken);
   return error != 1327;
 }
 
-PlatformLoginResult PlatformHelper::CheckLogin(const std::string &userName, const std::string &password) {
+PlatformLoginStatus PlatformHelper::CheckLogin(const std::string &userName, const std::string &password) {
   auto winUser = PlatformHelper_SplitUserName(userName);
   if(!winUser.has_value())
-    return PlatformLoginResult::INVALID_USER;
+    return {PlatformLoginResult::INVALID_USER};
   HANDLE hToken = nullptr;
-  BOOL result = LogonUserW(winUser.value().userName.c_str(), winUser.value().domain.c_str(), StringUtils::ToWideString(password).c_str(),
-                           LOGON32_LOGON_INTERACTIVE, LOGON32_PROVIDER_DEFAULT, &hToken);
+  BOOL result = LogonUserW(winUser.value().userName.c_str(), winUser.value().domain.empty() ? nullptr : winUser.value().domain.c_str(),
+                           StringUtils::ToWideString(password).c_str(), LOGON32_LOGON_INTERACTIVE, LOGON32_PROVIDER_DEFAULT, &hToken);
   DWORD error = GetLastError();
   if(hToken != nullptr)
     CloseHandle(hToken);
   if(result)
-    return PlatformLoginResult::SUCCESS;
+    return {PlatformLoginResult::SUCCESS};
   spdlog::warn("LogonUserW() failed. (Code={})", error);
-  if(error == ERROR_ACCOUNT_LOCKED_OUT)
-    return PlatformLoginResult::ACCOUNT_LOCKED;
-  return PlatformLoginResult::INVALID_PASSWORD;
+  switch(error) {
+    case ERROR_NO_SUCH_USER:
+      return {PlatformLoginResult::INVALID_USER, error};
+    case ERROR_LOGON_FAILURE:
+      return {PlatformLoginResult::INVALID_PASSWORD, error};
+    case ERROR_ACCOUNT_LOCKED_OUT:
+      return {PlatformLoginResult::ACCOUNT_LOCKED, error};
+    case ERROR_ACCOUNT_RESTRICTION:
+      return {PlatformLoginResult::ACCOUNT_RESTRICTED, error};
+    case ERROR_PASSWORD_EXPIRED:
+    case ERROR_PASSWORD_MUST_CHANGE:
+      return {PlatformLoginResult::PW_EXPIRED, error};
+    case ERROR_ACCOUNT_DISABLED:
+      return {PlatformLoginResult::ACCOUNT_DISABLED, error};
+    case ERROR_LOGON_TYPE_NOT_GRANTED:
+      return {PlatformLoginResult::LOGON_TYPE_DENIED, error};
+    default:
+      return {PlatformLoginResult::UNKNOWN_ERROR, error};
+  }
 }
 
 bool PlatformHelper::SetDefaultCredProv(const std::string &userName, const std::string &provId) {

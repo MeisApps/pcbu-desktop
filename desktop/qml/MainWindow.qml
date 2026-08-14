@@ -49,6 +49,34 @@ ApplicationWindow {
         buttons: MessageDialog.Ok | MessageDialog.Cancel
         onAccepted: onMessageDialogConfirmAccept()
     }
+    Dialog {
+        id: skipPasswordCheckDialog
+        title: QI18n.Get('error')
+        anchors.centerIn: Overlay.overlay
+        width: Math.min(window.width - 200, 600)
+        modal: true
+        standardButtons: Dialog.Ok
+        property string message: ''
+        onOpened: skipPasswordCheckBox.checked = false
+        ColumnLayout {
+            width: parent.width
+            Label {
+                Layout.fillWidth: true
+                wrapMode: Text.WordWrap
+                text: skipPasswordCheckDialog.message
+            }
+            CheckBox {
+                id: skipPasswordCheckBox
+                text: QI18n.Get('skip_password_check')
+            }
+        }
+        onAccepted: {
+            if(!skipPasswordCheckBox.checked)
+                return;
+            PairingForm.SetSkipPasswordCheck(true);
+            PairingForm.OnNextClicked(viewLoader, window);
+        }
+    }
 
     function showFatalErrorMessage(text) {
         messageDialog.title = QI18n.Get('error');
@@ -65,6 +93,10 @@ ApplicationWindow {
         confirmMessageDialog.text = text;
         confirmMessageDialog.visible = true;
         onMessageDialogConfirmAccept = onAccept;
+    }
+    function showSkipPasswordCheckMessage(text) {
+        skipPasswordCheckDialog.message = text;
+        skipPasswordCheckDialog.open();
     }
 
     function showLoadingScreen(text) {

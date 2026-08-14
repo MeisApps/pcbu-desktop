@@ -52,6 +52,10 @@ bool PairingForm::HasBluetooth() {
   return BluetoothHelper::IsAvailable();
 }
 
+void PairingForm::SetSkipPasswordCheck(bool skip) {
+  m_SkipPasswordCheck = skip;
+}
+
 PairingStep PairingForm::GetNextStep() {
   auto nextStep = PairingStep::USER_PASSWORD_SELECT;
   switch(m_CurrentStep) {
@@ -206,6 +210,7 @@ void PairingForm::Show(QObject *viewLoader, QObject *window) {
   m_PairingData.useLegacyPairing = false;
   m_CurrentStep = PairingStep::USER_PASSWORD_SELECT;
   m_StepStack = {};
+  m_SkipPasswordCheck = false;
   QMetaObject::invokeMethod(viewLoader, "setSource", Q_ARG(QUrl, QUrl("qrc:/ui/pairing/PairingPasswordForm.qml")));
 }
 
@@ -223,34 +228,63 @@ void PairingForm::OnBackClicked(QObject *viewLoader, QObject *window) {
 void PairingForm::OnNextClicked(QObject *viewLoader, QObject *window) {
   if(m_CurrentStep == PairingStep::USER_PASSWORD_SELECT) {
 #ifdef WINDOWS
-    if(StringUtils::Split(m_PairingData.userName.toStdString(), "\\").size() != 2) {
+    auto userNameStr = m_PairingData.userName.toStdString();
+    if(StringUtils::Split(userNameStr, "\\").size() != 2 && userNameStr.find('@') == std::string::npos) {
       QMetaObject::invokeMethod(window, "showErrorMessage", Q_ARG(QVariant, QString::fromUtf8(I18n::Get("error_win_invalid_user"))));
       return;
     }
 #endif
-    if(!PlatformHelper::HasUserPassword(m_PairingData.userName.toStdString())) {
-      auto errorStr = m_PairingData.isManualUserName ? I18n::Get("error_invalid_user_or_no_password") : I18n::Get("error_user_no_password");
-      QMetaObject::invokeMethod(window, "showErrorMessage", Q_ARG(QVariant, QString::fromUtf8(errorStr)));
-      return;
-    }
-    auto loginResult = PlatformHelper::CheckLogin(m_PairingData.userName.toStdString(), m_PairingData.password.toStdString());
-    std::string errorStr{};
-    switch(loginResult) {
-      case PlatformLoginResult::INVALID_USER:
-        errorStr = I18n::Get("error_invalid_user_input");
-        break;
-      case PlatformLoginResult::INVALID_PASSWORD:
-        errorStr = m_PairingData.isManualUserName ? I18n::Get("error_invalid_user_or_incorrect_password") : I18n::Get("error_incorrect_password");
-        break;
-      case PlatformLoginResult::ACCOUNT_LOCKED:
-        errorStr = I18n::Get("error_win_account_locked");
-        break;
-      case PlatformLoginResult::SUCCESS:
-        break;
-    }
-    if(!errorStr.empty()) {
-      QMetaObject::invokeMethod(window, "showErrorMessage", Q_ARG(QVariant, QString::fromUtf8(errorStr)));
-      return;
+    auto skipPasswordCheck = m_SkipPasswordCheck;
+    m_SkipPasswordCheck = false;
+    if(!skipPasswordCheck) {
+      if(!PlatformHelper::HasUserPassword(m_PairingData.userName.toStdString())) {
+        auto errorStr = m_PairingData.isManualUserName ? I18n::Get("error_invalid_user_or_no_password") : I18n::Get("error_user_no_password");
+        QMetaObject::invokeMethod(window, "showErrorMessage", Q_ARG(QVariant, QString::fromUtf8(errorStr)));
+        return;
+      }
+      auto loginStatus = PlatformHelper::CheckLogin(m_PairingData.userName.toStdString(), m_PairingData.password.toStdString());
+      std::string errorStr{};
+      bool canSkipCheck = false;
+      switch(loginStatus.result) {
+        case PlatformLoginResult::INVALID_USER:
+          errorStr = I18n::Get("error_invalid_user_input");
+          break;
+        case PlatformLoginResult::INVALID_PASSWORD:
+          errorStr = m_PairingData.isManualUserName ? I18n::Get("error_invalid_user_or_incorrect_password") : I18n::Get("error_incorrect_password");
+          canSkipCheck = true;
+          break;
+        case PlatformLoginResult::ACCOUNT_LOCKED:
+          errorStr = I18n::Get("error_win_account_locked");
+          break;
+        case PlatformLoginResult::ACCOUNT_RESTRICTED:
+          errorStr = I18n::Get("error_win_account_restricted");
+          break;
+        case PlatformLoginResult::PW_EXPIRED:
+          errorStr = I18n::Get("error_win_password_expired");
+          break;
+        case PlatformLoginResult::ACCOUNT_DISABLED:
+          errorStr = I18n::Get("error_account_disabled");
+          break;
+        case PlatformLoginResult::LOGON_TYPE_DENIED:
+          errorStr = I18n::Get("error_win_logon_type_denied");
+          break;
+        case PlatformLoginResult::UNKNOWN_ERROR: {
+          errorStr = I18n::Get("error_login_unknown");
+          if(loginStatus.errorCode != 0)
+            errorStr = I18n::Get("error_with_code", errorStr, loginStatus.errorCode);
+          break;
+        }
+        case PlatformLoginResult::SUCCESS:
+          break;
+      }
+      if(!errorStr.empty()) {
+        if(canSkipCheck) {
+          QMetaObject::invokeMethod(window, "showSkipPasswordCheckMessage", Q_ARG(QVariant, QString::fromUtf8(errorStr)));
+          return;
+        }
+        QMetaObject::invokeMethod(window, "showErrorMessage", Q_ARG(QVariant, QString::fromUtf8(errorStr)));
+        return;
+      }
     }
   }
 

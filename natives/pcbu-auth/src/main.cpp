@@ -63,7 +63,7 @@ int runMain(int argc, char *argv[]) {
   auto handler = UnlockHandler([](const std::string &s) { printf("%s\n", s.c_str()); });
   auto result = handler.GetResult(userName, GetServiceName());
   if(result.state == UnlockState::SUCCESS) {
-    if(userName == result.device.userName && PlatformHelper::CheckLogin(userName, result.password) == PlatformLoginResult::SUCCESS) {
+    if(userName == result.device.userName && PlatformHelper::CheckLogin(userName, result.password).result == PlatformLoginResult::SUCCESS) {
       if(AppSettings::Get().unixSetPasswordPAM) {
         size_t bytesWritten{};
         while(bytesWritten < result.password.size()) {

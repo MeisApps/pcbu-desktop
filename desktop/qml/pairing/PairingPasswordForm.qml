@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Controls
+import QtQuick.Controls.Material
 import QtQuick.Layouts
 
 import PCBioUnlock
@@ -26,7 +27,19 @@ StepForm {
 
                         Label {
                             id: msAccountNoticeLabel
+                            Layout.fillWidth: true
+                            Layout.bottomMargin: 10
+                            wrapMode: Text.WordWrap
+                            textFormat: Text.StyledText
+                            linkColor: Material.accent
                             text: QI18n.Get('notice_ms_account')
+                            onLinkActivated: (link) => Qt.openUrlExternally(link)
+
+                            MouseArea {
+                                anchors.fill: parent
+                                acceptedButtons: Qt.NoButton
+                                cursorShape: parent.hoveredLink ? Qt.PointingHandCursor : Qt.ArrowCursor
+                            }
                         }
 
                         RowLayout {

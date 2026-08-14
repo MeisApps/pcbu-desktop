@@ -60,26 +60,26 @@ bool PlatformHelper::HasUserPassword(const std::string &userName) {
   return true;
 }
 
-PlatformLoginResult PlatformHelper::CheckLogin(const std::string &userName, const std::string &password) {
+PlatformLoginStatus PlatformHelper::CheckLogin(const std::string &userName, const std::string &password) {
   struct passwd *passwdEntry = getpwnam(userName.c_str());
   if(!passwdEntry) {
     spdlog::error("Failed to read passwd entry for user {}.", userName);
-    return PlatformLoginResult::INVALID_USER;
+    return {PlatformLoginResult::INVALID_USER};
   }
   if(strcmp(passwdEntry->pw_passwd, "x") != 0) {
     if(strcmp(passwdEntry->pw_passwd, crypt(password.c_str(), passwdEntry->pw_passwd)) == 0)
-      return PlatformLoginResult::SUCCESS;
-    return PlatformLoginResult::INVALID_PASSWORD;
+      return {PlatformLoginResult::SUCCESS};
+    return {PlatformLoginResult::INVALID_PASSWORD};
   }
 
   struct spwd *shadowEntry = getspnam(userName.c_str());
   if(!shadowEntry) {
     spdlog::error("Failed to read shadow entry for user {}." + userName);
-    return PlatformLoginResult::INVALID_USER;
+    return {PlatformLoginResult::INVALID_USER};
   }
   if(strcmp(shadowEntry->sp_pwdp, crypt(password.c_str(), shadowEntry->sp_pwdp)) == 0)
-    return PlatformLoginResult::SUCCESS;
-  return PlatformLoginResult::INVALID_PASSWORD;
+    return {PlatformLoginResult::SUCCESS};
+  return {PlatformLoginResult::INVALID_PASSWORD};
 }
 
 bool PlatformHelper::HasNativeLibrary(const std::string &libName) {

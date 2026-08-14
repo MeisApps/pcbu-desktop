@@ -27,9 +27,17 @@ std::optional<PairedDevice> PairedDevicesStorage::GetDeviceByID(const std::strin
 
 std::vector<PairedDevice> PairedDevicesStorage::GetDevicesForUser(const std::string &userName) {
   std::vector<PairedDevice> result{};
+#ifdef WINDOWS
+  auto userNameLower = StringUtils::ToLower(userName);
+  std::string principalName{};
+  auto userSplit = StringUtils::Split(userName, "\\");
+  if(userSplit.size() == 2 && userSplit[1].find('@') != std::string::npos)
+    principalName = StringUtils::ToLower(userSplit[1]);
+#endif
   for(const auto &device : GetDevices()) {
 #ifdef WINDOWS
-    if(StringUtils::ToLower(device.userName) == StringUtils::ToLower(userName))
+    auto deviceUserName = StringUtils::ToLower(device.userName);
+    if(deviceUserName == userNameLower || (!principalName.empty() && deviceUserName == principalName))
       result.emplace_back(device);
 #else
     if(device.userName == userName)
