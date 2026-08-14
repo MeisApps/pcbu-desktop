@@ -46,7 +46,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ${{runner.temp}}/vcpkg_cache
-          key: "${{runner.os}}-x64-vcpkg-${{steps.vcpkg-rev.outputs.sha}}-openssl"
+          key: "${{runner.os}}-x64-vcpkg-${{steps.vcpkg-rev.outputs.sha}}-${{hashFiles('cmake/vcpkg-triplets/*.cmake')}}-openssl"
           restore-keys: "${{runner.os}}-x64-vcpkg-"
 
       - name: Bootstrap vcpkg
@@ -60,8 +60,8 @@ jobs:
           VCPKG_DEFAULT_BINARY_CACHE: ${{runner.temp}}/vcpkg_cache
         run: |
           mkdir -p "$VCPKG_DEFAULT_BINARY_CACHE"
-          ./vcpkg/vcpkg.exe install --triplet x64-windows-static openssl
-          ./vcpkg/vcpkg.exe install --triplet x64-windows-static-md openssl
+          ./vcpkg/vcpkg.exe install --overlay-triplets=cmake/vcpkg-triplets --triplet x64-windows-static openssl
+          ./vcpkg/vcpkg.exe install --overlay-triplets=cmake/vcpkg-triplets --triplet x64-windows-static-md openssl
 
       - name: Build x64
         run: bash -c "cd pkg && chmod +x build-desktop.sh && ARCH=x64 QT_BASE_DIR=C:/Qt/${{env.QT_VERSION}} ./build-desktop.sh"
@@ -139,7 +139,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ${{runner.temp}}/vcpkg_cache
-          key: "${{runner.os}}-arm64-vcpkg-${{steps.vcpkg-rev.outputs.sha}}-openssl"
+          key: "${{runner.os}}-arm64-vcpkg-${{steps.vcpkg-rev.outputs.sha}}-${{hashFiles('cmake/vcpkg-triplets/*.cmake')}}-openssl"
           restore-keys: "${{runner.os}}-arm64-vcpkg-"
 
       - name: Bootstrap vcpkg
@@ -153,8 +153,8 @@ jobs:
           VCPKG_DEFAULT_BINARY_CACHE: ${{runner.temp}}/vcpkg_cache
         run: |
           mkdir -p "$VCPKG_DEFAULT_BINARY_CACHE"
-          ./vcpkg/vcpkg.exe install --triplet arm64-windows-static openssl
-          ./vcpkg/vcpkg.exe install --triplet arm64-windows-static-md openssl
+          ./vcpkg/vcpkg.exe install --overlay-triplets=cmake/vcpkg-triplets --triplet arm64-windows-static openssl
+          ./vcpkg/vcpkg.exe install --overlay-triplets=cmake/vcpkg-triplets --triplet arm64-windows-static-md openssl
 
       - name: Build arm64
         run: bash -c "cd pkg && rm -Rf ./build/ && ARCH=arm64 QT_BASE_DIR=C:/Qt/${{env.QT_VERSION}} ./build-desktop.sh"
