@@ -397,6 +397,21 @@ Form {
                     anchors.right: parent.right
                     anchors.top: parent.top
                     spacing: 8
+
+                    function updateSshButton() {
+                        let settings = SettingsForm.GetServiceSettings();
+                        let sshOn = false;
+                        for (let i = 0; i < settings.length; i++) {
+                            if (settings[i].id === 'ssh') {
+                                sshOn = settings[i].enabled;
+                                break;
+                            }
+                        }
+                        for (let i = 0; i < children.length; i++) {
+                            if (children[i].objectName === 'sshServersBtn')
+                                children[i].enabled = sshOn;
+                        }
+                    }
                 }
             }
 
@@ -522,21 +537,50 @@ Form {
 
                     CheckBox {
                         id: serviceSettingCheckBox%1
+                        property string settingId: \"%4\"
                         text: \"%2\"
                         checked: %3
                         onToggled: {
                             let settings = SettingsForm.GetServiceSettings();
                             for(let i = 0; i < settings.length; i++) {
-                                if(settings[i].name === serviceSettingCheckBox%1.text) {
+                                if(settings[i].id === serviceSettingCheckBox%1.settingId) {
                                     settings[i].enabled = serviceSettingCheckBox%1.checked;
                                     break;
                                 }
                             }
                             SettingsForm.SetServiceSettings(settings);
+
+                            // SSH Button
+                            parent.updateSshButton();
+                            if (serviceSettingCheckBox%1.settingId === 'ssh' && serviceSettingCheckBox%1.checked) {
+                                window.showInfoMessage(QI18n.Get('ssh_reboot_notice'));
+                            }
                         }
                     }
-                ".arg(i).arg(settings[i].name).arg(settings[i].enabled ? 'true' : 'false'), serviceSettingsLayout);
+                ".arg(i).arg(settings[i].name).arg(settings[i].enabled ? 'true' : 'false').arg(settings[i].id), serviceSettingsLayout);
             }
+        }
+
+        // SSH Button
+        if (SettingsForm.GetOperatingSystem() !== 'Windows') {
+            Qt.createQmlObject("
+                import QtQuick
+                import QtQuick.Controls
+                import QtQuick.Layouts
+                import PulseUnlock
+
+                Button {
+                    objectName: 'sshServersBtn'
+                    Layout.fillWidth: true
+                    text: QI18n.Get('ssh_servers')
+                    enabled: false
+                    onClicked: {
+                        let win = Qt.createComponent('qrc:/ui/SshServersWindow.qml').createObject(window);
+                        win.show();
+                    }
+                }
+            ", serviceSettingsLayout);
+            serviceSettingsLayout.updateSshButton();
         }
     }
 }

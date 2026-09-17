@@ -73,28 +73,47 @@ std::vector<PairedDevice> PairedDevicesStorage::GetDevices() {
 #ifdef WINDOWS
     ProtectFile(filePath.string(), true);
 #endif
+    if(jsonData.empty())
+      return result;
     auto json = nlohmann::json::parse(jsonData);
     for(auto entry : json) {
-      auto device = PairedDevice();
-      device.id = entry["id"];
-      device.pairingMethod = PairingMethodUtils::FromString(entry["pairingMethod"]);
-      device.deviceName = entry["deviceName"];
-      device.userName = entry["userName"];
-      device.passwordEnc = entry["passwordEnc"];
-      device.encryptionKey = entry["encryptionKey"];
+      try {
+        auto device = PairedDevice();
+        device.id = entry["id"];
+        device.pairingMethod = PairingMethodUtils::FromString(entry["pairingMethod"]);
+        device.deviceName = entry["deviceName"];
+        device.userName = entry["userName"];
+        device.passwordEnc = entry["passwordEnc"];
+        device.encryptionKey = entry["encryptionKey"];
 
-      device.ipAddress = entry["ipAddress"];
-      device.bluetoothAddress = entry["bluetoothAddress"];
-      device.cloudToken = entry["cloudToken"];
-      device.tcpPort = entry["tcpPort"];
-      device.udpPort = entry["udpPort"];
-      device.udpManualPort = entry["udpManualPort"];
-      result.emplace_back(device);
+        device.ipAddress = entry["ipAddress"];
+        device.bluetoothAddress = entry["bluetoothAddress"];
+        device.cloudToken = entry["cloudToken"];
+        device.tcpPort = entry["tcpPort"];
+        device.udpPort = entry["udpPort"];
+        device.udpManualPort = entry["udpManualPort"];
+
+        if(entry.contains("sshServers") && entry["sshServers"].is_array()) {
+          for(const auto &sshEntry : entry["sshServers"]) {
+            if(!sshEntry.is_object())
+              continue;
+            auto server = SshServer();
+            server.host = sshEntry.value("host", "");
+            server.user = sshEntry.value("user", "");
+            server.keyPath = sshEntry.value("keyPath", "");
+            server.passwordEnc = sshEntry.value("passwordEnc", "");
+            if(server.host.empty() && server.keyPath.empty())
+              continue;
+            device.sshServers.emplace_back(server);
+          }
+        }
+        result.emplace_back(device);
+      } catch(const std::exception &ex) {
+        spdlog::error("Skipped invalid paired device.");
+      }
     }
   } catch(const std::exception &ex) {
-    spdlog::error("Failed reading paired devices storage: {}", ex.what());
-    spdlog::info("Creating new devices storage...");
-    SaveDevices({});
+    spdlog::error("Failed reading paired devices storage.");
   }
   return result;
 }
@@ -103,20 +122,27 @@ void PairedDevicesStorage::SaveDevices(const std::vector<PairedDevice> &devices)
   try {
     nlohmann::json devicesJson{};
     for(auto device : devices) {
+      auto sshServersJson = nlohmann::json::array();
+      for(const auto &server : device.sshServers)
+        sshServersJson.push_back({{"host", server.host}, {"user", server.user}, {"keyPath", server.keyPath}, {"passwordEnc", server.passwordEnc}});
 
-      nlohmann::json deviceJson = {{"id", device.id},
-                                   {"pairingMethod", PairingMethodUtils::ToString(device.pairingMethod)},
-                                   {"deviceName", device.deviceName},
-                                   {"userName", device.userName},
-                                   {"passwordEnc", device.passwordEnc},
-                                   {"encryptionKey", device.encryptionKey},
+      nlohmann::json deviceJson = {
+          {"id", device.id},
+          {"pairingMethod", PairingMethodUtils::ToString(device.pairingMethod)},
+          {"deviceName", device.deviceName},
+          {"userName", device.userName},
+          {"passwordEnc", device.passwordEnc},
+          {"encryptionKey", device.encryptionKey},
 
-                                   {"ipAddress", device.ipAddress},
-                                   {"tcpPort", device.tcpPort},
-                                   {"udpPort", device.udpPort},
-                                   {"udpManualPort", device.udpManualPort},
-                                   {"bluetoothAddress", device.bluetoothAddress},
-                                   {"cloudToken", device.cloudToken}};
+          {"ipAddress", device.ipAddress},
+          {"tcpPort", device.tcpPort},
+          {"udpPort", device.udpPort},
+          {"udpManualPort", device.udpManualPort},
+          {"bluetoothAddress", device.bluetoothAddress},
+          {"cloudToken", device.cloudToken},
+
+          {"sshServers", sshServersJson},
+      };
       devicesJson.emplace_back(deviceJson);
     }
     auto baseDir = AppSettings::GetBaseDir();

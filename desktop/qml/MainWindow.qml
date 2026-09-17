@@ -89,6 +89,11 @@ ApplicationWindow {
         messageDialog.text = text;
         messageDialog.visible = true;
     }
+    function showInfoMessage(text) {
+        messageDialog.title = QI18n.Get('notice');
+        messageDialog.text = text;
+        messageDialog.visible = true;
+    }
     function showConfirmMessage(text, onAccept) {
         confirmMessageDialog.text = text;
         confirmMessageDialog.visible = true;

@@ -1,5 +1,7 @@
 #include "UnlockHandler.h"
 
+#include <algorithm>
+
 #include "KeyScanner.h"
 #include "connection/unlock/clients/BTUnlockClient.h"
 #include "connection/unlock/clients/CloudUnlockClient.h"
@@ -47,10 +49,13 @@ void UnlockHandler::PrintStatus(const std::string &message) {
   m_PrintMessage(message);
 }
 
-UnlockResult UnlockHandler::GetResult(const std::string &authUser, const std::string &authProgram, std::atomic<bool> *isRunning) {
+UnlockResult UnlockHandler::GetResult(const std::string &authUser, const std::string &authProgram, const std::vector<std::string> &deviceIds,
+                                      std::atomic<bool> *isRunning) {
   auto settings = AppSettings::Get();
   auto devices = PairedDevicesStorage::GetDevicesForUser(authUser);
   auto hasTCPServer = false;
+  if(!deviceIds.empty())
+    std::erase_if(devices, [&](const PairedDevice &device) { return std::ranges::find(deviceIds, device.id) == deviceIds.end(); });
 
   UDPUnlockBroadcaster *udpBroadcaster{};
   std::vector<BaseUnlockConnection *> connections{};
@@ -216,5 +221,7 @@ UnlockResult UnlockHandler::RunServer(BaseUnlockConnection *connection, UDPUnloc
   result.state = state;
   result.device = connection->GetDevice();
   result.password = pwDec.has_value() ? pwDec.value() : "";
+  if(state == UnlockState::SUCCESS)
+    result.passwordKey = connection->GetResponseData().passwordKey;
   return result;
 }

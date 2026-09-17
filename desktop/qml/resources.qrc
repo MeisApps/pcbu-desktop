@@ -6,6 +6,8 @@
         <file>LogsWindow.qml</file>
         <file>UpdaterWindow.qml</file>
         <file>UnlockTestWindow.qml</file>
+        <file>SshServersWindow.qml</file>
+        <file>SshAddServerDialog.qml</file>
 
         <file>base/Form.qml</file>
         <file>base/StepForm.qml</file>

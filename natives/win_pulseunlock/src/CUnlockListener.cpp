@@ -90,7 +90,7 @@ void CUnlockListener::ListenThread() {
     // Unlock behavior
     if(!m_IgnoreWaitKeyPress) {
       const bool isUnlock = m_ProviderUsage == CPUS_UNLOCK_WORKSTATION || (m_ProviderUsage == CPUS_LOGON && isUserLoggedOn);
-      if(storage.winUnlockBehavior == "key_press"  || (storage.winUnlockBehavior == "key_press_lock_only" && isUnlock)) {
+      if(storage.winUnlockBehavior == "key_press" || (storage.winUnlockBehavior == "key_press_lock_only" && isUnlock)) {
         Sleep(500);
         m_Credential->UpdateMessage(I18n::Get("wait_key_press"));
         byte lastKeys[KEY_RANGE];
@@ -122,7 +122,7 @@ void CUnlockListener::ListenThread() {
   // Unlock
   std::function<void(const std::string &)> printMessage = [this](const std::string &s) { m_Credential->UpdateMessage(s); };
   auto handler = UnlockHandler(printMessage);
-  const auto result = handler.GetResult(userDomainStr, "Windows-Login", &m_IsRunning);
+  const auto result = handler.GetResult(userDomainStr, "Windows-Login", {}, &m_IsRunning);
 
   m_HasResponse = true;
   m_Credential->SetUnlockData(result);

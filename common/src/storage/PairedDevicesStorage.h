@@ -8,6 +8,13 @@
 
 #include "PairingMethod.h"
 
+struct SshServer {
+  std::string host{};
+  std::string user{};
+  std::string keyPath{};
+  std::string passwordEnc{};
+};
+
 struct PairedDevice {
   std::string id{};
   PairingMethod pairingMethod{};
@@ -22,6 +29,8 @@ struct PairedDevice {
   uint16_t udpManualPort{};
   std::string bluetoothAddress{};
   std::string cloudToken{};
+
+  std::vector<SshServer> sshServers{};
 };
 
 class PairedDevicesStorage {

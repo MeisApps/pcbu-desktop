@@ -56,6 +56,8 @@ if(WIN32)
 elseif(APPLE)
     add_compile_definitions(APPLE)
     set(PLATFORM_SRC
+            src/installer/EnvHelper.cpp
+            src/installer/EnvHelper.h
             src/installer/PAMHelper.cpp
             src/installer/PAMHelper.h
             src/installer/ServiceInstaller.Mac.cpp
@@ -73,6 +75,8 @@ elseif(APPLE)
 elseif(UNIX)
     add_compile_definitions(LINUX)
     set(PLATFORM_SRC
+            src/installer/EnvHelper.cpp
+            src/installer/EnvHelper.h
             src/installer/PAMHelper.cpp
             src/installer/PAMHelper.h
             src/installer/ServiceInstaller.Linux.cpp
@@ -119,9 +123,15 @@ set(UI_SRC_FILES
         src/ui/UpdaterWindow.h
         src/ui/UnlockTestWindow.cpp
         src/ui/UnlockTestWindow.h
+        src/ui/SshServersWindow.cpp
+        src/ui/SshServersWindow.h
 
         src/ui/models/DevicesTableModel.cpp
         src/ui/models/DevicesTableModel.h
+        src/ui/models/SshServersTableModel.cpp
+        src/ui/models/SshServersTableModel.h
+        src/ui/models/SshDeviceListModel.cpp
+        src/ui/models/SshDeviceListModel.h
         src/ui/models/UserListModel.cpp
         src/ui/models/UserListModel.h
         src/ui/models/NetworkListModel.cpp

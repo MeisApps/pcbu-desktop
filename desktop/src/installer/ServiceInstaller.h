@@ -48,12 +48,6 @@ public:
 
   std::vector<ServiceSetting> GetSettings();
   void ApplySettings(const std::vector<ServiceSetting> &settings, bool useDefault);
-  void ClearSettings() {
-    auto settings = GetSettings();
-    for(auto setting : settings)
-      setting.enabled = false;
-    ApplySettings(settings, false);
-  }
 
   static bool IsInstalled();
   void Install();

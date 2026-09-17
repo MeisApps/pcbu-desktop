@@ -1,11 +1,13 @@
 #include "ServiceInstaller.h"
 
+#include "EnvHelper.h"
 #include "shell/Shell.h"
 #include "storage/AppSettings.h"
 #include "utils/ResourceHelper.h"
 
 #define EXE_MODULE_DIR std::filesystem::path("/usr/local/sbin/")
 #define EXE_MODULE_FILE "pcbu_auth"
+#define SSH_MODULE_FILE "pcbu_ssh_askpass"
 
 #define PAM_MODULE_DIRS std::vector<std::filesystem::path>{"/lib/security/", "/lib64/security/"}
 #define PAM_MODULE_FILE "pam_pulseunlock.so"
@@ -46,7 +48,8 @@ std::vector<ServiceSetting> ServiceInstaller::GetSettings() {
   return {{"sudo", I18n::Get("service_setting_sudo"), PAMHelper::HasConfigEntry("sudo", PAM_CONFIG_ENTRY), IsProgramInstalled(SUDO_NAME)},
           {"polkit", I18n::Get("service_setting_polkit"), PAMHelper::HasConfigEntry("polkit-1", PAM_CONFIG_ENTRY), IsProgramInstalled(POLKIT_NAME)},
           {"login", I18n::Get("service_setting_login_manager"), isLoginEnabled, hasLoginManager},
-          {"pamSetPassword", I18n::Get("service_setting_pam_set_pw"), AppSettings::Get().unixSetPasswordPAM, false}};
+          {"pamSetPassword", I18n::Get("service_setting_pam_set_pw"), AppSettings::Get().unixSetPasswordPAM, false},
+          {"ssh", I18n::Get("service_setting_ssh"), EnvHelper::IsSshEnabled(), false}};
 }
 
 void ServiceInstaller::ApplySettings(const std::vector<ServiceSetting> &settings, bool useDefault) {
@@ -73,6 +76,8 @@ void ServiceInstaller::ApplySettings(const std::vector<ServiceSetting> &settings
       auto storage = AppSettings::Get();
       storage.unixSetPasswordPAM = isEnabled;
       AppSettings::Save(storage);
+    } else if(setting.id == "ssh") {
+      EnvHelper::SetSshEnabled(isEnabled);
     } else {
       spdlog::warn("Unknown service setting {}.", setting.id);
     }
@@ -119,6 +124,16 @@ void ServiceInstaller::Install() {
         throw std::runtime_error(I18n::Get("error_file_remove", oldPamPath.string()));
     }
   }
+
+  m_Logger("Copying SSH module...");
+  auto askpassExe = ResourceHelper::GetResource(":/res/natives/{}", SSH_MODULE_FILE);
+  auto askpassPath = EXE_MODULE_DIR / SSH_MODULE_FILE;
+  result = Shell::WriteBytes(askpassPath, askpassExe);
+  if(!result)
+    throw std::runtime_error(I18n::Get("error_file_write", askpassPath.string()));
+  result = Shell::RunCommand(fmt::format("chmod +x {0} && chmod u+s {0}", askpassPath.string())).exitCode == 0;
+  if(!result)
+    throw std::runtime_error(I18n::Get("error_exec_setuid", askpassPath.string()));
 
   // Migration
   m_PAMHelper.MigrateConfigEntry("sudo", PAM_CONFIG_ENTRY_OLD, PAM_CONFIG_ENTRY);
@@ -185,6 +200,14 @@ void ServiceInstaller::Uninstall(bool fullUninstall) {
     }
   }
 
+  m_Logger("Removing SSH module...");
+  auto askpassPath = EXE_MODULE_DIR / SSH_MODULE_FILE;
+  if(std::filesystem::exists(askpassPath)) {
+    result = Shell::RemoveFile(askpassPath);
+    if(!result)
+      throw std::runtime_error(I18n::Get("error_file_remove", askpassPath.string()));
+  }
+
   if(fullUninstall) {
     m_Logger("Removing PAM configuration...");
     for(const auto &entry : {PAM_CONFIG_ENTRY_SDDM, PAM_CONFIG_ENTRY_SDDM_OLD})
@@ -198,6 +221,10 @@ void ServiceInstaller::Uninstall(bool fullUninstall) {
       m_PAMHelper.SetConfigEntry("lightdm", entry, false);
       m_PAMHelper.SetConfigEntry("cinnamon-screensaver", entry, false);
       m_PAMHelper.SetConfigEntry("hyprlock", entry, false);
+    }
+    if(EnvHelper::IsSshEnabled()) {
+      m_Logger("Removing SSH integration...");
+      EnvHelper::SetSshEnabled(false);
     }
   }
 

@@ -3,6 +3,7 @@
     <qresource prefix="/res/natives/">
         <file alias="pam_pulseunlock.so">natives/linux/x64/pam_pulseunlock.so</file>
         <file alias="pcbu_auth">natives/linux/x64/pcbu_auth</file>
+        <file alias="pcbu_ssh_askpass">natives/linux/x64/pcbu_ssh_askpass</file>
     </qresource>
     <qresource prefix="/res/selinux/">
         <file alias="pcbu_auth_policy.pp">selinux/pcbu_auth_policy.pp</file>

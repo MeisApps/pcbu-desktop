@@ -1,10 +1,12 @@
 #include "ServiceInstaller.h"
 
+#include "EnvHelper.h"
 #include "shell/Shell.h"
 #include "utils/ResourceHelper.h"
 
 #define EXE_MODULE_DIR std::filesystem::path("/usr/local/sbin/")
 #define EXE_MODULE_FILE "pcbu_auth"
+#define SSH_MODULE_FILE "pcbu_ssh_askpass"
 
 #define PAM_MODULE_DIR std::filesystem::path("/usr/local/lib/pam/")
 #define PAM_MODULE_FILE "pam_pulseunlock.dylib"
@@ -20,7 +22,8 @@ ServiceInstaller::ServiceInstaller(const std::function<void(const std::string &)
 
 std::vector<ServiceSetting> ServiceInstaller::GetSettings() {
   return {{"sudo", I18n::Get("service_setting_sudo"), PAMHelper::HasConfigEntry("sudo", PAM_CONFIG_ENTRY), true},
-          {"macOS", I18n::Get("service_setting_macos"), PAMHelper::HasConfigEntry("authorization", PAM_CONFIG_ENTRY), false}};
+          {"macOS", I18n::Get("service_setting_macos"), PAMHelper::HasConfigEntry("authorization", PAM_CONFIG_ENTRY), false},
+          {"ssh", I18n::Get("service_setting_ssh"), EnvHelper::IsSshEnabled(), false}};
 }
 
 void ServiceInstaller::ApplySettings(const std::vector<ServiceSetting> &settings, bool useDefault) {
@@ -30,6 +33,8 @@ void ServiceInstaller::ApplySettings(const std::vector<ServiceSetting> &settings
       m_PAMHelper.SetConfigEntry("sudo", PAM_CONFIG_ENTRY, isEnabled);
     } else if(setting.id == "macOS") {
       m_PAMHelper.SetConfigEntry("authorization", PAM_CONFIG_ENTRY, isEnabled);
+    } else if(setting.id == "ssh") {
+      EnvHelper::SetSshEnabled(isEnabled);
     } else {
       spdlog::warn("Unknown service setting {}.", setting.id);
     }
@@ -60,6 +65,16 @@ void ServiceInstaller::Install() {
   result = Shell::WriteBytes(pamPath, pamModule);
   if(!result)
     throw std::runtime_error(I18n::Get("error_file_write", pamPath.string()));
+
+  m_Logger("Copying SSH module...");
+  auto askpassExe = ResourceHelper::GetResource(":/res/natives/{}", SSH_MODULE_FILE);
+  auto askpassPath = EXE_MODULE_DIR / SSH_MODULE_FILE;
+  result = Shell::WriteBytes(askpassPath, askpassExe);
+  if(!result)
+    throw std::runtime_error(I18n::Get("error_file_write", askpassPath.string()));
+  result = Shell::RunCommand(fmt::format("chmod +x {0} && chmod u+s {0}", askpassPath.string())).exitCode == 0;
+  if(!result)
+    throw std::runtime_error(I18n::Get("error_exec_setuid", askpassPath.string()));
 
   // Migration
   auto oldPamPath = PAM_MODULE_DIR / PAM_MODULE_FILE_OLD;
@@ -95,11 +110,23 @@ void ServiceInstaller::Uninstall(bool fullUninstall) {
       throw std::runtime_error(I18n::Get("error_file_remove", pamPath.string()));
   }
 
+  m_Logger("Removing SSH module...");
+  auto askpassPath = EXE_MODULE_DIR / SSH_MODULE_FILE;
+  if(std::filesystem::exists(askpassPath)) {
+    result = Shell::RemoveFile(askpassPath);
+    if(!result)
+      throw std::runtime_error(I18n::Get("error_file_remove", askpassPath.string()));
+  }
+
   if(fullUninstall) {
     m_Logger("Removing PAM configuration...");
     for(const auto &entry : {PAM_CONFIG_ENTRY, PAM_CONFIG_ENTRY_OLD}) {
       m_PAMHelper.SetConfigEntry("sudo", entry, false);
       m_PAMHelper.SetConfigEntry("authorization", entry, false);
+    }
+    if(EnvHelper::IsSshEnabled()) {
+      m_Logger("Removing SSH integration...");
+      EnvHelper::SetSshEnabled(false);
     }
   }
   m_Logger("Done.");

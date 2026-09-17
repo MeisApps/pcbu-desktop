@@ -111,7 +111,6 @@ void MainWindow::OnInstallClicked(QObject *window) {
     try {
       if(ServiceInstaller::IsInstalled()) {
         installer.Uninstall(true);
-        installer.ClearSettings();
       } else {
         installer.Install();
         installer.ApplySettings(installer.GetSettings(), true);
