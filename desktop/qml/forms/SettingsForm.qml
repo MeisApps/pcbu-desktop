@@ -3,7 +3,7 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import QtQml.Models
 
-import PCBioUnlock
+import PulseUnlock
 import "qrc:/ui/base"
 
 Form {
@@ -485,7 +485,7 @@ Form {
                     import QtQuick
                     import QtQuick.Controls
                     import QtQuick.Layouts
-                    import PCBioUnlock
+                    import PulseUnlock
 
                     ColumnLayout {
                         id: serviceSettingChoice%1
@@ -518,7 +518,7 @@ Form {
                 Qt.createQmlObject("
                     import QtQuick
                     import QtQuick.Controls
-                    import PCBioUnlock
+                    import PulseUnlock
 
                     CheckBox {
                         id: serviceSettingCheckBox%1

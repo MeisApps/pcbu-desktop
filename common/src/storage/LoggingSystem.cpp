@@ -9,41 +9,39 @@
 
 std::string LoggingSystem::g_LogName{};
 
-void LoggingSystem::Init(const std::string &logName, bool printToConsole) {
+void LoggingSystem::Init(const std::string &logName, bool printToConsole, bool writeToFile) {
   g_LogName = logName;
   auto logPath = AppSettings::GetBaseDir() / fmt::format("{}.log", g_LogName);
-  std::ifstream logFile(logPath, std::ifstream::ate | std::ifstream::binary);
-  if(logFile) {
-    auto sizeKb = logFile.tellg() / 1000;
-    if(sizeKb > 5000)
-      Shell::RemoveFile(logPath);
+  if(writeToFile) {
+    std::ifstream logFile(logPath, std::ifstream::ate | std::ifstream::binary);
+    if(logFile) {
+      auto sizeKb = logFile.tellg() / 1000;
+      if(sizeKb > 5000)
+        Shell::RemoveFile(logPath);
+    }
   }
 
   try {
     auto enableDebug = std::filesystem::exists(AppSettings::GetBaseDir() / "LOG_DEBUG");
-    auto fileSink = std::make_shared<spdlog::sinks::basic_file_sink_mt>(logPath.string(), false);
-    fileSink->set_level(enableDebug ? spdlog::level::debug : spdlog::level::info);
+    auto logLevel = enableDebug ? spdlog::level::debug : spdlog::level::info;
 
-    std::shared_ptr<spdlog::logger> loggerPtr{};
+    std::vector<spdlog::sink_ptr> sinks{};
     if(printToConsole) {
       auto consoleSink = std::make_shared<spdlog::sinks::stdout_sink_mt>();
-      consoleSink->set_level(enableDebug ? spdlog::level::debug : spdlog::level::info);
-      auto logger = spdlog::logger("pcbu_logger", {consoleSink, fileSink});
-      loggerPtr = std::make_shared<spdlog::logger>(logger);
-    } else {
-      auto logger = spdlog::logger("pcbu_logger", {fileSink});
-      loggerPtr = std::make_shared<spdlog::logger>(logger);
+      consoleSink->set_level(logLevel);
+      sinks.push_back(consoleSink);
+    }
+    if(writeToFile) {
+      auto fileSink = std::make_shared<spdlog::sinks::basic_file_sink_mt>(logPath.string(), false);
+      fileSink->set_level(logLevel);
+      sinks.push_back(fileSink);
     }
 
+    auto loggerPtr = std::make_shared<spdlog::logger>("pcbu_logger", sinks.begin(), sinks.end());
     loggerPtr->set_pattern("[%Y-%m-%d %H:%M:%S.%e] [%l] %v");
-    loggerPtr->set_level(spdlog::level::debug);
+    loggerPtr->set_level(logLevel);
     spdlog::set_default_logger(loggerPtr);
-#ifdef _DEBUG
-    spdlog::flush_on(spdlog::level::debug);
-#else
-    spdlog::flush_on(spdlog::level::info);
-#endif
-
+    spdlog::flush_on(logLevel);
     spdlog::info("Logger init.");
   } catch(const std::exception &ex) {
     spdlog::error("Error initializing logger: {}", ex.what());

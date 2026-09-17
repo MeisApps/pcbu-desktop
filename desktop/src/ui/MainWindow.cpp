@@ -4,6 +4,7 @@
 #include "platform/PlatformHelper.h"
 #include "shell/Shell.h"
 #include "storage/AppSettings.h"
+#include "storage/LoggingSystem.h"
 #include "storage/PairedDevicesStorage.h"
 #include "utils/AppInfo.h"
 #include "utils/ResourceHelper.h"
@@ -87,10 +88,29 @@ void MainWindow::OnInstallClicked(QObject *window) {
       spdlog::info(str);
       QMetaObject::invokeMethod(window, "appendLoadingOutput", Q_ARG(QVariant, QString::fromUtf8(str)));
     };
+
+    // Migration
+    if(AppSettings::NeedsMigration()) {
+      logCallback("Migrating data directory...");
+      LoggingSystem::Destroy();
+      LoggingSystem::Init("desktop", true, false);
+      try {
+        AppSettings::MigrateBaseDir();
+      } catch(const std::exception &ex) {
+        LoggingSystem::Destroy();
+        LoggingSystem::Init("desktop");
+        AppSettings::SetInstalledVersion(false);
+        logCallback(fmt::format("Migration failed: {}", ex.what()));
+      }
+      LoggingSystem::Destroy();
+      LoggingSystem::Init("desktop");
+      logCallback("Done.");
+    }
+
     auto installer = ServiceInstaller(logCallback);
     try {
       if(ServiceInstaller::IsInstalled()) {
-        installer.Uninstall();
+        installer.Uninstall(true);
         installer.ClearSettings();
       } else {
         installer.Install();
@@ -117,9 +137,28 @@ void MainWindow::OnReinstallClicked(QObject *window) {
     auto installer = ServiceInstaller(logCallback);
     try {
       if(ServiceInstaller::IsInstalled())
-        installer.Uninstall();
+        installer.Uninstall(false);
       installer.Install();
       installer.ApplySettings(installer.GetSettings(), false);
+
+      // Migration
+      if(AppSettings::NeedsMigration()) {
+        logCallback("Migrating data directory...");
+        LoggingSystem::Destroy();
+        LoggingSystem::Init("desktop", true, false);
+        try {
+          AppSettings::MigrateBaseDir();
+        } catch(const std::exception &ex) {
+          LoggingSystem::Destroy();
+          LoggingSystem::Init("desktop");
+          AppSettings::SetInstalledVersion(false);
+          logCallback(fmt::format("Migration failed: {}", ex.what()));
+        }
+        LoggingSystem::Destroy();
+        LoggingSystem::Init("desktop");
+        logCallback("Done.");
+      }
+
       AppSettings::SetInstalledVersion(true);
       QMetaObject::invokeMethod(window, "finishLoadingScreen", Q_ARG(QVariant, QString::fromUtf8(I18n::Get("success"))));
     } catch(const std::exception &ex) {

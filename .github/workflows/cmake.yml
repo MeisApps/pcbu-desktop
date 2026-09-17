@@ -72,7 +72,7 @@ jobs:
         uses: softprops/action-gh-release@v3
         with:
           files: |
-            pkg/build/PCBioUnlock-Setup-x64.exe
+            pkg/build/PulseUnlock-Setup-x64.exe
 
   build-windows-arm64:
     runs-on: windows-11-vs2026-arm
@@ -165,7 +165,7 @@ jobs:
         uses: softprops/action-gh-release@v3
         with:
           files: |
-            pkg/build/PCBioUnlock-Setup-arm64.exe
+            pkg/build/PulseUnlock-Setup-arm64.exe
 
   build-linux-x64:
     runs-on: ubuntu-24.04
@@ -181,7 +181,7 @@ jobs:
         uses: softprops/action-gh-release@v3
         with:
           files: |
-            pkg/build/PCBioUnlock-x64.AppImage
+            pkg/build/PulseUnlock-x64.AppImage
 
   build-linux-arm64:
     runs-on: ubuntu-24.04-arm
@@ -197,7 +197,7 @@ jobs:
         uses: softprops/action-gh-release@v3
         with:
           files: |
-            pkg/build/PCBioUnlock-arm64.AppImage
+            pkg/build/PulseUnlock-arm64.AppImage
 
   build-mac-arm64:
     runs-on: macos-latest
@@ -225,4 +225,4 @@ jobs:
         uses: softprops/action-gh-release@v3
         with:
           files: |
-            pkg/build/PCBioUnlock-arm64.dmg
+            pkg/build/PulseUnlock-arm64.dmg

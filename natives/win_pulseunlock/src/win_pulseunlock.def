@@ -1,4 +1,4 @@
-LIBRARY win-pcbiounlock.dll
+LIBRARY win_pulseunlock.dll
 
 EXPORTS
     DllCanUnloadNow                                 PRIVATE

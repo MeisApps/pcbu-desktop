@@ -1,9 +1,12 @@
 [Setup]
-AppName=PC Bio Unlock
-AppVerName=PC Bio Unlock
+AppId=PC Bio Unlock
+AppName=PulseUnlock
+AppVerName=PulseUnlock
 WizardStyle=modern
-DefaultDirName={autopf}\PCBioUnlock
-DefaultGroupName=PC Bio Unlock
+DefaultDirName={autopf}\PulseUnlock
+DefaultGroupName=PulseUnlock
+UsePreviousAppDir=yes
+UsePreviousGroup=no
 UninstallDisplayIcon={app}\pcbu_desktop.exe
 Compression=lzma2
 SolidCompression=yes
@@ -17,14 +20,19 @@ ArchitecturesInstallIn64BitMode={#GetEnv('ARCH')}
 [Files]
 Source: "..\build\installer_dir\*"; DestDir: "{app}"; Flags: recursesubdirs
 
+[InstallDelete]
+Type: filesandordirs; Name: "{commonprograms}\PC Bio Unlock"
+Type: filesandordirs; Name: "{userprograms}\PC Bio Unlock"
+
 [UninstallDelete]
 Type: files; Name: "{win}\System32\win-pcbiounlock.dll"
+Type: files; Name: "{win}\System32\win_pulseunlock.dll"
 
 [Icons]
-Name: "{group}\PC Bio Unlock"; Filename: "{app}\pcbu_desktop.exe"
+Name: "{group}\PulseUnlock"; Filename: "{app}\pcbu_desktop.exe"
 
 [Run]
-Filename: "{app}\pcbu_desktop.exe"; Description: "Launch PC Bio Unlock"; Verb: runas; Flags: postinstall nowait skipifsilent runascurrentuser shellexec
+Filename: "{app}\pcbu_desktop.exe"; Description: "Launch PulseUnlock"; Verb: runas; Flags: postinstall nowait skipifsilent runascurrentuser shellexec
 
 [Code]
 const

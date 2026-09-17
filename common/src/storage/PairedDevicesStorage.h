@@ -35,8 +35,9 @@ public:
   static std::vector<PairedDevice> GetDevices();
   static void SaveDevices(const std::vector<PairedDevice> &devices);
 
-private:
   static void ProtectFile(const std::string &filePath, bool protect);
+
+private:
 #ifdef WINDOWS
   static bool ModifyFileAccess(const std::string &filePath, const std::string &sid, bool deny);
 #endif

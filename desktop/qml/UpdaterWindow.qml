@@ -3,7 +3,7 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import QtQuick.Window
 import QtQuick.Dialogs
-import PCBioUnlock
+import PulseUnlock
 
 ApplicationWindow {
     id: updaterWindow

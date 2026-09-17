@@ -35,8 +35,7 @@ struct ServiceSetting {
       : type("toggle"), id(std::move(id)), name(std::move(name)), enabled(enabled), defaultVal(defaultVal) {}
 
   // Choice setting
-  ServiceSetting(std::string id, std::string name, std::vector<ServiceSettingOption> options, std::string selectedValue,
-                 std::string defaultValue)
+  ServiceSetting(std::string id, std::string name, std::vector<ServiceSettingOption> options, std::string selectedValue, std::string defaultValue)
       : type("choice"), id(std::move(id)), name(std::move(name)), options(std::move(options)), selectedValue(std::move(selectedValue)),
         defaultValue(std::move(defaultValue)) {}
 
@@ -58,7 +57,7 @@ public:
 
   static bool IsInstalled();
   void Install();
-  void Uninstall();
+  void Uninstall(bool fullUninstall);
 
 private:
   static bool IsProgramInstalled(const std::string &pathName);

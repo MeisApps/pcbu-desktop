@@ -36,8 +36,14 @@ public:
   static void InvalidateCache();
   static void SetInstalledVersion(bool isInstalled);
 
+  static bool NeedsMigration();
+  static void MigrateBaseDir();
+
 private:
   static PCBUAppStorage Load();
+
+  static std::filesystem::path GetNewBaseDir();
+  static std::filesystem::path GetOldBaseDir();
 
   static PCBUAppStorage g_Cache;
   static std::mutex g_Mutex;

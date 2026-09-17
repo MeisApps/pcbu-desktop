@@ -1,4 +1,4 @@
-# PC Bio Unlock
+# PulseUnlock
 
 **Unlock your PC with your phone.** Instead of typing your password at the login screen, the lock screen or a permission prompt, just confirm it with your fingerprint or face on your Android phone.
 
@@ -58,7 +58,7 @@ If anything ever goes wrong, nothing is lost: hold <kbd>Left Ctrl</kbd> + <kbd>L
 
 ## Security & privacy
 
-PC Bio Unlock is designed so that using it does not make your PC easier to break into.
+PulseUnlock is designed so that using it does not make your PC easier to break into.
 
 **Your password never leaves your PC.** It is stored encrypted, and the key to it lives only on your paired phone. Your phone never sees your password, it only holds the key, and the password is never sent over the network or to anyone else. Without your phone the stored copy is unreadable, so someone who takes the file off your PC gets nothing usable. On top of that, the file is locked down so that only the system can access it.
 

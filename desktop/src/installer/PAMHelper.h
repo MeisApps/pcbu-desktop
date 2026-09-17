@@ -13,6 +13,8 @@ public:
   static bool HasConfigEntry(const std::string &configName, const std::string &entry);
   void SetConfigEntry(const std::string &configName, const std::string &entry, bool enabled);
 
+  void MigrateConfigEntry(const std::string &configName, const std::string &oldEntry, const std::string &newEntry);
+
 private:
   static bool IsConfigGenerated(const std::filesystem::path &filePath);
 

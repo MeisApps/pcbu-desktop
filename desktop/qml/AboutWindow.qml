@@ -2,7 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import QtQuick.Window
-import PCBioUnlock
+import PulseUnlock
 
 ApplicationWindow {
     id: aboutWindow
@@ -13,7 +13,7 @@ ApplicationWindow {
         anchors.fill: parent
         anchors.margins: 25
         Label {
-            text: 'PC Bio Unlock'
+            text: QI18n.Get('product_name')
             font.pointSize: 36
         }
         Label {

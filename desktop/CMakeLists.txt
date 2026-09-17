@@ -144,7 +144,7 @@ qt_add_executable(pcbu_desktop
         ${PLATFORM_SRC}
 )
 qt_add_qml_module(pcbu_desktop
-        URI PCBioUnlock
+        URI PulseUnlock
         VERSION 1.0
         QML_FILES
         ${QML_FILES}
@@ -163,7 +163,8 @@ target_link_libraries(pcbu_desktop PRIVATE
 set_target_properties(pcbu_desktop PROPERTIES
         WIN32_EXECUTABLE TRUE
         MACOSX_BUNDLE TRUE
-        MACOSX_BUNDLE_GUI_IDENTIFIER com.meisapps.PCBioUnlock
+        MACOSX_BUNDLE_BUNDLE_NAME PulseUnlock
+        MACOSX_BUNDLE_GUI_IDENTIFIER com.meisapps.PulseUnlock
         MACOSX_BUNDLE_INFO_PLIST ${CMAKE_SOURCE_DIR}/pkg/mac/Info.plist
 )
 install(TARGETS pcbu_desktop

@@ -1,4 +1,5 @@
 {
+  "product_name": "PulseUnlock",
   "initializing": "A iniciar...",
   "password": "Palavra-passe",
   "retry": "Tentar novamente",
@@ -178,7 +179,7 @@
   "service_setting_pam_set_pw": "Escrever a palavra-passe na cadeia de autenticação PAM",
 
   "error_file_write": "Erro ao escrever no ficheiro '{}'.",
-  "error_file_remove": "Erro ao remover o ficheiro '{}'.",
+  "error_file_remove": "Erro ao remover o ficheiro '{}'. Reinicie o PC e tente novamente.",
   "error_exec_setuid": "Erro ao definir permissão de execução e setuid para o ficheiro '{}'.",
   "error_firewall_rule_add": "Erro ao adicionar regra de firewall. ({})",
   "error_firewall_rule_remove": "Erro ao remover regra de firewall. ({})",

@@ -1,4 +1,5 @@
 {
+  "product_name": "PulseUnlock",
   "initializing": "Initialisiere...",
   "password": "Passwort",
   "retry": "Erneut versuchen",
@@ -179,7 +180,7 @@
   "service_setting_pam_set_pw": "Passwort in die PAM-Authentifizierungskette schreiben",
 
   "error_file_write": "Fehler beim Schreiben der Datei '{}'.",
-  "error_file_remove": "Fehler beim Löschen der Datei '{}'.",
+  "error_file_remove": "Fehler beim Löschen der Datei '{}'. Bitte starte deinen PC neu und versuche es erneut.",
   "error_exec_setuid": "Fehler beim Setzen der execute und setuid Bits für Datei '{}'.",
   "error_firewall_rule_add": "Fehler beim Hinzufügen der Firewall Regel. ({})",
   "error_firewall_rule_remove": "Fehler beim Löschen der Firewall Regel. ({})",

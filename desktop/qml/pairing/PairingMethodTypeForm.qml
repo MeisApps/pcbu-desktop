@@ -2,7 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 
-import PCBioUnlock
+import PulseUnlock
 import "qrc:/ui/base"
 
 StepForm {

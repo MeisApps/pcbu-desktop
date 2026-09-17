@@ -3,6 +3,7 @@
 #include <nlohmann/json.hpp>
 #include <spdlog/spdlog.h>
 
+#include "PairedDevicesStorage.h"
 #include "shell/Shell.h"
 #include "utils/AppInfo.h"
 #include "utils/StringUtils.h"
@@ -16,14 +17,13 @@ PCBUAppStorage AppSettings::g_Cache{};
 std::mutex AppSettings::g_Mutex{};
 
 std::filesystem::path AppSettings::GetBaseDir() {
-#ifdef WINDOWS
-  wchar_t szPath[MAX_PATH]{};
-  if(SHGetFolderPathW(nullptr, CSIDL_COMMON_APPDATA, nullptr, 0, szPath) == S_OK)
-    return fmt::format(L"{}\\PCBioUnlock", szPath);
-  return "C:\\ProgramData\\PCBioUnlock";
-#else
-  return {"/etc/pc-bio-unlock"};
-#endif
+  auto newDir = GetNewBaseDir();
+  auto oldDir = GetOldBaseDir();
+  if(std::filesystem::exists(newDir / SETTINGS_FILE_NAME))
+    return newDir;
+  if(std::filesystem::exists(oldDir / SETTINGS_FILE_NAME))
+    return oldDir;
+  return newDir;
 }
 
 PCBUAppStorage AppSettings::Get() {
@@ -135,4 +135,58 @@ void AppSettings::SetInstalledVersion(bool isInstalled) {
   settings.installedVersion = isInstalled ? AppInfo::GetVersion() : "";
   Save(settings);
   InvalidateCache();
+}
+
+/*
+ * Migration
+ */
+
+std::filesystem::path AppSettings::GetNewBaseDir() {
+#ifdef WINDOWS
+  wchar_t szPath[MAX_PATH]{};
+  if(SHGetFolderPathW(nullptr, CSIDL_COMMON_APPDATA, nullptr, 0, szPath) == S_OK)
+    return fmt::format(L"{}\\PulseUnlock", szPath);
+  return "C:\\ProgramData\\PulseUnlock";
+#else
+  return {"/etc/pulse-unlock"};
+#endif
+}
+
+std::filesystem::path AppSettings::GetOldBaseDir() {
+#ifdef WINDOWS
+  wchar_t szPath[MAX_PATH]{};
+  if(SHGetFolderPathW(nullptr, CSIDL_COMMON_APPDATA, nullptr, 0, szPath) == S_OK)
+    return fmt::format(L"{}\\PCBioUnlock", szPath);
+  return "C:\\ProgramData\\PCBioUnlock";
+#else
+  return {"/etc/pc-bio-unlock"};
+#endif
+}
+
+bool AppSettings::NeedsMigration() {
+  auto newDir = GetNewBaseDir();
+  auto oldDir = GetOldBaseDir();
+  if(std::filesystem::exists(newDir / SETTINGS_FILE_NAME))
+    return false;
+  if(!std::filesystem::exists(oldDir / SETTINGS_FILE_NAME))
+    return false;
+  return true;
+}
+
+void AppSettings::MigrateBaseDir() {
+  if(!NeedsMigration())
+    return;
+
+  auto newDir = GetNewBaseDir();
+  auto oldDir = GetOldBaseDir();
+  auto oldDevicesFile = (oldDir / "paired_devices.json").string();
+  auto newDevicesFile = (newDir / "paired_devices.json").string();
+  PairedDevicesStorage::ProtectFile(oldDevicesFile, false);
+  try {
+    std::filesystem::rename(oldDir, newDir);
+  } catch(...) {
+    PairedDevicesStorage::ProtectFile(oldDevicesFile, true);
+    throw;
+  }
+  PairedDevicesStorage::ProtectFile(newDevicesFile, true);
 }

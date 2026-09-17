@@ -1,7 +1,7 @@
 <!DOCTYPE RCC>
 <RCC version="1.0">
     <qresource prefix="/res/natives/">
-        <file alias="pam_pcbiounlock.so">natives/linux/x64/pam_pcbiounlock.so</file>
+        <file alias="pam_pulseunlock.so">natives/linux/x64/pam_pulseunlock.so</file>
         <file alias="pcbu_auth">natives/linux/x64/pcbu_auth</file>
     </qresource>
     <qresource prefix="/res/selinux/">

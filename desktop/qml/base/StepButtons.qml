@@ -1,7 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
-import PCBioUnlock
+import PulseUnlock
 
 Rectangle {
     Layout.fillWidth: true

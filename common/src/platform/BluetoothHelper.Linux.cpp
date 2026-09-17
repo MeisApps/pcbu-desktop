@@ -172,7 +172,7 @@ std::optional<SDPService> BluetoothHelper::RegisterSDPService(uint8_t channel) {
 
   accessProtoList = sdp_list_append(nullptr, protoList);
   sdp_set_access_protos(record, accessProtoList);
-  sdp_set_info_attr(record, "PC Bio Unlock BT", "", "");
+  sdp_set_info_attr(record, "PulseUnlock BT", "", "");
 
   bdaddr_t local = {{0, 0, 0, 0xff, 0xff, 0xff}};
   bdaddr_t localAny = {{0, 0, 0, 0, 0, 0}};

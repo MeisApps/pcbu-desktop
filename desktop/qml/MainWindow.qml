@@ -3,7 +3,7 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import QtQuick.Window
 import QtQuick.Dialogs
-import PCBioUnlock
+import PulseUnlock
 
 ApplicationWindow {
     id: window
@@ -12,7 +12,7 @@ ApplicationWindow {
     minimumWidth: 1024
     minimumHeight: 768
     visible: true
-    title: 'PC Bio Unlock'
+    title: QI18n.Get('product_name')
 
     property bool canClose: true
     onClosing: function(close) { close.accepted = window.canClose }
@@ -22,7 +22,7 @@ ApplicationWindow {
         anchors.margins: 25
         Label {
             id: title
-            text: 'PC Bio Unlock'
+            text: QI18n.Get('product_name')
             font.pointSize: 36
         }
         Loader {

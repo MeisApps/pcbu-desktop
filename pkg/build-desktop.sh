@@ -62,7 +62,7 @@ mkdir build || true
 cd build
 if [[ "$PLATFORM" == "win" ]]; then
   cmake ../../ -DCMAKE_BUILD_TYPE=Release -DTARGET_ARCH="$ARCH" -DQT_BASE_DIR="$QT_BASE_DIR" -G "Visual Studio 18 2026" -A "$VS_ARCH" -DCMAKE_GENERATOR_PLATFORM="$VS_ARCH" -DMSVC_STATIC_LINK=1
-  cmake --build . --target "win-pcbiounlock" --config Release -- /maxcpucount:"$BUILD_CORES"
+  cmake --build . --target "win_pulseunlock" --config Release -- /maxcpucount:"$BUILD_CORES"
 
   rm -Rf ./*
   cmake ../../ -DCMAKE_BUILD_TYPE=Release -DTARGET_ARCH="$ARCH" -DQT_BASE_DIR="$QT_BASE_DIR" -G "Visual Studio 18 2026" -A "$VS_ARCH" -DCMAKE_GENERATOR_PLATFORM="$VS_ARCH"
@@ -70,7 +70,7 @@ if [[ "$PLATFORM" == "win" ]]; then
 else
   cmake ../../ -DCMAKE_BUILD_TYPE=Release -DTARGET_ARCH="$ARCH" -DQT_BASE_DIR="$QT_BASE_DIR"
   cmake --build . --target "pcbu_auth" --config Release -- -j"$BUILD_CORES"
-  cmake --build . --target "pam_pcbiounlock" --config Release -- -j"$BUILD_CORES"
+  cmake --build . --target "pam_pulseunlock" --config Release -- -j"$BUILD_CORES"
   cmake --build . --target "pcbu_desktop" --config Release -- -j"$BUILD_CORES"
 fi
 
@@ -96,7 +96,7 @@ if [[ "$PLATFORM" == "win" ]]; then
   fi
 
   iscc ../win/installer.iss
-  mv mysetup.exe PCBioUnlock-Setup-"$ARCH".exe
+  mv mysetup.exe PulseUnlock-Setup-"$ARCH".exe
 elif [[ "$PLATFORM" == "linux" ]]; then
   wget "https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-$LINUX_ARCH.AppImage" && chmod +x ./linuxdeploy-"$LINUX_ARCH".AppImage
   wget "https://github.com/darealshinji/linuxdeploy-plugin-checkrt/releases/download/continuous/linuxdeploy-plugin-checkrt.sh" && chmod +x ./linuxdeploy-plugin-checkrt.sh
@@ -106,19 +106,19 @@ elif [[ "$PLATFORM" == "linux" ]]; then
   mkdir -p appimage_dir/usr/share/icons/hicolor/256x256/apps || true
   cp desktop/pcbu_desktop appimage_dir/usr/bin/
   cp ../linux/run-app.sh appimage_dir/usr/bin/
-  cp ../../desktop/res/icons/icon.png appimage_dir/usr/share/icons/hicolor/256x256/apps/PCBioUnlock.png
+  cp ../../desktop/res/icons/icon.png appimage_dir/usr/share/icons/hicolor/256x256/apps/PulseUnlock.png
   chmod +x appimage_dir/usr/bin/run-app.sh
 
   export QML_SOURCES_PATHS="../../desktop/qml"
   export EXTRA_QT_MODULES="svg;waylandcompositor"
   export EXTRA_PLATFORM_PLUGINS="libqwayland.so"
-  ./linuxdeploy-"$LINUX_ARCH".AppImage --appdir appimage_dir --plugin checkrt --desktop-file ../linux/PCBioUnlock.desktop
+  ./linuxdeploy-"$LINUX_ARCH".AppImage --appdir appimage_dir --plugin checkrt --desktop-file ../linux/PulseUnlock.desktop
   wget "https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-$LINUX_ARCH.AppImage" && chmod +x ./linuxdeploy-plugin-qt-"$LINUX_ARCH".AppImage
   ./linuxdeploy-plugin-qt-"$LINUX_ARCH".AppImage --appdir appimage_dir
   rm ./linuxdeploy-plugin-qt-"$LINUX_ARCH".AppImage
-  ./linuxdeploy-"$LINUX_ARCH".AppImage --appdir appimage_dir --plugin checkrt --output appimage --desktop-file ../linux/PCBioUnlock.desktop
-  mv PC_Bio_Unlock*.AppImage PCBioUnlock.AppImage
-  chmod +x PCBioUnlock.AppImage
+  ./linuxdeploy-"$LINUX_ARCH".AppImage --appdir appimage_dir --plugin checkrt --output appimage --desktop-file ../linux/PulseUnlock.desktop
+  mv PulseUnlock*.AppImage PulseUnlock.AppImage
+  chmod +x PulseUnlock.AppImage
 elif [[ "$PLATFORM" == "mac" ]]; then
   "$QT_BASE_DIR/macos/bin/macdeployqt" desktop/pcbu_desktop.app -qmldir=../../desktop/qml
   find "desktop/pcbu_desktop.app" -type f -perm +111 | while read -r file; do
@@ -128,7 +128,7 @@ elif [[ "$PLATFORM" == "mac" ]]; then
 
   rm -Rf dmg_dir/ || true
   mkdir -p dmg_dir/ || true
-  cp -R desktop/pcbu_desktop.app dmg_dir/PCBioUnlock.app
+  cp -R desktop/pcbu_desktop.app dmg_dir/PulseUnlock.app
   ln -s /Applications dmg_dir/Applications
 
   if [[ "$CI_BUILD" == "1" ]]; then
@@ -137,5 +137,5 @@ elif [[ "$PLATFORM" == "mac" ]]; then
     echo "Waiting for XProtect..."
     while pgrep XProtect; do sleep 3; done
   fi
-  hdiutil create -volname "PC Bio Unlock" -srcfolder dmg_dir/ -ov -format UDZO ./PCBioUnlock-"$ARCH".dmg
+  hdiutil create -volname "PulseUnlock" -srcfolder dmg_dir/ -ov -format UDZO ./PulseUnlock-"$ARCH".dmg
 fi

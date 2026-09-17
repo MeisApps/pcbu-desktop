@@ -34,7 +34,7 @@ QString UpdaterWindow::GetLatestVersion() {
 void UpdaterWindow::CheckForUpdates(QObject *window) {
   m_CheckThread = std::thread([this, window]() {
     try {
-      auto latestVersion = RestClient::CheckForUpdates("PCBioUnlock", "Desktop");
+      auto latestVersion = RestClient::CheckForUpdates("PulseUnlock", "Desktop");
       m_VersionMutex.lock();
       m_LatestVersion = QString::fromUtf8(latestVersion);
       m_VersionMutex.unlock();
@@ -82,11 +82,11 @@ void UpdaterWindow::OnDownloadClicked(QObject *window) {
     }
     auto contentHeader = result.GetHeader("Content-Disposition");
 #ifdef WINDOWS
-    std::string downloadFileName = "Update-PCBioUnlock.exe";
+    std::string downloadFileName = "Update-PulseUnlock.exe";
 #elif LINUX
-    std::string downloadFileName = "Update-PCBioUnlock.AppImage";
+    std::string downloadFileName = "Update-PulseUnlock.AppImage";
 #elif APPLE
-    std::string downloadFileName = "Update-PCBioUnlock.dmg";
+    std::string downloadFileName = "Update-PulseUnlock.dmg";
 #endif
     std::regex regex(R"(.*filename=\"(.*)\")");
     std::smatch matches{};
