@@ -2,7 +2,6 @@
 #include <unistd.h>
 
 #include <optional>
-#include <ranges>
 #include <string>
 #include <vector>
 
@@ -26,8 +25,11 @@ int runMain(int argc, char *argv[], const std::string &userName, const std::stri
     auto root = RootGuard();
     devices = PairedDevicesStorage::GetDevicesForUser(userName);
   }
-  auto deviceIds = devices | std::views::filter([&](const PairedDevice &device) { return prompt.FindMatch(device, homeDir).has_value(); }) |
-                   std::views::transform(&PairedDevice::id) | std::ranges::to<std::vector>();
+  auto deviceIds = std::vector<std::string>();
+  for(const auto &device : devices) {
+    if(prompt.FindMatch(device, homeDir).has_value())
+      deviceIds.push_back(device.id);
+  }
   if(deviceIds.empty())
     return TtyPrompt::ReadPassword(rawPrompt);
 
