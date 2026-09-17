@@ -25,7 +25,12 @@ constexpr std::uint16_t RELAY_PEER_UNAVAILABLE_CLOSE_CODE = 4003;
 
 constexpr auto CONNECT_TIMEOUT = std::chrono::seconds(10);
 constexpr auto IDLE_TIMEOUT = std::chrono::seconds(20);
+constexpr auto CLOSE_TIMEOUT = std::chrono::seconds(2);
 constexpr std::size_t MAX_MESSAGE_SIZE = 128 * 1024;
+
+WebSocketStream::~WebSocketStream() {
+  Shutdown();
+}
 
 bool WebSocketStream::Connect(const std::string &relayUrl, const std::string &sessionId, const std::string &joinToken, const std::string &role) {
   auto parsed = urls::parse_uri(relayUrl);
@@ -59,6 +64,8 @@ bool WebSocketStream::Connect(const std::string &relayUrl, const std::string &se
         throw std::runtime_error("Failed to set TLS SNI host name.");
 
       ConnectTo(*m_Wss, results);
+      if(m_Closed)
+        throw std::runtime_error("Canceled.");
       m_Wss->next_layer().set_verify_mode(ssl::verify_peer);
       m_Wss->next_layer().set_verify_callback(ssl::host_name_verification(host));
 
@@ -73,9 +80,13 @@ bool WebSocketStream::Connect(const std::string &relayUrl, const std::string &se
     } else {
       m_Ws = std::make_unique<WsStream>(m_Ctx);
       ConnectTo(*m_Ws, results);
+      if(m_Closed)
+        throw std::runtime_error("Canceled.");
       FinishHandshake(*m_Ws, hostHeader, target, joinStr);
     }
-    return !m_Closed;
+    if(m_Closed)
+      throw std::runtime_error("Canceled.");
+    return true;
   } catch(const std::exception &ex) {
     if(m_Closed) {
       spdlog::info("Cloud relay connect canceled.");
@@ -109,7 +120,41 @@ StreamResult WebSocketStream::WriteRaw(const uint8_t *buffer, size_t length) {
 void WebSocketStream::Close() {
   if(m_Closed.exchange(true))
     return;
-  net::post(m_Ctx, [this] { CloseSockets(); });
+  net::post(m_Ctx, [this] { BeginClose(); });
+}
+
+void WebSocketStream::Shutdown() {
+  m_Closed = true;
+  net::post(m_Ctx, [this] { BeginClose(); });
+  m_Ctx.restart();
+  m_Ctx.poll();
+  if(m_CloseSlot)
+    DriveFor(m_CloseSlot, CLOSE_TIMEOUT);
+  CloseSockets();
+  m_Ctx.restart();
+  m_Ctx.poll();
+}
+
+void WebSocketStream::BeginClose() {
+  if(m_Resolver)
+    m_Resolver->cancel();
+  if(m_CloseSlot)
+    return;
+  if(m_Wss && m_Wss->is_open())
+    SendClose(*m_Wss);
+  else if(m_Ws && m_Ws->is_open())
+    SendClose(*m_Ws);
+  else
+    CloseSockets();
+}
+
+template <class Stream> void WebSocketStream::SendClose(Stream &stream) {
+  m_CloseSlot = MakeSlot();
+  stream.async_close(websocket::close_code::normal, [slot = m_CloseSlot](beast::error_code ec) {
+    *slot = ec;
+    if(ec && ec != net::error::operation_aborted)
+      spdlog::debug("Relay close handshake failed. ({})", ec.message());
+  });
 }
 
 void WebSocketStream::CloseSockets() {
@@ -145,6 +190,19 @@ beast::error_code WebSocketStream::Drive(const ErrorSlot &slot) {
     *slot = net::error::operation_aborted;
   }
   return *slot;
+}
+
+void WebSocketStream::DriveFor(const ErrorSlot &slot, std::chrono::steady_clock::duration timeout) {
+  auto deadline = std::chrono::steady_clock::now() + timeout;
+  while(*slot == net::error::would_block) {
+    auto remaining = deadline - std::chrono::steady_clock::now();
+    if(remaining <= std::chrono::steady_clock::duration::zero())
+      return;
+    if(m_Ctx.stopped())
+      m_Ctx.restart();
+    if(m_Ctx.run_one_for(remaining) == 0)
+      return;
+  }
 }
 
 net::ip::tcp::resolver::results_type WebSocketStream::Resolve(const std::string &host, const std::string &port) {

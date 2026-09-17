@@ -2,6 +2,7 @@
 #define PCBU_DESKTOP_WEBSOCKETSTREAM_H
 
 #include <atomic>
+#include <chrono>
 #include <cstdint>
 #include <memory>
 #include <string>
@@ -18,7 +19,7 @@
 class WebSocketStream : public ConnectionStream {
 public:
   WebSocketStream() = default;
-  ~WebSocketStream() override = default;
+  ~WebSocketStream() override;
 
   bool Connect(const std::string &relayUrl, const std::string &sessionId, const std::string &joinToken, const std::string &role);
 
@@ -35,9 +36,13 @@ private:
 
   static ErrorSlot MakeSlot();
 
+  void Shutdown();
   bool RunUntilComplete(const ErrorSlot &slot);
   boost::beast::error_code Drive(const ErrorSlot &slot);
+  void DriveFor(const ErrorSlot &slot, std::chrono::steady_clock::duration timeout);
+  void BeginClose();
   void CloseSockets();
+  template <class Stream> void SendClose(Stream &stream);
   boost::asio::ip::tcp::resolver::results_type Resolve(const std::string &host, const std::string &port);
   template <class Stream> void ConnectTo(Stream &stream, const boost::asio::ip::tcp::resolver::results_type &results);
   template <class Stream> void FinishHandshake(Stream &stream, const std::string &hostHeader, const std::string &target, const std::string &joinStr);
@@ -53,6 +58,7 @@ private:
   boost::beast::flat_buffer m_ReadBuffer{};
   size_t m_ReadOffset{};
   std::atomic<bool> m_Closed{};
+  ErrorSlot m_CloseSlot{};
 };
 
 #endif // PCBU_DESKTOP_WEBSOCKETSTREAM_H
