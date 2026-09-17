@@ -162,7 +162,7 @@
   "pairing_method_bt_select": "Bluetooth verwenden",
   "pairing_method_manual_udp_select": "UDP manuell verwenden",
   "pairing_method_tcp_desc": "Alternative zu UDP. Erfordert regelmäßiges erneutes Koppeln, sofern keine statische IP-Adresse festgelegt ist. Entsperrungsaufforderungen werden schneller angezeigt als bei UDP.",
-  "pairing_method_udp_desc": "Empfohlen für Desktop-PCs oder Notebooks, die zu Hause verwendet werden. Funktioniert in jedem lokalen Netzwerk oder WLAN. Beide Geräte müssen sich im selben Netzwerk befinden.",
+  "pairing_method_udp_desc": "Empfohlen für Desktop-PCs oder Notebooks, die zu Hause verwendet werden. Funktioniert in jedem lokalen Netzwerk oder WLAN, außer bei mobilen Hotspots. Beide Geräte müssen sich im selben Netzwerk befinden.",
   "pairing_method_bt_desc": "Empfohlen für mobile Notebooks oder Tablets. Funktioniert ohne Netzwerkverbindung. Verbraucht viel Akkuleistung. <b>Nicht empfohlen für Samsung-Smartphones oder Android-Versionen unter 14.</b>",
   "pairing_method_manual_udp_desc": "Funktioniert in jedem lokalen Netzwerk oder WLAN. Beide Geräte müssen sich im selben Netzwerk befinden.",
 

@@ -162,7 +162,7 @@
   "pairing_method_bt_select": "使用蓝牙",
   "pairing_method_manual_udp_select": "手动使用 UDP",
   "pairing_method_tcp_desc": "UDP 的替代方案。除非设置了静态 IP，否则需要定期重新配对。解锁提示比 UDP 出现得更快。",
-  "pairing_method_udp_desc": "推荐用于家中使用的台式电脑或笔记本电脑。适用于任何局域网或 Wi-Fi。两台设备必须处于同一网络。",
+  "pairing_method_udp_desc": "推荐用于家中使用的台式电脑或笔记本电脑。适用于任何局域网或 Wi-Fi，移动热点除外。两台设备必须处于同一网络。",
   "pairing_method_bt_desc": "推荐用于移动笔记本电脑或平板电脑。无需任何网络连接即可使用。耗电较多。<b>不推荐三星手机或 Android 14 以下版本。</b>",
   "pairing_method_manual_udp_desc": "适用于任何局域网或 Wi-Fi。两台设备必须处于同一网络。",
 

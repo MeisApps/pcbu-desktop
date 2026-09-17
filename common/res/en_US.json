@@ -162,7 +162,7 @@
   "pairing_method_bt_select": "Use Bluetooth",
   "pairing_method_manual_udp_select": "Use UDP manually",
   "pairing_method_tcp_desc": "Alternative to UDP. Requires periodic re-pairing unless a static IP is set. Unlock prompts appear faster than with UDP.",
-  "pairing_method_udp_desc": "Recommended for desktop PCs or notebooks used at home. Works on any local network or Wi-Fi. Both devices have to be on the same network.",
+  "pairing_method_udp_desc": "Recommended for desktop PCs or notebooks used at home. Works on any local network or Wi-Fi, except mobile hotspots. Both devices have to be on the same network.",
   "pairing_method_bt_desc": "Recommended for mobile notebooks or tablets. Works without any network connection. Uses a lot of battery power. <b>Not recommended for Samsung phones or Android versions below 14.</b>",
   "pairing_method_manual_udp_desc": "Works on any local network or Wi-Fi. Both devices have to be on the same network.",
 

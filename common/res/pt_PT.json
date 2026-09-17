@@ -162,7 +162,7 @@
   "pairing_method_bt_select": "Usar Bluetooth",
   "pairing_method_manual_udp_select": "Usar UDP manualmente",
   "pairing_method_tcp_desc": "Alternativa ao UDP. Requer emparelhar novamente de forma periódica, a menos que defina um IP estático. Os pedidos de desbloqueio aparecem mais depressa do que com UDP.",
-  "pairing_method_udp_desc": "Recomendado para PCs de secretária ou portáteis usados em casa. Funciona em qualquer rede local ou Wi-Fi. Ambos os dispositivos têm de estar na mesma rede.",
+  "pairing_method_udp_desc": "Recomendado para PCs de secretária ou portáteis usados em casa. Funciona em qualquer rede local ou Wi-Fi, exceto hotspots móveis. Ambos os dispositivos têm de estar na mesma rede.",
   "pairing_method_bt_desc": "Recomendado para portáteis ou tablets usados em mobilidade. Funciona sem qualquer ligação de rede. Consome muita bateria. <b>Não recomendado para telemóveis Samsung ou versões do Android abaixo de 14.</b>",
   "pairing_method_manual_udp_desc": "Funciona em qualquer rede local ou Wi-Fi. Ambos os dispositivos têm de estar na mesma rede.",
 
