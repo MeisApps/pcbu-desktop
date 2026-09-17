@@ -18,7 +18,6 @@
 #include "CUnlockCredential.h"
 #include "guid.h"
 #include "storage/AppSettings.h"
-#include "storage/LoggingSystem.h"
 #include "storage/PairedDevicesStorage.h"
 #include "utils/StringUtils.h"
 // clang-format on
@@ -27,7 +26,6 @@ CSampleProvider::CSampleProvider()
     : _cRef(1), _rgCredProvFieldDescriptors(), _pCredProviderUserArray(nullptr), _pCredProvEvents(nullptr), _upAdviseContext(0),
       _fRecreateEnumeratedCredentials(true), _cpus() {
   DllAddRef();
-  LoggingSystem::Init("module");
 
   AddFieldDescriptor(SFI_TILEIMAGE, CPFT_TILE_IMAGE, "Image", CPFG_CREDENTIAL_PROVIDER_LOGO);
   AddFieldDescriptor(SFI_USERNAME, CPFT_SMALL_TEXT, "Username");
@@ -48,7 +46,6 @@ CSampleProvider::~CSampleProvider() {
   for(auto &desc : _rgCredProvFieldDescriptors)
     CoTaskMemFree(desc.pszLabel);
   DllRelease();
-  LoggingSystem::Destroy();
 }
 
 void CSampleProvider::AddFieldDescriptor(DWORD id, CREDENTIAL_PROVIDER_FIELD_TYPE type, const std::string &label, GUID guid) {
@@ -182,7 +179,7 @@ HRESULT CSampleProvider::GetCredentialCount(_Out_ DWORD *pdwCount, _Out_ DWORD *
       *pbAutoLogonWithDefault = TRUE;
       break;
     }
-    if (recreated && forceDefaultProv && *pdwDefault == CREDENTIAL_PROVIDER_NO_DEFAULT) {
+    if(recreated && forceDefaultProv && *pdwDefault == CREDENTIAL_PROVIDER_NO_DEFAULT) {
       *pdwDefault = idx;
     }
     idx++;

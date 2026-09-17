@@ -2,6 +2,7 @@
 
 #include "handler/UnlockHandler.h"
 #include "platform/PlatformHelper.h"
+#include "shell/Shell.h"
 #include "storage/AppSettings.h"
 #include "storage/LoggingSystem.h"
 #include "utils/StringUtils.h"
@@ -93,7 +94,9 @@ int main(int argc, char *argv[]) {
     return -1;
   }
   LoggingSystem::Init("module", false);
+  Shell::Init(false);
   auto result = runMain(argc, argv);
+  Shell::Destroy();
   LoggingSystem::Destroy();
   return result;
 }

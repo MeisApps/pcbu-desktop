@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.22)
 project(win_pulseunlock)
 set(CMAKE_CXX_STANDARD 23)
 
-add_compile_definitions(_WIN32 WIN32 SAMPLEV2CREDENTIALPROVIDER_EXPORTS _WINDOWS WINDOWS _USRDLL UNICODE _UNICODE)
+add_compile_definitions(_WIN32 WIN32 SAMPLEV2CREDENTIALPROVIDER_EXPORTS _WINDOWS WINDOWS _USRDLL UNICODE _UNICODE _WINSOCKAPI_)
 add_library(win_pulseunlock SHARED
         src/win_pulseunlock.def
         src/resource.rc

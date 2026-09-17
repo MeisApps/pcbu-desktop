@@ -1,21 +1,17 @@
-#ifndef PCBU_DESKTOP_SHELL_H
-#define PCBU_DESKTOP_SHELL_H
+#ifndef LOCALSHELL_H
+#define LOCALSHELL_H
 
 #include <filesystem>
 
 #include "ElevatorCommands.h"
 
-class ElevatorService;
-
 #ifdef WINDOWS
 #undef CreateFile
 #endif
 
-class Shell {
+class LocalShell {
 public:
-  static void Init(bool useElevator);
-  static void Destroy();
-  static bool HasAdmin();
+  static bool IsRunningAsAdmin();
 
   static ShellCmdResult RunCommand(const std::string &cmd);
   static ShellCmdResult RunUserCommand(const std::string &cmd);
@@ -23,7 +19,6 @@ public:
 
   static bool CreateDir(const std::filesystem::path &path);
   static bool RemoveDir(const std::filesystem::path &path);
-
   static bool CreateFile(const std::filesystem::path &path);
   static bool RemoveFile(const std::filesystem::path &path);
 
@@ -33,10 +28,11 @@ public:
   static bool ProtectFile(const std::filesystem::path &path, bool enabled);
 
 private:
-  Shell() = default;
+  LocalShell() = default;
 
-  static bool g_IsInitialized;
-  static std::unique_ptr<ElevatorService> g_ElevatorService;
+#ifdef WINDOWS
+  static bool ModifyFileAccess(const std::string &filePath, const std::string &sid, bool deny);
+#endif
 };
 
-#endif // PCBU_DESKTOP_SHELL_H
+#endif

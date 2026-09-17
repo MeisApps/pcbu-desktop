@@ -1,9 +1,11 @@
 #include "AppSettings.h"
 
+#include <filesystem>
+#include <stdexcept>
+
 #include <nlohmann/json.hpp>
 #include <spdlog/spdlog.h>
 
-#include "PairedDevicesStorage.h"
 #include "shell/Shell.h"
 #include "utils/AppInfo.h"
 #include "utils/StringUtils.h"
@@ -11,6 +13,8 @@
 #ifdef WINDOWS
 #include <ShlObj_core.h>
 #include <spdlog/fmt/xchar.h>
+#else
+#include <pwd.h>
 #endif
 
 PCBUAppStorage AppSettings::g_Cache{};
@@ -26,6 +30,35 @@ std::filesystem::path AppSettings::GetBaseDir() {
   return newDir;
 }
 
+std::filesystem::path AppSettings::GetBaseUserDir() {
+#ifdef WINDOWS
+  wchar_t szPath[MAX_PATH]{};
+  if(SHGetFolderPathW(nullptr, CSIDL_LOCAL_APPDATA, nullptr, SHGFP_TYPE_CURRENT, szPath) == S_OK)
+    return std::filesystem::path(fmt::format(L"{}\\PulseUnlock", szPath));
+  wchar_t tmp[MAX_PATH]{};
+  GetTempPathW(MAX_PATH, tmp);
+  return tmp;
+#else
+  auto homeDir = std::getenv("HOME");
+  if(!homeDir) {
+    uid_t uid = getuid();
+    auto pw = getpwuid(uid);
+    if(pw) {
+      homeDir = pw->pw_dir;
+    }
+  }
+  if(homeDir && homeDir[0] != '\0')
+    return std::filesystem::path(homeDir) / ".local/share/PulseUnlock";
+  return "/tmp";
+#endif
+}
+
+std::filesystem::path AppSettings::GetLogsDir(bool userDir) {
+  if(userDir)
+    return GetBaseUserDir() / "logs";
+  return GetBaseDir() / "logs";
+}
+
 PCBUAppStorage AppSettings::Get() {
   std::unique_lock lock(g_Mutex);
   if(!g_Cache.machineID.empty())
@@ -35,62 +68,54 @@ PCBUAppStorage AppSettings::Get() {
 }
 
 PCBUAppStorage AppSettings::Load() {
-  std::string machineID{};
+  auto defaults = LoadDefaults();
+  auto jsonData = Shell::ReadBytes(GetBaseDir() / SETTINGS_FILE_NAME);
+  if(jsonData.empty())
+    return defaults;
+
   try {
-    auto jsonData = Shell::ReadBytes(GetBaseDir() / SETTINGS_FILE_NAME);
     auto json = nlohmann::json::parse(jsonData);
     auto settings = PCBUAppStorage();
-    bool save = false;
-    try {
-      machineID = json["machineID"];
-    } catch(...) {
-      machineID = StringUtils::RandomString(32);
-      save = true;
-    }
-    settings.machineID = machineID;
-    settings.installedVersion = json["installedVersion"];
-    settings.language = json["language"];
-    settings.serverIP = json["serverIP"];
-    settings.serverMAC = json["serverMAC"];
-    settings.pairingDiscoveryPort = json.value("pairingDiscoveryPort", 43297);
-    settings.pairingServerPort = json["pairingServerPort"];
-    settings.unlockServerPort = json["unlockServerPort"];
-    settings.clientSocketTimeout = json["clientSocketTimeout"];
-    settings.clientConnectTimeout = json["clientConnectTimeout"];
-    settings.clientConnectRetries = json["clientConnectRetries"];
+    settings.machineID = json.value("machineID", defaults.machineID);
+    settings.installedVersion = json.value("installedVersion", defaults.installedVersion);
+    settings.language = json.value("language", defaults.language);
+    settings.serverIP = json.value("serverIP", defaults.serverIP);
+    settings.serverMAC = json.value("serverMAC", defaults.serverMAC);
+    settings.pairingDiscoveryPort = json.value("pairingDiscoveryPort", defaults.pairingDiscoveryPort);
+    settings.pairingServerPort = json.value("pairingServerPort", defaults.pairingServerPort);
+    settings.unlockServerPort = json.value("unlockServerPort", defaults.unlockServerPort);
+    settings.clientSocketTimeout = json.value("clientSocketTimeout", defaults.clientSocketTimeout);
+    settings.clientConnectTimeout = json.value("clientConnectTimeout", defaults.clientConnectTimeout);
+    settings.clientConnectRetries = json.value("clientConnectRetries", defaults.clientConnectRetries);
 
-    settings.winUnlockBehavior = json.value("winUnlockBehavior", "key_press_lock_only");
-    settings.winHidePasswordField = json["winHidePasswordField"];
-    settings.winForceDefaultCredProv = json.value("winForceDefaultCredProv", true);
-    settings.unixSetPasswordPAM = json["unixSetPasswordPAM"];
-    if(save) {
-      g_Mutex.unlock();
-      Save(settings);
-      g_Mutex.lock();
-    }
+    settings.winUnlockBehavior = json.value("winUnlockBehavior", defaults.winUnlockBehavior);
+    settings.winHidePasswordField = json.value("winHidePasswordField", defaults.winHidePasswordField);
+    settings.winForceDefaultCredProv = json.value("winForceDefaultCredProv", defaults.winForceDefaultCredProv);
+    settings.unixSetPasswordPAM = json.value("unixSetPasswordPAM", defaults.unixSetPasswordPAM);
     return settings;
   } catch(const std::exception &ex) {
     spdlog::error("Failed reading app storage: {}", ex.what());
-    auto def = PCBUAppStorage();
-    def.machineID = machineID.empty() ? StringUtils::RandomString(32) : machineID;
-    def.language = "auto";
-    def.serverIP = "auto";
-    def.pairingDiscoveryPort = 43297;
-    def.pairingServerPort = 43295;
-    def.unlockServerPort = 43296;
-    def.clientSocketTimeout = 120;
-    def.clientConnectTimeout = 5;
-    def.clientConnectRetries = 2;
-
-    def.winUnlockBehavior = "key_press_lock_only";
-    def.winHidePasswordField = false;
-    def.winForceDefaultCredProv = true;
-    def.unixSetPasswordPAM = false;
-    g_Mutex.unlock();
-    Save(def);
-    g_Mutex.lock();
-    return def;
+    return LoadDefaults();
   }
+}
+
+PCBUAppStorage AppSettings::LoadDefaults() {
+  auto def = PCBUAppStorage();
+  def.machineID = StringUtils::RandomString(32);
+  def.language = "auto";
+  def.serverIP = "auto";
+  def.pairingDiscoveryPort = 43297;
+  def.pairingServerPort = 43295;
+  def.unlockServerPort = 43296;
+  def.clientSocketTimeout = 120;
+  def.clientConnectTimeout = 5;
+  def.clientConnectRetries = 2;
+
+  def.winUnlockBehavior = "key_press_lock_only";
+  def.winHidePasswordField = false;
+  def.winForceDefaultCredProv = true;
+  def.unixSetPasswordPAM = false;
+  return def;
 }
 
 void AppSettings::Save(const PCBUAppStorage &storage) {
@@ -134,7 +159,6 @@ void AppSettings::SetInstalledVersion(bool isInstalled) {
   auto settings = Get();
   settings.installedVersion = isInstalled ? AppInfo::GetVersion() : "";
   Save(settings);
-  InvalidateCache();
 }
 
 /*
@@ -179,14 +203,21 @@ void AppSettings::MigrateBaseDir() {
 
   auto newDir = GetNewBaseDir();
   auto oldDir = GetOldBaseDir();
-  auto oldDevicesFile = (oldDir / "paired_devices.json").string();
-  auto newDevicesFile = (newDir / "paired_devices.json").string();
-  PairedDevicesStorage::ProtectFile(oldDevicesFile, false);
+  auto oldDevicesFile = oldDir / "paired_devices.json";
+  auto newDevicesFile = newDir / "paired_devices.json";
+  Shell::ProtectFile(oldDevicesFile, false);
   try {
-    std::filesystem::rename(oldDir, newDir);
+#ifdef WINDOWS
+    auto cmd = fmt::format(R"(move "{}" "{}")", oldDir.string(), newDir.string());
+#else
+    auto cmd = fmt::format(R"(mv "{}" "{}")", oldDir.string(), newDir.string());
+#endif
+    auto result = Shell::RunCommand(cmd);
+    if(result.exitCode != 0)
+      throw std::runtime_error(fmt::format("Migration rename failed. (Code={}, Output={})", result.exitCode, StringUtils::Trim(result.output)));
   } catch(...) {
-    PairedDevicesStorage::ProtectFile(oldDevicesFile, true);
+    Shell::ProtectFile(oldDevicesFile, true);
     throw;
   }
-  PairedDevicesStorage::ProtectFile(newDevicesFile, true);
+  Shell::ProtectFile(newDevicesFile, true);
 }

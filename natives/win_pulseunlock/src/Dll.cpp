@@ -15,6 +15,9 @@
 #include "helpers.h"
 // clang-format on
 
+#include "shell/Shell.h"
+#include "storage/LoggingSystem.h"
+
 static long g_cRef = 0;   // global dll reference count
 HINSTANCE g_hinst = NULL; // global dll hinstance
 
@@ -108,10 +111,17 @@ STDAPI DllGetClassObject(__in REFCLSID rclsid, __in REFIID riid, __deref_out voi
 
 STDAPI_(BOOL) DllMain(__in HINSTANCE hinstDll, __in DWORD dwReason, __in void *) {
   switch(dwReason) {
-    case DLL_PROCESS_ATTACH:
+    case DLL_PROCESS_ATTACH: {
       DisableThreadLibraryCalls(hinstDll);
+      Shell::Init(false);
+      LoggingSystem::Init("module");
       break;
-    case DLL_PROCESS_DETACH:
+    }
+    case DLL_PROCESS_DETACH: {
+      LoggingSystem::Destroy();
+      Shell::Destroy();
+      break;
+    }
     case DLL_THREAD_ATTACH:
     case DLL_THREAD_DETACH:
       break;

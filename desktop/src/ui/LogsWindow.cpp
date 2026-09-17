@@ -15,8 +15,10 @@ void LogsWindow::LoadLogs(QObject *window) {
     m_LoadThread.join();
   m_LoadThread = std::thread([window]() {
     spdlog::default_logger()->flush();
-    auto desktopLogs = Shell::ReadBytes(AppSettings::GetBaseDir() / "desktop.log");
-    auto moduleLogs = Shell::ReadBytes(AppSettings::GetBaseDir() / "module.log");
-    QMetaObject::invokeMethod(window, "setLogs", Q_ARG(QVariant, QString::fromUtf8(desktopLogs)), Q_ARG(QVariant, QString::fromUtf8(moduleLogs)));
+    auto desktopLogs = Shell::ReadBytes(AppSettings::GetLogsDir(true) / "desktop.log");
+    auto moduleLogs = Shell::ReadBytes(AppSettings::GetLogsDir(false) / "module.log");
+    auto elevatorLogs = Shell::ReadBytes(AppSettings::GetLogsDir(true) / "elevator.log");
+    QMetaObject::invokeMethod(window, "setLogs", Q_ARG(QVariant, QString::fromUtf8(desktopLogs)), Q_ARG(QVariant, QString::fromUtf8(moduleLogs)),
+                              Q_ARG(QVariant, QString::fromUtf8(elevatorLogs)));
   });
 }

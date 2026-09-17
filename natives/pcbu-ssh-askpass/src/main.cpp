@@ -10,6 +10,7 @@
 #include "TtyPrompt.h"
 #include "handler/UnlockHandler.h"
 #include "platform/PlatformHelper.h"
+#include "shell/Shell.h"
 #include "storage/LoggingSystem.h"
 #include "utils/CryptUtils.h"
 #include "utils/I18n.h"
@@ -92,7 +93,9 @@ int main(int argc, char *argv[]) {
     auto root = RootGuard();
     LoggingSystem::Init("module", false);
   }
+  Shell::Init(false);
   auto result = runMain(argc, argv, userName, homeDir);
+  Shell::Destroy();
   LoggingSystem::Destroy();
   return result;
 }

@@ -1,23 +1,28 @@
 #include "LoggingSystem.h"
 
+#include <filesystem>
 #include <fstream>
 #include <spdlog/sinks/basic_file_sink.h>
 #include <spdlog/sinks/stdout_sinks.h>
+#include <vector>
 
 #include "AppSettings.h"
-#include "shell/Shell.h"
+#include "shell/LocalShell.h"
 
 std::string LoggingSystem::g_LogName{};
 
-void LoggingSystem::Init(const std::string &logName, bool printToConsole, bool writeToFile) {
+void LoggingSystem::Init(const std::string &logName, bool printToConsole, bool writeToFile, bool userDir) {
   g_LogName = logName;
-  auto logPath = AppSettings::GetBaseDir() / fmt::format("{}.log", g_LogName);
+  auto logsDir = AppSettings::GetLogsDir(userDir);
+  if(!std::filesystem::exists(logsDir))
+    std::filesystem::create_directories(logsDir);
+  auto logPath = logsDir / fmt::format("{}.log", g_LogName);
   if(writeToFile) {
     std::ifstream logFile(logPath, std::ifstream::ate | std::ifstream::binary);
     if(logFile) {
       auto sizeKb = logFile.tellg() / 1000;
       if(sizeKb > 5000)
-        Shell::RemoveFile(logPath);
+        LocalShell::RemoveFile(logPath);
     }
   }
 

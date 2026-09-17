@@ -2,6 +2,7 @@
 #include <QIcon>
 #include <QQmlApplicationEngine>
 
+#include "shell/Shell.h"
 #include "storage/LoggingSystem.h"
 
 int main(int argc, char *argv[]) {
@@ -10,7 +11,7 @@ int main(int argc, char *argv[]) {
   qputenv("QT_QUICK_CONTROLS_MATERIAL_VARIANT", QByteArray("Dense"));
   qputenv("QT_QUICK_CONTROLS_MATERIAL_PRIMARY", QByteArray("Red"));
   qputenv("QT_QUICK_CONTROLS_MATERIAL_ACCENT", QByteArray("Teal"));
-  LoggingSystem::Init("desktop");
+  LoggingSystem::Init("desktop", true, true, true);
 
   int result{};
   {
@@ -31,6 +32,7 @@ int main(int argc, char *argv[]) {
 
     result = QGuiApplication::exec();
   }
+  Shell::Destroy();
   LoggingSystem::Destroy();
   return result;
 }

@@ -3,6 +3,7 @@
 #include <spdlog/spdlog.h>
 
 #include "shell/Shell.h"
+#include "spdlog/fmt/bundled/format.h"
 #include "utils/I18n.h"
 #include "utils/StringUtils.h"
 
@@ -124,8 +125,12 @@ void PAMHelper::AddEntryToFile(const std::filesystem::path &filePath, const std:
       resultStr.append(line + '\n');
     }
   }
+#ifdef APPLE
+  WriteBytesMac(filePath, resultStr);
+#else
   if(!Shell::WriteBytes(filePath, {resultStr.begin(), resultStr.end()}))
     throw std::runtime_error(I18n::Get("error_file_write", filePath.string()));
+#endif
 }
 
 void PAMHelper::RemoveEntryFromFile(const std::filesystem::path &filePath, const std::string &entry) {
@@ -146,9 +151,12 @@ void PAMHelper::RemoveEntryFromFile(const std::filesystem::path &filePath, const
     if(!shouldRemove)
       resultStr.append(line + '\n');
   }
-
+#ifdef APPLE
+  WriteBytesMac(filePath, resultStr);
+#else
   if(!Shell::WriteBytes(filePath, {resultStr.begin(), resultStr.end()}))
     throw std::runtime_error(I18n::Get("error_file_write", filePath.string()));
+#endif
 }
 
 bool PAMHelper::SetPolkitRestrictions(bool enabled) {
@@ -196,6 +204,31 @@ POLKIT_FOUND:
   }
   return true;
 }
+
+#ifdef APPLE
+void PAMHelper::WriteBytesMac(const std::filesystem::path &filePath, const std::string &data) {
+  std::string runCmdFile = fmt::format("/tmp/pcbu-{}.command", StringUtils::RandomString(16, false));
+  std::string runCmd = fmt::format(R"(
+  sudo bash -c 'echo "{}" > "{}"'
+  sudo rm "$0"
+  osascript -e 'tell application "Terminal" to close (front window)' >/dev/null 2>&1 &
+  exit 0
+  )",
+                                   data, filePath.string());
+  if(!Shell::WriteBytes(runCmdFile, {runCmd.begin(), runCmd.end()}))
+    throw std::runtime_error(I18n::Get("error_file_write", runCmdFile));
+
+  if(Shell::RunCommand(fmt::format("chmod +x {}", runCmdFile)).exitCode != 0) {
+    Shell::RemoveFile(runCmdFile);
+    throw std::runtime_error(I18n::Get("error_file_write", runCmdFile));
+  }
+
+  if(Shell::RunCommand(fmt::format("open -a Terminal {}", runCmdFile)).exitCode != 0) {
+    Shell::RemoveFile(runCmdFile);
+    throw std::runtime_error(I18n::Get("error_file_write", filePath.string()));
+  }
+}
+#endif
 
 /*
  * Migration

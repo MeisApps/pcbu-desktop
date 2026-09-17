@@ -78,6 +78,7 @@ fi
 if [[ "$PLATFORM" == "win" ]]; then
   mkdir -p installer_dir || true
   cp desktop/Release/pcbu_desktop.exe installer_dir/
+  cp desktop/Release/pcbu_elevator.exe installer_dir/
   "$WIN_MT_PATH" -manifest ../win/requireAdmin.manifest -outputresource:installer_dir/pcbu_desktop.exe
   "$WIN_QT_PATH/bin/windeployqt" --qmldir ../../desktop/qml installer_dir/pcbu_desktop.exe
   if [[ "$ARCH" == "arm64" ]]; then # ToDo: Workaround for no windeployqt on arm64
@@ -105,6 +106,7 @@ elif [[ "$PLATFORM" == "linux" ]]; then
   mkdir -p appimage_dir/usr/bin || true
   mkdir -p appimage_dir/usr/share/icons/hicolor/256x256/apps || true
   cp desktop/pcbu_desktop appimage_dir/usr/bin/
+  cp desktop/pcbu_elevator appimage_dir/usr/bin/
   cp ../linux/run-app.sh appimage_dir/usr/bin/
   cp ../../desktop/res/icons/icon.png appimage_dir/usr/share/icons/hicolor/256x256/apps/PulseUnlock.png
   chmod +x appimage_dir/usr/bin/run-app.sh
