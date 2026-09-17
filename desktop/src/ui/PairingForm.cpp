@@ -5,10 +5,14 @@
 #include "platform/NetworkHelper.h"
 #include "platform/PlatformHelper.h"
 #include "storage/AppSettings.h"
+#include "utils/CryptUtils.h"
+#include "utils/I18n.h"
 #include "utils/QRUtils.h"
+#include "utils/RestClient.h"
 #include "utils/StringUtils.h"
 
 PairingForm::~PairingForm() {
+  StopCloudPairing();
   m_IsBluetoothScanRunning = false;
   if(m_BluetoothScanThread.joinable())
     m_BluetoothScanThread.join();
@@ -16,6 +20,8 @@ PairingForm::~PairingForm() {
     m_BluetoothPairThread.join();
   if(m_PairingServer)
     m_PairingServer->Stop();
+  if(m_CloudPairingServer)
+    m_CloudPairingServer->Stop();
   if(m_DiscoveryBeacon)
     m_DiscoveryBeacon->Stop();
 }
@@ -39,17 +45,80 @@ QString PairingForm::GetPairingCode() {
   return QString::fromUtf8(codeStr);
 }
 
+bool PairingForm::HasBluetooth() {
+  return BluetoothHelper::IsAvailable();
+}
+
 std::string PairingForm::BuildPairingPayload() {
   auto settings = AppSettings::Get();
   auto method = PairingMethodUtils::FromString(m_PairingData.pairingMethod.toStdString());
-  if(m_PairingData.useLegacyPairing) {
+  if(m_PairingData.useLegacyPairing && method != PairingMethod::CLOUD) {
     return LegacyPairingQRData(NetworkHelper::GetSavedNetworkInterface().ipAddress, settings.pairingServerPort, method, m_EncKey).ToJson().dump();
   }
   return PairingQRData(m_ServerId, settings.pairingDiscoveryPort, method, m_EncKey).ToJson().dump();
 }
 
-bool PairingForm::HasBluetooth() {
-  return BluetoothHelper::IsAvailable();
+void PairingForm::ReportPairingError(QObject *viewLoader, QObject *window, const std::string &error) {
+  QMetaObject::invokeMethod(this, "OnPairingError", Qt::QueuedConnection, Q_ARG(QObject *, viewLoader), Q_ARG(QObject *, window),
+                            Q_ARG(QString, QString::fromUtf8(error)));
+}
+
+void PairingForm::OnPairingError(QObject *viewLoader, QObject *window, const QString &error) {
+  QMetaObject::invokeMethod(window, "showErrorMessage", Q_ARG(QVariant, error));
+  if(m_CurrentStep == PairingStep::QR_SCAN)
+    OnBackClicked(viewLoader, window);
+}
+
+void PairingForm::BeginCloudPairing(QObject *viewLoader, QObject *window) {
+  StopCloudPairing();
+  m_CloudPollClient = std::make_unique<HttpClient>();
+  m_IsCloudPollRunning = true;
+  m_CloudPollThread = std::thread(&PairingForm::CloudPollThread, this, viewLoader, window);
+}
+
+void PairingForm::StopCloudPairing() {
+  m_IsCloudPollRunning = false;
+  if(m_CloudPollClient)
+    m_CloudPollClient->Cancel();
+  if(m_CloudPollThread.joinable())
+    m_CloudPollThread.join();
+  m_CloudPollClient.reset();
+}
+
+void PairingForm::CloudPollThread(QObject *viewLoader, QObject *window) {
+  auto pollSecret = m_PollSecret;
+  auto startTime = std::chrono::steady_clock::now();
+  auto lastPollTime = startTime - CloudPollInterval;
+  auto failures = 0;
+  while(m_IsCloudPollRunning) {
+    if(std::chrono::steady_clock::now() - startTime > std::chrono::seconds(CloudPairingTimeoutSecs)) {
+      ReportPairingError(viewLoader, window, I18n::Get("error_cloud_pairing_expired"));
+      return;
+    }
+    if(std::chrono::steady_clock::now() - lastPollTime >= CloudPollInterval) {
+      lastPollTime = std::chrono::steady_clock::now();
+      auto result = RestClient::PollCloudPairing(pollSecret, m_CloudPollClient.get());
+      if(result.status == CloudPairingStatus::Ok) {
+        if(m_CloudPairingServer)
+          m_CloudPairingServer->ConnectRelay(result.info.relayUrl, result.info.sessionId, result.info.joinToken);
+        return;
+      }
+      if(result.status == CloudPairingStatus::Pending) {
+        failures = 0;
+      } else if(result.status != CloudPairingStatus::ServerUnreachable || ++failures >= 5) {
+        if(m_IsCloudPollRunning) {
+          auto key = "error_cloud_pairing";
+          if(result.status == CloudPairingStatus::ServerUnreachable)
+            key = "error_cloud_unreachable";
+          else if(result.status == CloudPairingStatus::UnsupportedVersion)
+            key = "error_protocol_mismatch";
+          ReportPairingError(viewLoader, window, I18n::Get(key));
+        }
+        return;
+      }
+    }
+    std::this_thread::sleep_for(std::chrono::milliseconds(50));
+  }
 }
 
 void PairingForm::SetSkipPasswordCheck(bool skip) {
@@ -63,7 +132,7 @@ PairingStep PairingForm::GetNextStep() {
       nextStep = PairingStep::METHOD_TYPE_SELECT;
       break;
     case PairingStep::METHOD_TYPE_SELECT:
-      nextStep = PairingStep::METHOD_SELECT;
+      nextStep = m_PairingData.pairingMethodType == "CLOUD" ? PairingStep::QR_SCAN : PairingStep::METHOD_SELECT;
       break;
     case PairingStep::METHOD_SELECT: {
       auto method = PairingMethodUtils::FromString(m_PairingData.pairingMethod.toStdString());
@@ -89,51 +158,82 @@ PairingStep PairingForm::GetNextStep() {
 }
 
 void PairingForm::UpdateStepForm(QObject *viewLoader, QObject *window) {
+  // Set pairing method
+  auto selectedMethod = PairingMethodUtils::FromString(m_PairingData.pairingMethod.toStdString());
+  if(m_PairingData.pairingMethodType == "CLOUD") {
+    if(selectedMethod != PairingMethod::CLOUD)
+      m_PairingData.pairingMethod = QString::fromUtf8(PairingMethodUtils::ToString(PairingMethod::CLOUD));
+  } else if(m_PairingData.pairingMethodType == "MANUAL") {
+    if(selectedMethod != PairingMethod::MANUAL_UDP)
+      m_PairingData.pairingMethod = QString::fromUtf8(PairingMethodUtils::ToString(PairingMethod::MANUAL_UDP));
+  } else if(selectedMethod == PairingMethod::CLOUD || selectedMethod == PairingMethod::MANUAL_UDP) {
+    m_PairingData.pairingMethod = QString::fromUtf8(PairingMethodUtils::ToString(PairingMethod::UDP));
+  }
+
   // Pairing server
   if(m_CurrentStep == PairingStep::QR_SCAN) {
+    StopCloudPairing();
     if(m_PairingServer) {
       m_PairingServer->Stop();
     }
+    if(m_CloudPairingServer) {
+      m_CloudPairingServer->Stop();
+    }
     m_PairingServer.reset();
+    m_CloudPairingServer.reset();
     if(m_DiscoveryBeacon) {
       m_DiscoveryBeacon->Stop();
       m_DiscoveryBeacon.reset();
     }
-    m_PairingServer = std::make_unique<PairingServer>(
-        [window](const std::string &error) { QMetaObject::invokeMethod(window, "showErrorMessage", Q_ARG(QVariant, QString::fromUtf8(error))); });
 
+    auto errorCallback = [this, viewLoader, window](const std::string &error) { ReportPairingError(viewLoader, window, error); };
+    auto method = PairingMethodUtils::FromString(m_PairingData.pairingMethod.toStdString());
+    auto isCloud = method == PairingMethod::CLOUD;
+    if(isCloud)
+      m_CloudPairingServer = std::make_unique<CloudPairingServer>(errorCallback);
+    else
+      m_PairingServer = std::make_unique<TCPPairingServer>(errorCallback);
     m_ServerId = StringUtils::RandomString(8);
     m_EncKey = StringUtils::RandomString(64);
+    if(isCloud) {
+      m_PollSecret = StringUtils::RandomString(48);
+      m_ServerId = CryptUtils::Sha256(m_PollSecret);
+    }
     auto uiData = PairingUIData();
     uiData.userName = m_PairingData.userName.toStdString();
     uiData.password = m_PairingData.password.toStdString();
     uiData.encKey = m_EncKey;
-    uiData.method = PairingMethodUtils::FromString(m_PairingData.pairingMethod.toStdString());
+    uiData.method = method;
     uiData.macAddress = NetworkHelper::GetSavedNetworkInterface().macAddress;
     uiData.btAddress = m_PairingData.bluetoothAddress.toStdString();
     uiData.useLegacy = m_PairingData.useLegacyPairing;
-    m_PairingServer->Start(uiData);
-
-    if(!m_PairingData.useLegacyPairing) {
+    if(isCloud) {
+      m_CloudPairingServer->Start(uiData);
+      BeginCloudPairing(viewLoader, window);
+    } else {
+      m_PairingServer->Start(uiData);
+    }
+    if(!m_PairingData.useLegacyPairing && !isCloud) {
       m_DiscoveryBeacon = std::make_unique<UDPPairingBroadcaster>(m_ServerId, m_EncKey);
       m_DiscoveryBeacon->Start();
     }
   } else {
+    StopCloudPairing();
     m_ServerId = {};
+    m_PollSecret = {};
     m_EncKey = {};
     if(m_PairingServer) {
       m_PairingServer->Stop();
     }
+    if(m_CloudPairingServer) {
+      m_CloudPairingServer->Stop();
+    }
+    m_PairingServer.reset();
+    m_CloudPairingServer.reset();
     if(m_DiscoveryBeacon) {
       m_DiscoveryBeacon->Stop();
       m_DiscoveryBeacon.reset();
     }
-  }
-
-  // Set default pairing method
-  if(m_CurrentStep == PairingStep::METHOD_SELECT) {
-    auto defaultMethod = m_PairingData.pairingMethodType == "AUTO" ? PairingMethod::UDP : PairingMethod::MANUAL_UDP;
-    m_PairingData.pairingMethod = QString::fromUtf8(PairingMethodUtils::ToString(defaultMethod));
   }
 
   // Bluetooth scanner
@@ -176,25 +276,25 @@ void PairingForm::UpdateStepForm(QObject *viewLoader, QObject *window) {
 
   switch(m_CurrentStep) {
     case PairingStep::USER_PASSWORD_SELECT:
-      QMetaObject::invokeMethod(viewLoader, "setSource", Q_ARG(QUrl, QUrl("qrc:/ui/pairing/PairingPasswordForm.qml")));
+      viewLoader->setProperty("source", QUrl("qrc:/ui/pairing/PairingPasswordForm.qml"));
       break;
     case PairingStep::METHOD_TYPE_SELECT:
-      QMetaObject::invokeMethod(viewLoader, "setSource", Q_ARG(QUrl, QUrl("qrc:/ui/pairing/PairingMethodTypeForm.qml")));
+      viewLoader->setProperty("source", QUrl("qrc:/ui/pairing/PairingMethodTypeForm.qml"));
       break;
     case PairingStep::METHOD_SELECT:
-      QMetaObject::invokeMethod(viewLoader, "setSource", Q_ARG(QUrl, QUrl("qrc:/ui/pairing/PairingMethodForm.qml")));
+      viewLoader->setProperty("source", QUrl("qrc:/ui/pairing/PairingMethodForm.qml"));
       break;
     case PairingStep::BLUETOOTH_DEVICE_SELECT:
-      QMetaObject::invokeMethod(viewLoader, "setSource", Q_ARG(QUrl, QUrl("qrc:/ui/pairing/PairingBTSelectForm.qml")));
+      viewLoader->setProperty("source", QUrl("qrc:/ui/pairing/PairingBTSelectForm.qml"));
       break;
     case PairingStep::BLUETOOTH_PAIRING:
-      QMetaObject::invokeMethod(viewLoader, "setSource", Q_ARG(QUrl, QUrl("qrc:/ui/pairing/PairingBTPairForm.qml")));
+      viewLoader->setProperty("source", QUrl("qrc:/ui/pairing/PairingBTPairForm.qml"));
       break;
     case PairingStep::QR_SCAN:
-      QMetaObject::invokeMethod(viewLoader, "setSource", Q_ARG(QUrl, QUrl("qrc:/ui/pairing/PairingQRForm.qml")));
+      viewLoader->setProperty("source", QUrl("qrc:/ui/pairing/PairingQRForm.qml"));
       break;
     default:
-      QMetaObject::invokeMethod(viewLoader, "setSource", Q_ARG(QUrl, QUrl("qrc:/ui/forms/MainForm.qml")));
+      viewLoader->setProperty("source", QUrl("qrc:/ui/forms/MainForm.qml"));
       break;
   }
 }
@@ -205,18 +305,18 @@ void PairingForm::Show(QObject *viewLoader, QObject *window) {
     return;
   }
 
-  m_PairingData.pairingMethodType = "AUTO";
-  m_PairingData.pairingMethod = QString::fromUtf8(PairingMethodUtils::ToString(PairingMethod::UDP));
+  m_PairingData.pairingMethodType = "CLOUD";
+  m_PairingData.pairingMethod = QString::fromUtf8(PairingMethodUtils::ToString(PairingMethod::CLOUD));
   m_PairingData.useLegacyPairing = false;
   m_CurrentStep = PairingStep::USER_PASSWORD_SELECT;
   m_StepStack = {};
   m_SkipPasswordCheck = false;
-  QMetaObject::invokeMethod(viewLoader, "setSource", Q_ARG(QUrl, QUrl("qrc:/ui/pairing/PairingPasswordForm.qml")));
+  viewLoader->setProperty("source", QUrl("qrc:/ui/pairing/PairingPasswordForm.qml"));
 }
 
 void PairingForm::OnBackClicked(QObject *viewLoader, QObject *window) {
   if(m_StepStack.empty()) {
-    QMetaObject::invokeMethod(viewLoader, "setSource", Q_ARG(QUrl, QUrl("qrc:/ui/forms/MainForm.qml")));
+    viewLoader->setProperty("source", QUrl("qrc:/ui/forms/MainForm.qml"));
     return;
   }
 

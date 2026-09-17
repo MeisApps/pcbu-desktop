@@ -4,145 +4,48 @@
 #include "platform/PlatformHelper.h"
 #include "storage/AppSettings.h"
 #include "storage/PairedDevicesStorage.h"
+#include "storage/PairingMethod.h"
 #include "utils/AppInfo.h"
 #include "utils/CryptUtils.h"
 #include "utils/I18n.h"
 #include "utils/StringUtils.h"
 
-#ifdef WINDOWS
-#include <Ws2tcpip.h>
-#else
-#include <arpa/inet.h>
-#include <netinet/tcp.h>
-#endif
-
-constexpr int MAX_CLIENTS = 10;
-
 PairingServer::PairingServer(const std::function<void(const std::string &)> &errorCallback) {
   m_ErrorCallback = errorCallback;
 }
 
-PairingServer::~PairingServer() {
-  Stop();
-}
-
 bool PairingServer::Start(const PairingUIData &uiData) {
   m_UIData = uiData;
-  if(m_IsRunning)
-    return true;
-
-  WSA_STARTUP
   m_IsRunning = true;
-  m_AcceptThread = std::thread(&PairingServer::AcceptThread, this);
   return true;
 }
 
-void PairingServer::Stop() {
-  SOCKET_CLOSE(m_ServerSocket);
-  if(m_AcceptThread.joinable())
-    m_AcceptThread.join();
-  m_IsRunning = false;
-}
-
-void PairingServer::AcceptThread() {
-  struct sockaddr_in address{};
-  socklen_t addrLen = sizeof(address);
-  auto settings = AppSettings::Get();
-  auto clientSockets = std::vector<SOCKET>();
-  auto clientThreads = std::vector<std::thread>();
-  spdlog::info("Starting TCP pairing server...");
-
-  if((m_ServerSocket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)) == SOCKET_INVALID) {
-    spdlog::error("socket() failed. (Code={})", SOCKET_LAST_ERROR);
-    m_ErrorCallback(I18n::Get("error_pairing_server_init_unk"));
-    m_IsRunning = false;
+void PairingServer::ReportError(const std::string &message) {
+  if(!m_IsRunning)
     return;
-  }
-
-  int opt = 1;
-#ifdef LINUX
-  if(setsockopt(m_ServerSocket, SOL_SOCKET, SO_REUSEADDR, reinterpret_cast<const char *>(&opt), sizeof(opt))) {
-    spdlog::error("setsockopt(SO_REUSEADDR) failed. (Code={})", SOCKET_LAST_ERROR);
-    m_ErrorCallback(I18n::Get("error_pairing_server_init_unk"));
-    goto threadEnd;
-  }
-#endif
-  if(setsockopt(m_ServerSocket, IPPROTO_TCP, TCP_NODELAY, reinterpret_cast<const char *>(&opt), sizeof(opt))) {
-    spdlog::error("setsockopt(TCP_NODELAY) failed. (Code={})", SOCKET_LAST_ERROR);
-    m_ErrorCallback(I18n::Get("error_pairing_server_init_unk"));
-    goto threadEnd;
-  }
-
-  address.sin_family = AF_INET;
-  address.sin_addr.s_addr = INADDR_ANY;
-  address.sin_port = htons(settings.pairingServerPort);
-  if(bind(m_ServerSocket, reinterpret_cast<struct sockaddr *>(&address), sizeof(address)) < 0) {
-    spdlog::error("bind() failed. (Code={})", SOCKET_LAST_ERROR);
-    m_ErrorCallback(I18n::Get("error_pairing_server_init"));
-    goto threadEnd;
-  }
-  if(listen(m_ServerSocket, MAX_CLIENTS) < 0) {
-    spdlog::error("listen() failed. (Code={})", SOCKET_LAST_ERROR);
-    m_ErrorCallback(I18n::Get("error_pairing_server_init_unk"));
-    goto threadEnd;
-  }
-  if(!SetSocketBlocking(m_ServerSocket, false)) {
-    spdlog::error("Failed setting server socket to non-blocking mode. (Code={})", SOCKET_LAST_ERROR);
-    m_ErrorCallback(I18n::Get("error_pairing_server_init_unk"));
-    goto threadEnd;
-  }
-
-  spdlog::info("TCP pairing server started on port '{}'.", settings.pairingServerPort);
-  while(m_IsRunning) {
-    if(m_NumConnections >= MAX_CLIENTS) {
-      std::this_thread::sleep_for(std::chrono::milliseconds(50));
-      continue;
-    }
-    SOCKET clientSocket;
-    if((clientSocket = accept(m_ServerSocket, reinterpret_cast<struct sockaddr *>(&address), (socklen_t *)&addrLen)) == SOCKET_INVALID) {
-      auto err = SOCKET_LAST_ERROR;
-      if(err == SOCKET_ERROR_TRY_AGAIN || err == SOCKET_ERROR_WOULD_BLOCK) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(10));
-        continue;
-      }
-      if(err != SOCKET_ERROR_CONNECT_ABORTED)
-        spdlog::error("accept() failed. (Code={})", err);
-      break;
-    }
-    if(!SetSocketBlocking(clientSocket, false)) {
-      spdlog::error("Failed setting client socket to non-blocking mode. (Code={})", SOCKET_LAST_ERROR);
-      m_ErrorCallback(I18n::Get("error_pairing_server_init_unk"));
-      break;
-    }
-    clientSockets.emplace_back(clientSocket);
-    clientThreads.emplace_back(&PairingServer::ClientThread, this, clientSocket);
-  }
-
-threadEnd:
-  for(auto clientSocket : clientSockets) {
-    SOCKET_CLOSE(clientSocket);
-  }
-  SOCKET_CLOSE(m_ServerSocket);
-  for(auto &thread : clientThreads)
-    if(thread.joinable())
-      thread.join();
-  m_IsRunning = false;
-  spdlog::info("TCP pairing server stopped.");
+  m_ErrorCallback(message);
 }
 
-void PairingServer::ClientThread(SOCKET clientSocket) {
-  spdlog::info("TCP pairing client connected.");
-  ++m_NumConnections;
-  int opt = 1;
-  if(setsockopt(clientSocket, IPPROTO_TCP, TCP_NODELAY, reinterpret_cast<const char *>(&opt), sizeof(opt))) {
-    spdlog::error("setsockopt(TCP_NODELAY) failed. (Code={})", SOCKET_LAST_ERROR);
-  }
-  auto packetRes = ReadEncryptedPacket(clientSocket);
+void PairingServer::HandleClient(ConnectionStream &stream) {
+  auto isCloud = m_UIData.method == PairingMethod::CLOUD;
+  auto packetRes = ReadEncryptedPacket(stream);
   if(packetRes.data.empty()) {
-    spdlog::info("TCP pairing client closed.");
-    SOCKET_CLOSE(clientSocket);
-    if(packetRes.result == PacketCryptResult::INVALID_TIMESTAMP)
-      m_ErrorCallback(I18n::Get("error_aes_time_mismatch"));
+    if(packetRes.result == PacketCryptResult::INVALID_TIMESTAMP) {
+      ReportError(I18n::Get("error_aes_time_mismatch"));
+      return;
+    }
+    if(packetRes.result == PacketCryptResult::PACKET_ERROR) {
+      if(packetRes.error == PacketError::UNSUPPORTED_VERSION) {
+        ReportError(I18n::Get("error_protocol_mismatch"));
+        return;
+      }
+      if(packetRes.error == PacketError::TIMEOUT || packetRes.error == PacketError::PEER_UNAVAILABLE) {
+        ReportError(I18n::Get("error_pairing_timeout"));
+        return;
+      }
+    }
+    if(isCloud)
+      ReportError(I18n::Get("error_cloud_pairing"));
     return;
   }
   try {
@@ -188,7 +91,7 @@ void PairingServer::ClientThread(SOCKET clientSocket) {
     respPacket.data.userName = m_UIData.userName;
     respPacket.data.passwordKey = passwordKey;
 
-    if(WriteEncryptedPacket(clientSocket, PACKET_ID_PAIR_RESPONSE, respPacket.ToJson().dump())) {
+    if(WriteEncryptedPacket(stream, PACKET_ID_PAIR_RESPONSE, respPacket.ToJson().dump())) {
       PairedDevicesStorage::AddDevice(device);
       spdlog::info("Successfully paired device. (ID={}, Method={})", device.id, PairingMethodUtils::ToString(device.pairingMethod));
 #ifdef WINDOWS
@@ -197,25 +100,27 @@ void PairingServer::ClientThread(SOCKET clientSocket) {
       else
         spdlog::error("Failed setting default credential provider for user '{}'.", m_UIData.userName);
 #endif
+    } else {
+      ReportError(I18n::Get("error_pairing_failed"));
     }
   } catch(const std::exception &ex) {
     spdlog::error("Pairing server exception: {}", ex.what());
     auto respPacket = PacketPairResponse();
     respPacket.errMsg = ex.what();
-    if(!WriteEncryptedPacket(clientSocket, PACKET_ID_PAIR_RESPONSE, respPacket.ToJson().dump())) {
-      m_ErrorCallback(ex.what());
+    if(!WriteEncryptedPacket(stream, PACKET_ID_PAIR_RESPONSE, respPacket.ToJson().dump())) {
+      ReportError(ex.what());
     }
   }
-  --m_NumConnections;
-  SOCKET_CLOSE(clientSocket);
-  spdlog::info("TCP pairing client closed.");
 }
 
-CryptPacket PairingServer::ReadEncryptedPacket(SOCKET clientSocket) const {
-  auto packet = ReadPacket(clientSocket);
+CryptPacket PairingServer::ReadEncryptedPacket(ConnectionStream &stream) const {
+  auto packet = ReadPacket(stream);
   if(packet.error != PacketError::NONE) {
     spdlog::error("Error reading pairing packet. (Code={})", static_cast<int>(packet.error));
-    return {};
+    CryptPacket result{};
+    result.result = PacketCryptResult::PACKET_ERROR;
+    result.error = packet.error;
+    return result;
   }
   auto decRes = CryptUtils::DecryptAESPacket(packet.data, m_UIData.encKey);
   if(decRes.result != PacketCryptResult::OK)
@@ -223,13 +128,13 @@ CryptPacket PairingServer::ReadEncryptedPacket(SOCKET clientSocket) const {
   return decRes;
 }
 
-bool PairingServer::WriteEncryptedPacket(SOCKET clientSocket, uint8_t packetId, const std::string &data) const {
+bool PairingServer::WriteEncryptedPacket(ConnectionStream &stream, uint16_t packetId, const std::string &data) const {
   auto encRes = CryptUtils::EncryptAESPacket({data.begin(), data.end()}, m_UIData.encKey);
   if(encRes.result != PacketCryptResult::OK) {
     spdlog::error("Error encrypting pairing packet. (Size={}, Code={})", data.size(), static_cast<int>(encRes.result));
     return false;
   }
-  auto writeRes = WritePacket(clientSocket, packetId, {encRes.data.begin(), encRes.data.end()});
+  auto writeRes = WritePacket(stream, packetId, {encRes.data.begin(), encRes.data.end()});
   if(writeRes != PacketError::NONE) {
     spdlog::error("Error writing pairing packet. (Code={})", static_cast<int>(writeRes));
     return false;

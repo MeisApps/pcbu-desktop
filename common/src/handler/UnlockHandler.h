@@ -45,7 +45,16 @@ public:
 private:
   UnlockResult RunServer(BaseUnlockConnection *connection, UDPUnlockBroadcaster *udpBroadcaster, AtomicUnlockResult *currentResult,
                          std::atomic<bool> *isRunning);
+
+  void PrintStatus(const BaseUnlockConnection *owner, UnlockPhase phase);
+  void PrintStatus(const std::string &message);
+
   std::function<void(std::string)> m_PrintMessage{};
+  std::mutex m_StatusMutex{};
+  UnlockPhase m_StatusPhase{UnlockPhase::FINISHED};
+  const BaseUnlockConnection *m_StatusOwner{};
+  std::string m_StatusMessage{};
+  bool m_StatusDone{};
 };
 
 #endif // PAM_PCBIOUNLOCK_UNLOCKHANDLER_H

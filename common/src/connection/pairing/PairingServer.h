@@ -12,26 +12,25 @@
 
 class PairingServer : public BaseConnection {
 public:
-  explicit PairingServer(const std::function<void(const std::string&)>& errorCallback);
-  ~PairingServer() override;
+  explicit PairingServer(const std::function<void(const std::string &)> &errorCallback);
+  ~PairingServer() override = default;
 
-  bool Start(const PairingUIData &uiData);
-  void Stop();
+  virtual bool Start(const PairingUIData &uiData);
+  virtual void Stop() = 0;
 
-private:
-  void AcceptThread();
-  void ClientThread(SOCKET clientSocket);
+protected:
+  void HandleClient(ConnectionStream &stream);
 
-  CryptPacket ReadEncryptedPacket(SOCKET clientSocket) const;
-  bool WriteEncryptedPacket(SOCKET clientSocket, uint8_t packetId, const std::string &data) const;
+  void ReportError(const std::string &message);
 
-  SOCKET m_ServerSocket = SOCKET_INVALID;
-  std::thread m_AcceptThread{};
+  CryptPacket ReadEncryptedPacket(ConnectionStream &stream) const;
+  bool WriteEncryptedPacket(ConnectionStream &stream, uint16_t packetId, const std::string &data) const;
+
   std::atomic<bool> m_IsRunning{};
   std::atomic<int> m_NumConnections{};
 
   PairingUIData m_UIData{};
-  std::function<void(const std::string&)> m_ErrorCallback{};
+  std::function<void(const std::string &)> m_ErrorCallback{};
 };
 
 #endif // PCBU_DESKTOP_PAIRINGSERVER_H

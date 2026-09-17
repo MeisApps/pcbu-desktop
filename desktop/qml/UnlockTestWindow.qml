@@ -6,9 +6,8 @@ import QtQuick.Dialogs
 import PCBioUnlock
 
 ApplicationWindow {
-    property string deviceId: ""
-
     id: unlockTestWindow
+    property string deviceId: ""
     width: 600
     height: 300
     minimumWidth: width
@@ -29,9 +28,11 @@ ApplicationWindow {
             Label {
                 id: lblUnlockMsg
                 anchors.centerIn: parent
+                width: parent.width - 40
                 font.pixelSize: 28
                 font.weight: Font.DemiBold
                 horizontalAlignment: Text.AlignHCenter
+                wrapMode: Text.Wrap
                 text: QI18n.Get('initializing')
             }
         }
@@ -44,26 +45,26 @@ ApplicationWindow {
             Layout.preferredHeight: 56
             text: QI18n.Get('cancel')
             onClicked: {
-                if(UnlockTestWindow.IsRunning()) {
-                    UnlockTestWindow.StopUnlock(unlockTestWindow)
+                if (UnlockTestWindow.IsRunning()) {
+                    UnlockTestWindow.StopUnlock(unlockTestWindow);
                 } else {
-                    UnlockTestWindow.StartUnlock(unlockTestWindow, deviceId)
+                    UnlockTestWindow.StartUnlock(unlockTestWindow, deviceId);
                 }
             }
         }
     }
 
     Component.onCompleted: {
-        UnlockTestWindow.StartUnlock(unlockTestWindow, deviceId)
+        UnlockTestWindow.StartUnlock(unlockTestWindow, deviceId);
     }
     onClosing: {
-        UnlockTestWindow.StopUnlock(unlockTestWindow)
+        UnlockTestWindow.StopUnlock(unlockTestWindow);
     }
 
     function setUnlockMessage(text) {
-        lblUnlockMsg.text = text
+        lblUnlockMsg.text = text;
     }
     function setUnlockButtonText(text) {
-        btnUnlockAction.text = text
+        btnUnlockAction.text = text;
     }
 }

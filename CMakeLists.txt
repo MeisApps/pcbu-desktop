@@ -53,6 +53,9 @@ if(WIN32)
     endif()
     set(OPENSSL_USE_STATIC_LIBS TRUE)
     add_compile_definitions(_WIN32_WINNT=0x0A00)
+    if(MSVC)
+        add_compile_options($<$<COMPILE_LANGUAGE:C,CXX>:/bigobj>)
+    endif()
 endif()
 
 message("-- Building for arch '${TARGET_ARCH}' on '${TARGET_OS}'")
@@ -61,11 +64,6 @@ FetchContent_Declare(
         json
         URL https://github.com/nlohmann/json/releases/download/v3.12.0/json.tar.xz
         DOWNLOAD_EXTRACT_TIMESTAMP ON
-)
-FetchContent_Declare(
-        cpp_httplib
-        URL https://github.com/yhirose/cpp-httplib/raw/v0.49.0/httplib.h
-        DOWNLOAD_NO_EXTRACT TRUE
 )
 FetchContent_Declare(
         spdlog
@@ -81,11 +79,8 @@ FetchContent_Declare(
 message("-- Fetching json...")
 FetchContent_MakeAvailable(json)
 
-message("-- Fetching cpp-httplib...")
-FetchContent_MakeAvailable(cpp_httplib)
-
 message("-- Fetching boost...")
-set(BOOST_INCLUDE_LIBRARIES asio filesystem process system CACHE STRING "")
+set(BOOST_INCLUDE_LIBRARIES asio beast filesystem process system url CACHE STRING "" FORCE)
 set(Boost_USE_STATIC_LIBS ON CACHE BOOL "")
 FetchContent_MakeAvailable(Boost)
 set_property(TARGET boost_process PROPERTY POSITION_INDEPENDENT_CODE ON)

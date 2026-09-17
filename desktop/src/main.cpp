@@ -12,22 +12,25 @@ int main(int argc, char *argv[]) {
   qputenv("QT_QUICK_CONTROLS_MATERIAL_ACCENT", QByteArray("Teal"));
   LoggingSystem::Init("desktop");
 
-  QGuiApplication app(argc, argv);
-  QGuiApplication::setWindowIcon(QIcon(":/res/icons/icon.png"));
+  int result{};
+  {
+    QGuiApplication app(argc, argv);
+    QGuiApplication::setWindowIcon(QIcon(":/res/icons/icon.png"));
 
-  auto url = QUrl("qrc:/ui/MainWindow.qml");
-  QQmlApplicationEngine engine{};
-  QObject::connect(
-      &engine, &QQmlApplicationEngine::objectCreated, &app,
-      [url](QObject *obj, const QUrl &objUrl) {
-        if(!obj && url == objUrl) {
-          QCoreApplication::exit(-1);
-        }
-      },
-      Qt::QueuedConnection);
-  engine.load(url);
+    auto url = QUrl("qrc:/ui/MainWindow.qml");
+    QQmlApplicationEngine engine{};
+    QObject::connect(
+        &engine, &QQmlApplicationEngine::objectCreated, &app,
+        [url](QObject *obj, const QUrl &objUrl) {
+          if(!obj && url == objUrl) {
+            QCoreApplication::exit(-1);
+          }
+        },
+        Qt::QueuedConnection);
+    engine.load(url);
 
-  auto result = QGuiApplication::exec();
+    result = QGuiApplication::exec();
+  }
   LoggingSystem::Destroy();
   return result;
 }

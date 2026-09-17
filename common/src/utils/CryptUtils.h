@@ -8,10 +8,13 @@
 
 #define CRYPT_PACKET_TIMEOUT (60000 * 2)
 
-enum PacketCryptResult { OK, INVALID_TIMESTAMP, OTHER_ERROR };
+enum class PacketError;
+
+enum PacketCryptResult { OK, INVALID_TIMESTAMP, PACKET_ERROR, OTHER_ERROR };
 
 struct CryptPacket {
   PacketCryptResult result{};
+  PacketError error{};
   std::vector<uint8_t> data{};
 };
 

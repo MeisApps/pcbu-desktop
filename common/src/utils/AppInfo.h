@@ -8,6 +8,7 @@ public:
   static std::string GetVersion();
   static std::string GetPairingProtocolVersion();
   static std::string GetUnlockProtocolVersion();
+  static std::string GetRelayProtocolVersion();
 
   static std::string GetOperatingSystem();
   static std::string GetArchitecture();

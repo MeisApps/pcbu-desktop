@@ -73,6 +73,7 @@ bool BTUnlockClient::Start() {
     return true;
 
   m_IsRunning = true;
+  SetPhase(UnlockPhase::CLIENT_CONNECTING);
   [(BTUnlockClientWrapper *)m_Wrapper start];
   return true;
 }
@@ -82,6 +83,5 @@ void BTUnlockClient::Stop() {
     return;
 
   m_IsRunning = false;
-  m_HasConnection = false;
   [(BTUnlockClientWrapper *)m_Wrapper stop];
 }

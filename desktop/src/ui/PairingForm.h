@@ -2,10 +2,13 @@
 #define PCBU_DESKTOP_PAIRINGFORM_H
 
 #include <QtQmlIntegration>
+#include <chrono>
 #include <stack>
 
+#include "connection/pairing/CloudPairingServer.h"
+#include "connection/pairing/TCPPairingServer.h"
 #include "connection/pairing/UDPPairingBroadcaster.h"
-#include "connection/pairing/PairingServer.h"
+#include "connection/web/HttpClient.h"
 
 enum class PairingStep { USER_PASSWORD_SELECT, METHOD_TYPE_SELECT, METHOD_SELECT, BLUETOOTH_DEVICE_SELECT, BLUETOOTH_PAIRING, QR_SCAN, NONE };
 
@@ -53,6 +56,7 @@ public:
   Q_INVOKABLE void SetSkipPasswordCheck(bool skip);
 
 public slots:
+  void OnPairingError(QObject *viewLoader, QObject *window, const QString &error);
   void OnBackClicked(QObject *viewLoader, QObject *window);
   void OnNextClicked(QObject *viewLoader, QObject *window);
   void Show(QObject *viewLoader, QObject *window);
@@ -61,19 +65,34 @@ private:
   PairingStep GetNextStep();
   void UpdateStepForm(QObject *viewLoader, QObject *window);
   std::string BuildPairingPayload();
+  void ReportPairingError(QObject *viewLoader, QObject *window, const std::string &error);
+
+  void BeginCloudPairing(QObject *viewLoader, QObject *window);
+  void StopCloudPairing();
+  void CloudPollThread(QObject *viewLoader, QObject *window);
+
+  static constexpr int CloudPairingTimeoutSecs = 300;
+  static constexpr auto CloudPollInterval = std::chrono::seconds(1);
 
   PairingStep m_CurrentStep{};
   std::stack<PairingStep> m_StepStack{};
 
   std::string m_EncKey{};
   std::string m_ServerId{};
+  std::string m_PollSecret{};
   PairingAssistantModel m_PairingData{};
   bool m_SkipPasswordCheck{};
 
   bool m_IsBluetoothScanRunning{};
   std::thread m_BluetoothScanThread{};
   std::thread m_BluetoothPairThread{};
-  std::unique_ptr<PairingServer> m_PairingServer = nullptr;
+
+  std::atomic<bool> m_IsCloudPollRunning{};
+  std::thread m_CloudPollThread{};
+  std::unique_ptr<HttpClient> m_CloudPollClient{};
+
+  std::unique_ptr<TCPPairingServer> m_PairingServer = nullptr;
+  std::unique_ptr<CloudPairingServer> m_CloudPairingServer = nullptr;
   std::unique_ptr<UDPPairingBroadcaster> m_DiscoveryBeacon = nullptr;
 };
 

@@ -4,7 +4,7 @@
 #include <spdlog/spdlog.h>
 #include <string>
 
-enum class PairingMethod : int { TCP, BLUETOOTH, CLOUD_TCP, CLOUD_BT, UDP, MANUAL_UDP };
+enum class PairingMethod : int { TCP, BLUETOOTH, CLOUD, UDP, MANUAL_UDP };
 
 class PairingMethodUtils {
 public:
@@ -13,10 +13,8 @@ public:
       return "TCP";
     else if(method == PairingMethod::BLUETOOTH)
       return "BLUETOOTH";
-    else if(method == PairingMethod::CLOUD_TCP)
-      return "CLOUD_TCP";
-    else if(method == PairingMethod::CLOUD_BT)
-      return "CLOUD_BT";
+    else if(method == PairingMethod::CLOUD)
+      return "CLOUD";
     else if(method == PairingMethod::UDP)
       return "UDP";
     else if(method == PairingMethod::MANUAL_UDP)
@@ -30,10 +28,8 @@ public:
       return PairingMethod::TCP;
     else if(methodStr == "BLUETOOTH")
       return PairingMethod::BLUETOOTH;
-    else if(methodStr == "CLOUD_TCP")
-      return PairingMethod::CLOUD_TCP;
-    else if(methodStr == "CLOUD_BT")
-      return PairingMethod::CLOUD_BT;
+    else if(methodStr == "CLOUD")
+      return PairingMethod::CLOUD;
     else if(methodStr == "UDP")
       return PairingMethod::UDP;
     else if(methodStr == "MANUAL_UDP")

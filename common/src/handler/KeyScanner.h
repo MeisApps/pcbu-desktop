@@ -2,6 +2,7 @@
 #define PAM_PCBIOUNLOCK_KEYSCANNER_H
 
 #include <map>
+#include <mutex>
 #include <thread>
 #include <vector>
 

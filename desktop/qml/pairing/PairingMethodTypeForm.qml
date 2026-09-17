@@ -25,6 +25,20 @@ StepForm {
             ColumnLayout {
                 RadioButton {
                     ButtonGroup.group: methodRadioGroup
+                    property string methodStr: 'CLOUD'
+                    text: QI18n.Get('pairing_method_type_cloud_select')
+                    checked: PairingForm.GetData().pairingMethodType === methodStr
+                }
+                Label {
+                    Layout.preferredWidth: 500
+                    Layout.leftMargin: 40
+                    text: QI18n.Get('pairing_method_type_cloud_desc')
+                    wrapMode: Label.WordWrap
+                }
+            }
+            ColumnLayout {
+                RadioButton {
+                    ButtonGroup.group: methodRadioGroup
                     property string methodStr: 'AUTO'
                     text: QI18n.Get('pairing_method_type_automatic_select')
                     checked: PairingForm.GetData().pairingMethodType === methodStr

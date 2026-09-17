@@ -65,9 +65,8 @@ void CUnlockListener::ListenThread() {
   Sleep(500);
   auto storage = AppSettings::Get();
   auto devices = PairedDevicesStorage::GetDevices();
-  const auto waitForNetwork = std::ranges::any_of(devices, [](const PairedDevice &device) {
-    return device.pairingMethod == PairingMethod::TCP || device.pairingMethod == PairingMethod::UDP || device.pairingMethod == PairingMethod::MANUAL_UDP;
-  });
+  const auto waitForNetwork =
+      std::ranges::any_of(devices, [](const PairedDevice &device) { return device.pairingMethod != PairingMethod::BLUETOOTH; });
   if(m_ProviderUsage == CPUS_LOGON || m_ProviderUsage == CPUS_UNLOCK_WORKSTATION) {
     const bool isUserLoggedOn = IsUserLoggedOn(m_UserDomain, 15);
 
@@ -121,7 +120,7 @@ void CUnlockListener::ListenThread() {
   }
 
   // Unlock
-  std::function<void(const std::string&)> printMessage = [this](const std::string &s) { m_Credential->UpdateMessage(s); };
+  std::function<void(const std::string &)> printMessage = [this](const std::string &s) { m_Credential->UpdateMessage(s); };
   auto handler = UnlockHandler(printMessage);
   const auto result = handler.GetResult(userDomainStr, "Windows-Login", &m_IsRunning);
 

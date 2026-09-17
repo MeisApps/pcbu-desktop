@@ -75,7 +75,7 @@ bool MainWindow::PerformStartupChecks(QObject *viewLoader, QObject *window) {
 }
 
 void MainWindow::Show(QObject *viewLoader) {
-  QMetaObject::invokeMethod(viewLoader, "setSource", Q_ARG(QUrl, QUrl("qrc:/ui/forms/MainForm.qml")));
+  viewLoader->setProperty("source", QUrl("qrc:/ui/forms/MainForm.qml"));
 }
 
 void MainWindow::OnInstallClicked(QObject *window) {
@@ -131,5 +131,5 @@ void MainWindow::OnReinstallClicked(QObject *window) {
 
 void MainWindow::OnRemoveDeviceClicked(QObject *viewLoader, const QString &pairingId) {
   PairedDevicesStorage::RemoveDevice(pairingId.toStdString());
-  Show(viewLoader);
+  QMetaObject::invokeMethod(viewLoader, "setSource", Q_ARG(QUrl, QUrl("qrc:/ui/forms/MainForm.qml")));
 }

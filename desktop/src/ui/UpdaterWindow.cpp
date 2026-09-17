@@ -1,15 +1,18 @@
 #include "UpdaterWindow.h"
 
-#define CPPHTTPLIB_OPENSSL_SUPPORT
-#include <httplib.h>
+#include <regex>
+
 #include <spdlog/spdlog.h>
 
+#include "connection/web/HttpClient.h"
 #include "shell/Shell.h"
 #include "utils/AppInfo.h"
 #include "utils/RestClient.h"
 
 #ifdef APPLE
 #include <mach-o/dyld.h>
+#elif defined(LINUX)
+#include <unistd.h> // getpid()
 #endif
 
 UpdaterWindow::~UpdaterWindow() {
@@ -50,32 +53,34 @@ void UpdaterWindow::CheckForUpdates(QObject *window) {
 void UpdaterWindow::OnDownloadClicked(QObject *window) {
   m_DownloadThread = std::thread([window]() {
     std::vector<uint8_t> fileData{};
-    auto contentCallback = [&](const char *data, size_t data_length) {
-      auto oldSize = fileData.size();
-      fileData.resize(oldSize + data_length);
-      std::memcpy(fileData.data() + oldSize, data, data_length);
+    HttpClient::DownloadHandler contentCallback = [&](const uint8_t *data, size_t length) {
+      fileData.insert(fileData.end(), data, data + length);
       return true;
     };
-    auto progressCallback = [&](uint64_t len, uint64_t total) {
-      auto percent = (int)(len * 100 / total);
+    HttpClient::ProgressHandler progressCallback = [window](uint64_t len, uint64_t total) {
       auto lenMib = (float)len / 1048576.F;
-      auto totalMib = (float)total / 1048576.F;
-      auto progressText = fmt::format("{}% ({:.2f}MiB / {:.2f}MiB)", percent, lenMib, totalMib);
+      auto percent = total > 0 ? (int)(len * 100 / total) : 0;
+      auto progressText =
+          total > 0 ? fmt::format("{}% ({:.2f}MiB / {:.2f}MiB)", percent, lenMib, (float)total / 1048576.F) : fmt::format("{:.2f}MiB", lenMib);
       QMetaObject::invokeMethod(window, "updateDownloadProgress", Q_ARG(QVariant, percent), Q_ARG(QVariant, QString::fromUtf8(progressText)));
       return true;
     };
 
-    httplib::Client client("https://meis-apps.com");
-    client.set_connection_timeout(5, 0);
-    client.set_follow_location(true);
-    auto result = client.Get(GetDownloadURL(), contentCallback, progressCallback);
-    if(!result || fileData.empty()) {
+    auto options = HttpOptions();
+    options.connectTimeout = std::chrono::seconds(5);
+    options.transferTimeout = std::chrono::seconds(30);
+    options.bodyLimit = 0;
+    options.maxRedirects = 5;
+
+    auto client = HttpClient();
+    auto result = client.Download("https://meis-apps.com" + GetDownloadURL(), contentCallback, progressCallback, options);
+    if(!result.ok || result.status != 200 || fileData.empty()) {
       auto errText = "Error downloading update.";
-      spdlog::error(errText);
+      spdlog::error("{} (Status={}, Error={})", errText, result.status, result.error);
       QMetaObject::invokeMethod(window, "closeUpdaterWindow", Q_ARG(QVariant, QString::fromUtf8(errText)));
       return;
     }
-    auto contentHeader = result->get_header_value("Content-Disposition");
+    auto contentHeader = result.GetHeader("Content-Disposition");
 #ifdef WINDOWS
     std::string downloadFileName = "Update-PCBioUnlock.exe";
 #elif LINUX

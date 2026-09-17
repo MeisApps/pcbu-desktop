@@ -1,6 +1,7 @@
 #include "BTUnlockServer.h"
 
 #include "connection/SocketDefs.h"
+#include "connection/stream/SocketStream.h"
 #include "platform/BluetoothHelper.h"
 
 #ifdef WINDOWS
@@ -23,6 +24,7 @@ bool BTUnlockServer::Start() {
 
   WSA_STARTUP
   m_IsRunning = true;
+  SetPhase(UnlockPhase::SERVER_WAITING);
   m_AcceptThread = std::thread(&BTUnlockServer::AcceptThread, this);
   return true;
 }
@@ -32,7 +34,6 @@ void BTUnlockServer::Stop() {
     return;
 
   m_IsRunning = false;
-  m_HasConnection = false;
   SOCKET_CLOSE(m_ServerSocket);
   if(m_AcceptThread.joinable())
     m_AcceptThread.join();
@@ -115,7 +116,6 @@ void BTUnlockServer::AcceptThread() {
 
 threadEnd:
   m_IsRunning = false;
-  m_HasConnection = false;
   if(sdpService.has_value() && !BluetoothHelper::CloseSDPService(sdpService.value()))
     spdlog::warn("CloseSDPService() failed. (Code={})", SOCKET_LAST_ERROR);
   SOCKET_CLOSE(m_ServerSocket);
@@ -126,9 +126,9 @@ threadEnd:
 }
 
 void BTUnlockServer::ClientThread(SOCKET clientSocket) {
-  m_HasConnection = true;
-  PerformAuthFlow(clientSocket, true);
-  m_HasConnection = false;
+  SocketStream stream(clientSocket);
+  PerformAuthFlow(stream, true);
+  SetPhase(UnlockPhase::SERVER_WAITING);
   SOCKET_CLOSE(clientSocket);
   spdlog::info("BT Client closed.");
 }

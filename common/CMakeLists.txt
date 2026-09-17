@@ -72,8 +72,22 @@ add_library(pcbu_common
         src/connection/BaseConnection.h
         src/connection/UDPBroadcaster.cpp
         src/connection/UDPBroadcaster.h
+        src/connection/stream/ConnectionStream.cpp
+        src/connection/stream/ConnectionStream.h
+        src/connection/stream/SocketStream.cpp
+        src/connection/stream/SocketStream.h
+        src/connection/stream/WebSocketStream.cpp
+        src/connection/stream/WebSocketStream.h
+        src/connection/web/HttpClient.cpp
+        src/connection/web/HttpClient.h
+        src/connection/web/TlsContext.cpp
+        src/connection/web/TlsContext.h
         src/connection/pairing/PairingServer.cpp
         src/connection/pairing/PairingServer.h
+        src/connection/pairing/TCPPairingServer.cpp
+        src/connection/pairing/TCPPairingServer.h
+        src/connection/pairing/CloudPairingServer.cpp
+        src/connection/pairing/CloudPairingServer.h
         src/connection/pairing/UDPPairingBroadcaster.cpp
         src/connection/pairing/UDPPairingBroadcaster.h
         src/connection/pairing/PairingStructs.h
@@ -83,6 +97,8 @@ add_library(pcbu_common
         src/connection/unlock/UDPUnlockBroadcaster.h
         src/connection/unlock/clients/TCPUnlockClient.h
         src/connection/unlock/clients/TCPUnlockClient.cpp
+        src/connection/unlock/clients/CloudUnlockClient.h
+        src/connection/unlock/clients/CloudUnlockClient.cpp
         src/connection/unlock/clients/BTUnlockClient.h
         src/connection/unlock/servers/BTUnlockServer.h
         src/connection/unlock/servers/TCPUnlockServer.cpp
@@ -122,7 +138,6 @@ add_library(pcbu_common
 )
 target_include_directories(pcbu_common PUBLIC
         src
-        ${cpp_httplib_SOURCE_DIR}
 )
 target_link_libraries(pcbu_common PUBLIC
         Threads::Threads
@@ -134,6 +149,8 @@ target_link_libraries(pcbu_common PUBLIC
         Boost::filesystem
         Boost::process
         Boost::asio
+        Boost::beast
+        Boost::url
         ${PLATFORM_LIBS}
 )
 

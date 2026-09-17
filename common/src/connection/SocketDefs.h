@@ -1,11 +1,18 @@
 #ifndef PCBU_DESKTOP_SOCKETDEFS_H
 #define PCBU_DESKTOP_SOCKETDEFS_H
 
+#include <cstddef>
+
 #ifdef WINDOWS
 #include <WinSock2.h>
 
-#define read(x, y, z) recv(x, (char *)y, z, 0)
-#define write(x, y, z) send(x, y, z, 0)
+inline int SocketRead(SOCKET sock, void *buffer, size_t length) {
+  return recv(sock, static_cast<char *>(buffer), static_cast<int>(length), 0);
+}
+
+inline int SocketWrite(SOCKET sock, const void *buffer, size_t length) {
+  return send(sock, static_cast<const char *>(buffer), static_cast<int>(length), 0);
+}
 
 #define WSA_STARTUP                                                                                                                                  \
   WSADATA wsa{};                                                                                                                                     \
@@ -35,6 +42,14 @@
 #include <sys/fcntl.h>
 #include <sys/socket.h>
 #include <unistd.h>
+
+inline int SocketRead(int sock, void *buffer, size_t length) {
+  return static_cast<int>(::read(sock, buffer, length));
+}
+
+inline int SocketWrite(int sock, const void *buffer, size_t length) {
+  return static_cast<int>(::write(sock, buffer, length));
+}
 
 #define WSA_STARTUP
 

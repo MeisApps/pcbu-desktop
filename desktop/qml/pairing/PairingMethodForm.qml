@@ -68,7 +68,6 @@ StepForm {
                     wrapMode: Label.WordWrap
                 }
             }
-
             ColumnLayout {
                 visible: PairingForm.GetData().pairingMethodType === 'MANUAL'
                 RadioButton {

@@ -1,6 +1,8 @@
 #ifndef LOCALEHELPER_H
 #define LOCALEHELPER_H
 
+#include <mutex>
+#include <optional>
 #include <string>
 
 class LocaleHelper {
@@ -18,6 +20,11 @@ public:
 
 private:
   LocaleHelper() = default;
+
+  static Locale DetectSystemLocale();
+
+  static std::optional<Locale> g_SystemLocale;
+  static std::mutex g_Mutex;
 };
 
 #endif

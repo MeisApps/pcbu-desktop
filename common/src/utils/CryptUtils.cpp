@@ -71,7 +71,7 @@ CryptPacket CryptUtils::EncryptAESPacket(const std::vector<uint8_t> &data, const
   std::vector<uint8_t> resultVec(encLen);
   memcpy(resultVec.data(), encBuffer, encLen);
   free(encBuffer);
-  return {PacketCryptResult::OK, resultVec};
+  return {PacketCryptResult::OK, {}, resultVec};
 }
 
 CryptPacket CryptUtils::DecryptAESPacket(const std::vector<uint8_t> &data, const std::string &pwd) {
@@ -102,7 +102,7 @@ CryptPacket CryptUtils::DecryptAESPacket(const std::vector<uint8_t> &data, const
   std::vector<uint8_t> resultVec(decLen);
   memcpy(resultVec.data(), &decBuffer[sizeof(int64_t)], decLen);
   free(decBuffer);
-  return {PacketCryptResult::OK, resultVec};
+  return {PacketCryptResult::OK, {}, resultVec};
 }
 
 std::optional<std::string> CryptUtils::EncryptAES(const std::string &data, const std::string &pwd) {

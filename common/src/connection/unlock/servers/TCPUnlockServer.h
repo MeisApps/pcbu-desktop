@@ -7,7 +7,6 @@ class TCPUnlockServer : public BaseUnlockConnection {
 public:
   TCPUnlockServer();
 
-  bool IsServer() override;
   bool Start() override;
   void Stop() override;
 

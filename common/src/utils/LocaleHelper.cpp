@@ -11,6 +11,9 @@
 #include <Windows.h>
 #endif
 
+std::optional<LocaleHelper::Locale> LocaleHelper::g_SystemLocale{};
+std::mutex LocaleHelper::g_Mutex{};
+
 LocaleHelper::Locale LocaleHelper::GetUserLocale() {
   auto settingsLang = AppSettings::Get().language;
   if(settingsLang != "auto") {
@@ -25,6 +28,13 @@ LocaleHelper::Locale LocaleHelper::GetUserLocale() {
     return Locale::ENGLISH;
   }
 
+  std::unique_lock lock(g_Mutex);
+  if(!g_SystemLocale.has_value())
+    g_SystemLocale = DetectSystemLocale();
+  return g_SystemLocale.value();
+}
+
+LocaleHelper::Locale LocaleHelper::DetectSystemLocale() {
 #ifdef _WIN32
   WCHAR localeName[LOCALE_NAME_MAX_LENGTH];
   if(GetUserDefaultLocaleName(localeName, LOCALE_NAME_MAX_LENGTH) == 0) {

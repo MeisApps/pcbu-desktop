@@ -81,7 +81,7 @@ void SettingsForm::RemoveUDPDevices() {
 void SettingsForm::Show(QObject *viewLoader) {
   m_EditSettings = AppSettingsModel(AppSettings::Get());
   m_EditServiceSettings = ServiceInstaller().GetSettings();
-  QMetaObject::invokeMethod(viewLoader, "setSource", Q_ARG(QUrl, QUrl("qrc:/ui/forms/SettingsForm.qml")));
+  viewLoader->setProperty("source", QUrl("qrc:/ui/forms/SettingsForm.qml"));
 }
 
 void SettingsForm::OnSaveSettingsClicked(QObject *viewLoader, QObject *window) {
@@ -94,5 +94,5 @@ void SettingsForm::OnSaveSettingsClicked(QObject *viewLoader, QObject *window) {
     QMetaObject::invokeMethod(window, "showErrorMessage", Q_ARG(QVariant, "Failed to write service settings."));
   }
   AppSettings::InvalidateCache();
-  QMetaObject::invokeMethod(viewLoader, "setSource", Q_ARG(QUrl, QUrl("qrc:/ui/forms/MainForm.qml")));
+  viewLoader->setProperty("source", QUrl("qrc:/ui/forms/MainForm.qml"));
 }
