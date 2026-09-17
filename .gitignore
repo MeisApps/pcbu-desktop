@@ -8,4 +8,5 @@ cmake-nvim-release
 pkg/build
 common/src/generated
 desktop/res/natives
+desktop/.qmlls.ini
 compile_commands.json
