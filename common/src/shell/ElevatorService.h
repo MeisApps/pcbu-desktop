@@ -5,11 +5,10 @@
 #include <optional>
 
 #include <boost/asio.hpp>
-#include <boost/interprocess/ipc/message_queue.hpp>
-#include <boost/interprocess/managed_shared_memory.hpp>
 #include <boost/process.hpp>
 
 #include "ElevatorCommands.h"
+#include "IPCHelper.h"
 
 class ElevatorService {
 public:
@@ -17,21 +16,13 @@ public:
   ~ElevatorService();
 
   bool IsRunning();
-  std::optional<boost::interprocess::managed_shared_memory> &GetSharedMemory();
   std::optional<ElevatorCommandResponse> ExecCommand(const ElevatorCommand &cmd);
 
 private:
+  bool IsProcessRunning();
   boost::asio::io_context m_Ctx;
   std::optional<boost::process::process> m_Process;
-
-  std::optional<boost::interprocess::message_queue> m_SendQueue;
-  std::optional<boost::interprocess::message_queue> m_RecvQueue;
-  std::optional<boost::interprocess::managed_shared_memory> m_SharedMem;
-
-  std::string m_SendQueueName{};
-  std::string m_RecvQueueName{};
-  std::string m_SharedMemName{};
-
+  std::optional<IPCHelper> m_Ipc;
   std::mutex m_Mutex{};
 };
 

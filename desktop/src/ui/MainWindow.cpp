@@ -118,17 +118,17 @@ void MainWindow::OnInstallClicked(QObject *window) {
     if(AppSettings::NeedsMigration()) {
       logCallback("Migrating data directory...");
       LoggingSystem::Destroy();
-      LoggingSystem::Init("desktop", true, false, true);
+      LoggingSystem::Init("desktop", true, false);
       try {
         AppSettings::MigrateBaseDir();
       } catch(const std::exception &ex) {
         LoggingSystem::Destroy();
-        LoggingSystem::Init("desktop", true, true, true);
+        LoggingSystem::Init("desktop");
         AppSettings::SetInstalledVersion(false);
         logCallback(fmt::format("Migration failed: {}", ex.what()));
       }
       LoggingSystem::Destroy();
-      LoggingSystem::Init("desktop", true, true, true);
+      LoggingSystem::Init("desktop");
       logCallback("Done.");
     }
 
@@ -169,17 +169,17 @@ void MainWindow::OnReinstallClicked(QObject *window) {
       if(AppSettings::NeedsMigration()) {
         logCallback("Migrating data directory...");
         LoggingSystem::Destroy();
-        LoggingSystem::Init("desktop", true, false, true);
+        LoggingSystem::Init("desktop", true, false);
         try {
           AppSettings::MigrateBaseDir();
         } catch(const std::exception &ex) {
           LoggingSystem::Destroy();
-          LoggingSystem::Init("desktop", true, true, true);
+          LoggingSystem::Init("desktop");
           AppSettings::SetInstalledVersion(false);
           logCallback(fmt::format("Migration failed: {}", ex.what()));
         }
         LoggingSystem::Destroy();
-        LoggingSystem::Init("desktop", true, true, true);
+        LoggingSystem::Init("desktop");
         logCallback("Done.");
       }
 

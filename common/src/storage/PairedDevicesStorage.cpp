@@ -1,6 +1,5 @@
 #include "PairedDevicesStorage.h"
 
-#include <fstream>
 #include <nlohmann/json.hpp>
 #include <spdlog/spdlog.h>
 #include <vector>

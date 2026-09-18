@@ -5,7 +5,6 @@
 #include <string>
 #include <vector>
 
-#include <boost/interprocess/managed_shared_memory.hpp>
 #include <nlohmann/json.hpp>
 
 struct ShellCmdResult {
@@ -19,13 +18,10 @@ enum class ElevatorCommandResponseType { NONE, MESSAGE, DATA, CMD_RESULT };
 struct ElevatorCommand {
   ElevatorCommandType type{};
   std::vector<std::string> args{};
-
-  boost::interprocess::managed_shared_memory::handle_t dataHandle{};
-  size_t dataLength{};
   std::vector<uint8_t> dataBytes{};
 
   [[nodiscard]] nlohmann::json ToJson() const {
-    return {{"type", type}, {"args", args}, {"dataHandle", dataHandle}, {"dataLength", dataLength}};
+    return {{"type", type}, {"args", args}, {"dataLength", dataBytes.size()}};
   }
 
   static std::optional<ElevatorCommand> FromJson(const std::string &jsonStr) {
@@ -34,8 +30,6 @@ struct ElevatorCommand {
       auto cmd = ElevatorCommand();
       cmd.type = json["type"];
       cmd.args = json["args"];
-      cmd.dataHandle = json["dataHandle"];
-      cmd.dataLength = json["dataLength"];
       return cmd;
     } catch(...) {
       return {};
@@ -48,9 +42,6 @@ struct ElevatorCommandResponse {
   bool isError{};
   std::string message{};
   ShellCmdResult cmdResult{};
-
-  boost::interprocess::managed_shared_memory::handle_t dataHandle{};
-  size_t dataLength{};
   std::vector<uint8_t> dataBytes{};
 
   ElevatorCommandResponse() = default;
@@ -60,10 +51,9 @@ struct ElevatorCommandResponse {
     this->message = message;
   }
 
-  explicit ElevatorCommandResponse(boost::interprocess::managed_shared_memory::handle_t handle, size_t length) {
+  explicit ElevatorCommandResponse(std::vector<uint8_t> dataBytes) {
     this->type = ElevatorCommandResponseType::DATA;
-    this->dataHandle = handle;
-    this->dataLength = length;
+    this->dataBytes = std::move(dataBytes);
   }
 
   explicit ElevatorCommandResponse(const ShellCmdResult &cmdResult) {
@@ -77,12 +67,7 @@ struct ElevatorCommandResponse {
         {"output", cmdResult.output},
     };
     return {
-        {"type", type},
-        {"isError", isError},
-        {"message", message},
-        {"dataHandle", dataHandle},
-        {"dataLength", dataLength},
-        {"cmdResult", cmdResultJson},
+        {"type", type}, {"isError", isError}, {"message", message}, {"dataLength", dataBytes.size()}, {"cmdResult", cmdResultJson},
     };
   }
 
@@ -93,8 +78,6 @@ struct ElevatorCommandResponse {
       resp.type = json["type"];
       resp.isError = json["isError"];
       resp.message = json["message"];
-      resp.dataHandle = json["dataHandle"];
-      resp.dataLength = json["dataLength"];
       resp.cmdResult.exitCode = json["cmdResult"]["exitCode"];
       resp.cmdResult.output = json["cmdResult"]["output"];
       return resp;

@@ -15,6 +15,7 @@
 #include <spdlog/fmt/xchar.h>
 #else
 #include <pwd.h>
+#include <unistd.h>
 #endif
 
 PCBUAppStorage AppSettings::g_Cache{};

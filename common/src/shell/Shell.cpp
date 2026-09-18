@@ -3,7 +3,6 @@
 #include <spdlog/spdlog.h>
 
 #include "shell/ElevatorService.h"
-#include "shell/IPCHelper.h"
 #include "shell/LocalShell.h"
 
 bool Shell::g_IsInitialized{};
@@ -131,21 +130,13 @@ std::vector<uint8_t> Shell::ReadBytes(const std::filesystem::path &path) {
 bool Shell::WriteBytes(const std::filesystem::path &path, const std::vector<uint8_t> &data) {
   if(!g_IsInitialized)
     return false;
-  if(!g_ElevatorService || !g_ElevatorService->GetSharedMemory().has_value())
+  if(!g_ElevatorService)
     return LocalShell::WriteBytes(path, data);
 
   auto req = ElevatorCommand();
   req.type = ElevatorCommandType::WRITE_BYTES;
   req.args.emplace_back(path.string());
-
-  if(!data.empty()) {
-    auto handle = IPCHelper::WriteShmBytes(g_ElevatorService->GetSharedMemory().value(), data);
-    if(!handle.has_value())
-      return false;
-    req.dataHandle = handle.value();
-    req.dataLength = data.size();
-  }
-
+  req.dataBytes = data;
   auto resp = g_ElevatorService->ExecCommand(req);
   if(resp.has_value() && resp.value().type == ElevatorCommandResponseType::MESSAGE)
     return !resp.value().isError;

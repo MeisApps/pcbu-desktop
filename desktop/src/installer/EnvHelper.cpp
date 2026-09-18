@@ -76,5 +76,8 @@ std::filesystem::path EnvHelper::GetEnvFile() {
 #ifdef APPLE
   return std::filesystem::path(userInfo->pw_dir) / ".zshenv";
 #endif
-  return std::filesystem::path(userInfo->pw_dir) / ".config/environment.d/pulseunlock-ssh.conf";
+  auto envDir = std::filesystem::path(userInfo->pw_dir) / ".config/environment.d";
+  if(!std::filesystem::exists(envDir))
+    LocalShell::CreateDir(envDir);
+  return envDir / "pulseunlock-ssh.conf";
 }

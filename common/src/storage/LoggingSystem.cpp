@@ -11,11 +11,11 @@
 
 std::string LoggingSystem::g_LogName{};
 
-void LoggingSystem::Init(const std::string &logName, bool printToConsole, bool writeToFile, bool userDir) {
+void LoggingSystem::Init(const std::string &logName, bool printToConsole, bool writeToFile) {
   g_LogName = logName;
-  auto logsDir = AppSettings::GetLogsDir(userDir);
+  auto logsDir = AppSettings::GetLogsDir(!LocalShell::IsRunningAsAdmin());
   if(!std::filesystem::exists(logsDir))
-    std::filesystem::create_directories(logsDir);
+    LocalShell::CreateDir(logsDir);
   auto logPath = logsDir / fmt::format("{}.log", g_LogName);
   if(writeToFile) {
     std::ifstream logFile(logPath, std::ifstream::ate | std::ifstream::binary);
