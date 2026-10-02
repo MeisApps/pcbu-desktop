@@ -205,6 +205,8 @@ set_target_properties(pcbu_desktop PROPERTIES
         MACOSX_BUNDLE TRUE
         MACOSX_BUNDLE_BUNDLE_NAME PulseUnlock
         MACOSX_BUNDLE_GUI_IDENTIFIER com.meisapps.PulseUnlock
+        MACOSX_BUNDLE_SHORT_VERSION_STRING ${CMAKE_PROJECT_VERSION}
+        MACOSX_BUNDLE_BUNDLE_VERSION ${CMAKE_PROJECT_VERSION}
         MACOSX_BUNDLE_INFO_PLIST ${CMAKE_SOURCE_DIR}/pkg/mac/Info.plist
 )
 install(TARGETS pcbu_desktop
@@ -214,6 +216,7 @@ install(TARGETS pcbu_desktop
 )
 
 if(WIN32)
+    add_version_resource(pcbu_desktop "PulseUnlock")
     add_custom_command(TARGET pcbu_desktop POST_BUILD
             COMMAND Qt6::windeployqt
             --dir "$<TARGET_FILE_DIR:pcbu_desktop>"

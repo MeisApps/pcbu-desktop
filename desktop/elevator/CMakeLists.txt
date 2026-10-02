@@ -18,3 +18,7 @@ add_executable(pcbu_elevator
 target_link_libraries(pcbu_elevator PRIVATE
         pcbu_common
 )
+
+if(WIN32)
+    add_version_resource(pcbu_elevator "PulseUnlock Elevator")
+endif()

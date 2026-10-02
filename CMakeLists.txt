@@ -1,9 +1,12 @@
 cmake_minimum_required(VERSION 3.22)
-project(pcbu_desktop_all)
+project(pcbu_desktop_all VERSION 4.0.0)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 include(DetectArchitecture)
 include(FetchContent)
+include(VersionResource)
+
+file(CONFIGURE OUTPUT "${CMAKE_BINARY_DIR}/version.txt" CONTENT "${PROJECT_VERSION}")
 
 if(NOT DEFINED TARGET_ARCH)
     detect_architecture(TARGET_ARCH)

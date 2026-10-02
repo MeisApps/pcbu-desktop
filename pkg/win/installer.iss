@@ -2,6 +2,8 @@
 AppId=PC Bio Unlock
 AppName=PulseUnlock
 AppVerName=PulseUnlock
+AppVersion={#GetEnv('APP_VERSION')}
+VersionInfoVersion={#GetEnv('APP_VERSION')}
 WizardStyle=modern
 DefaultDirName={autopf}\PulseUnlock
 DefaultGroupName=PulseUnlock

@@ -8,6 +8,7 @@ find_package(Threads REQUIRED)
 find_package(OpenSSL 3 REQUIRED)
 
 add_compile_definitions("PCBU_DEBUG=$<CONFIG:Debug>")
+add_compile_definitions(PCBU_VERSION="${CMAKE_PROJECT_VERSION}")
 add_compile_definitions(TARGET_ARCH="${TARGET_ARCH}")
 if(WIN32)
     add_compile_definitions(WINDOWS _WIN32_WINNT=0x0A00)

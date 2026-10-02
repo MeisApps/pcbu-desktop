@@ -123,7 +123,7 @@ if [[ "$PLATFORM" == "win" ]]; then
     rm installer_dir/opengl32sw.dll
   fi
 
-  iscc ../win/installer.iss
+  APP_VERSION="$(cat version.txt)" iscc ../win/installer.iss
   mv mysetup.exe PulseUnlock-Setup-"$ARCH".exe
 elif [[ "$PLATFORM" == "linux" ]]; then
   wget "https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-$LINUX_ARCH.AppImage" && chmod +x ./linuxdeploy-"$LINUX_ARCH".AppImage
@@ -145,7 +145,7 @@ elif [[ "$PLATFORM" == "linux" ]]; then
   wget "https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-$LINUX_ARCH.AppImage" && chmod +x ./linuxdeploy-plugin-qt-"$LINUX_ARCH".AppImage
   ./linuxdeploy-plugin-qt-"$LINUX_ARCH".AppImage --appdir appimage_dir
   rm ./linuxdeploy-plugin-qt-"$LINUX_ARCH".AppImage
-  ./linuxdeploy-"$LINUX_ARCH".AppImage --appdir appimage_dir --plugin checkrt --output appimage --desktop-file ../linux/PulseUnlock.desktop
+  LINUXDEPLOY_OUTPUT_VERSION="$(cat version.txt)" ./linuxdeploy-"$LINUX_ARCH".AppImage --appdir appimage_dir --plugin checkrt --output appimage --desktop-file ../linux/PulseUnlock.desktop
   mv PulseUnlock*.AppImage PulseUnlock.AppImage
   chmod +x PulseUnlock.AppImage
 elif [[ "$PLATFORM" == "mac" ]]; then

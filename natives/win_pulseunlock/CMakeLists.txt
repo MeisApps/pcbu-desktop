@@ -23,6 +23,8 @@ add_library(win_pulseunlock SHARED
 )
 target_include_directories(win_pulseunlock PUBLIC common-cpp/src)
 target_link_libraries(win_pulseunlock PUBLIC Credui Netapi32 Shlwapi Secur32 Wtsapi32 pcbu_common)
+
+add_version_resource(win_pulseunlock "PulseUnlock Credential Provider")
 add_custom_command(TARGET win_pulseunlock
         POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_SOURCE_DIR}/desktop/res/natives/${TARGET_OS}/${TARGET_ARCH}
