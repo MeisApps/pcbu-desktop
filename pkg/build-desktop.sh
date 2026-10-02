@@ -157,8 +157,11 @@ elif [[ "$PLATFORM" == "mac" ]]; then
       exit 1
     fi
     if otool -L "$binary" | grep -E '^[[:space:]]+/(opt|usr/local)/'; then
-      echo "$binary links non-bundled libraries."
-      exit 1
+      if [[ "$CI_BUILD" == "1" ]]; then
+        echo "$binary links non-bundled libraries."
+        exit 1
+      fi
+      echo "Warning: $binary links non-bundled libraries."
     fi
   done
   find "desktop/pcbu_desktop.app/Contents" -type f -name "*.dylib" | while read -r file; do
