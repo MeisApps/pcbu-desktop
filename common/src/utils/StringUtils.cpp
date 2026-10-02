@@ -57,6 +57,12 @@ std::string StringUtils::Trim(const std::string &str) {
   return trim;
 }
 
+std::string StringUtils::ToUpper(const std::string &str) {
+  auto result = str;
+  std::transform(result.begin(), result.end(), result.begin(), ::toupper);
+  return result;
+}
+
 std::string StringUtils::ToLower(const std::string &str) {
   auto result = str;
   std::transform(result.begin(), result.end(), result.begin(), ::tolower);

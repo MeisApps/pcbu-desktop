@@ -21,15 +21,15 @@
 // clang-format on
 #elif defined(LINUX) || defined(APPLE)
 #include <arpa/inet.h>
+#include <unistd.h>
+#ifdef LINUX
 #include <ifaddrs.h>
 #include <net/if.h>
 #include <netdb.h>
-#include <unistd.h>
-#ifdef LINUX
 #include <netpacket/packet.h>
 #include <sys/stat.h>
 #elif APPLE
-#define AF_PACKET AF_LINK
+#include <SystemConfiguration/SystemConfiguration.h>
 #endif
 #endif
 
@@ -92,7 +92,7 @@ std::vector<NetworkInterface> NetworkHelper::GetLocalNetInterfaces(bool onlyVali
     if(!netIf.ipAddress.empty())
       result.emplace_back(netIf);
   }
-#elif defined(LINUX) || defined(APPLE)
+#elif LINUX
   struct ifaddrs *ifaddr{};
   if(getifaddrs(&ifaddr))
     return {};
@@ -127,20 +127,78 @@ std::vector<NetworkInterface> NetworkHelper::GetLocalNetInterfaces(bool onlyVali
         }
       }
       if(family == AF_PACKET) {
-#ifdef LINUX
         auto sll = reinterpret_cast<struct sockaddr_ll *>(ifa->ifa_addr);
         snprintf(addr, sizeof(addr), "%02X:%02X:%02X:%02X:%02X:%02X", sll->sll_addr[0], sll->sll_addr[1], sll->sll_addr[2], sll->sll_addr[3],
                  sll->sll_addr[4], sll->sll_addr[5]);
-#endif
         ifMap[ifName].macAddress = addr;
       }
     }
   }
+  freeifaddrs(ifaddr);
 
   for(const auto &pair : ifMap)
     if(!pair.second.ipAddress.empty())
       result.emplace_back(pair.second);
-  freeifaddrs(ifaddr);
+#elif APPLE
+  auto toString = [](CFTypeRef value) -> std::string {
+    if(value == nullptr || CFGetTypeID(value) != CFStringGetTypeID())
+      return {};
+    auto str = static_cast<CFStringRef>(value);
+    auto bufferSize = CFStringGetMaximumSizeForEncoding(CFStringGetLength(str), kCFStringEncodingUTF8) + 1;
+    std::vector<char> buffer(bufferSize);
+    if(!CFStringGetCString(str, buffer.data(), bufferSize, kCFStringEncodingUTF8))
+      return {};
+    return {buffer.data()};
+  };
+  auto firstString = [&toString](CFDictionaryRef dict, CFStringRef key) -> std::string {
+    auto value = CFDictionaryGetValue(dict, key);
+    if(value == nullptr || CFGetTypeID(value) != CFArrayGetTypeID() || CFArrayGetCount(static_cast<CFArrayRef>(value)) == 0)
+      return {};
+    return toString(CFArrayGetValueAtIndex(static_cast<CFArrayRef>(value), 0));
+  };
+
+  auto store = SCDynamicStoreCreate(nullptr, CFSTR("pcbu_desktop"), nullptr, nullptr);
+  if(store == nullptr)
+    return {};
+  auto pattern = SCDynamicStoreKeyCreateNetworkServiceEntity(nullptr, kSCDynamicStoreDomainState, kSCCompAnyRegex, kSCEntNetIPv4);
+  auto patterns = CFArrayCreate(nullptr, reinterpret_cast<const void **>(&pattern), 1, &kCFTypeArrayCallBacks);
+  auto ipv4States = SCDynamicStoreCopyMultiple(store, nullptr, patterns);
+  CFRelease(patterns);
+  CFRelease(pattern);
+  CFRelease(store);
+  if(ipv4States == nullptr)
+    return {};
+
+  std::map<std::string, SCNetworkInterfaceRef> hwInterfaces{};
+  auto scInterfaces = SCNetworkInterfaceCopyAll();
+  for(CFIndex i = 0; scInterfaces != nullptr && i < CFArrayGetCount(scInterfaces); i++) {
+    auto scInterface = static_cast<SCNetworkInterfaceRef>(CFArrayGetValueAtIndex(scInterfaces, i));
+    hwInterfaces[toString(SCNetworkInterfaceGetBSDName(scInterface))] = scInterface;
+  }
+
+  std::vector<const void *> states(CFDictionaryGetCount(ipv4States));
+  CFDictionaryGetKeysAndValues(ipv4States, nullptr, states.data());
+  for(auto state : states) {
+    if(CFGetTypeID(state) != CFDictionaryGetTypeID())
+      continue;
+    auto ipv4 = static_cast<CFDictionaryRef>(state);
+    auto netIf = NetworkInterface();
+    netIf.ifName = toString(CFDictionaryGetValue(ipv4, kSCPropInterfaceName));
+    netIf.ipAddress = firstString(ipv4, kSCPropNetIPv4Addresses);
+    netIf.netmask = firstString(ipv4, kSCPropNetIPv4SubnetMasks);
+    netIf.gateway = toString(CFDictionaryGetValue(ipv4, kSCPropNetIPv4Router));
+    if(netIf.ifName.empty() || netIf.ipAddress.empty())
+      continue;
+    if(auto it = hwInterfaces.find(netIf.ifName); it != hwInterfaces.end()) {
+      auto ifType = SCNetworkInterfaceGetInterfaceType(it->second);
+      netIf.macAddress = StringUtils::ToUpper(toString(SCNetworkInterfaceGetHardwareAddressString(it->second)));
+      netIf.isWired = ifType != nullptr && CFEqual(ifType, kSCNetworkInterfaceTypeEthernet);
+    }
+    result.emplace_back(netIf);
+  }
+  if(scInterfaces != nullptr)
+    CFRelease(scInterfaces);
+  CFRelease(ipv4States);
 #endif
 
   auto isVirtual = [](const NetworkInterface &netIf) {

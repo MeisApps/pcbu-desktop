@@ -13,6 +13,7 @@ public:
   static std::string LTrim(const std::string &str);
   static std::string RTrim(const std::string &str);
   static std::string Trim(const std::string &str);
+  static std::string ToUpper(const std::string &str);
   static std::string ToLower(const std::string &str);
   static std::string Truncate(const std::string &str, uint32_t maxLen, const std::string &ellipsis = "...");
 
