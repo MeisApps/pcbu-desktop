@@ -12,7 +12,7 @@
 
 class PairingServer : public BaseConnection {
 public:
-  explicit PairingServer(const std::function<void(const std::string &)> &errorCallback);
+  explicit PairingServer(const std::function<void()> &successCallback, const std::function<void(const std::string &)> &errorCallback);
   ~PairingServer() override = default;
 
   virtual bool Start(const PairingUIData &uiData);
@@ -21,6 +21,7 @@ public:
 protected:
   void HandleClient(ConnectionStream &stream);
 
+  void ReportSuccess();
   void ReportError(const std::string &message);
 
   CryptPacket ReadEncryptedPacket(ConnectionStream &stream) const;
@@ -30,6 +31,7 @@ protected:
   std::atomic<int> m_NumConnections{};
 
   PairingUIData m_UIData{};
+  std::function<void()> m_SuccessCallback{};
   std::function<void(const std::string &)> m_ErrorCallback{};
 };
 

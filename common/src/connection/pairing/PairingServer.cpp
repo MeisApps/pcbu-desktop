@@ -10,7 +10,8 @@
 #include "utils/I18n.h"
 #include "utils/StringUtils.h"
 
-PairingServer::PairingServer(const std::function<void(const std::string &)> &errorCallback) {
+PairingServer::PairingServer(const std::function<void()> &successCallback, const std::function<void(const std::string &)> &errorCallback) {
+  m_SuccessCallback = successCallback;
   m_ErrorCallback = errorCallback;
 }
 
@@ -18,6 +19,12 @@ bool PairingServer::Start(const PairingUIData &uiData) {
   m_UIData = uiData;
   m_IsRunning = true;
   return true;
+}
+
+void PairingServer::ReportSuccess() {
+  if(!m_IsRunning)
+    return;
+  m_SuccessCallback();
 }
 
 void PairingServer::ReportError(const std::string &message) {
@@ -100,6 +107,7 @@ void PairingServer::HandleClient(ConnectionStream &stream) {
       else
         spdlog::error("Failed setting default credential provider for user '{}'.", m_UIData.userName);
 #endif
+      ReportSuccess();
     } else {
       ReportError(I18n::Get("error_pairing_failed"));
     }

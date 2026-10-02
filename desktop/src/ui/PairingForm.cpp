@@ -58,9 +58,18 @@ std::string PairingForm::BuildPairingPayload() {
   return PairingQRData(m_ServerId, settings.pairingDiscoveryPort, method, m_EncKey).ToJson().dump();
 }
 
+void PairingForm::ReportPairingSuccess(QObject *viewLoader, QObject *window) {
+  QMetaObject::invokeMethod(this, "OnPairingSuccess", Qt::QueuedConnection, Q_ARG(QObject *, viewLoader), Q_ARG(QObject *, window));
+}
+
 void PairingForm::ReportPairingError(QObject *viewLoader, QObject *window, const std::string &error) {
   QMetaObject::invokeMethod(this, "OnPairingError", Qt::QueuedConnection, Q_ARG(QObject *, viewLoader), Q_ARG(QObject *, window),
                             Q_ARG(QString, QString::fromUtf8(error)));
+}
+
+void PairingForm::OnPairingSuccess(QObject *viewLoader, QObject *window) {
+  if(m_CurrentStep == PairingStep::QR_SCAN)
+    OnNextClicked(viewLoader, window);
 }
 
 void PairingForm::OnPairingError(QObject *viewLoader, QObject *window, const QString &error) {
@@ -186,13 +195,14 @@ void PairingForm::UpdateStepForm(QObject *viewLoader, QObject *window) {
       m_DiscoveryBeacon.reset();
     }
 
+    auto successCallback = [this, viewLoader, window]() { ReportPairingSuccess(viewLoader, window); };
     auto errorCallback = [this, viewLoader, window](const std::string &error) { ReportPairingError(viewLoader, window, error); };
     auto method = PairingMethodUtils::FromString(m_PairingData.pairingMethod.toStdString());
     auto isCloud = method == PairingMethod::CLOUD;
     if(isCloud)
-      m_CloudPairingServer = std::make_unique<CloudPairingServer>(errorCallback);
+      m_CloudPairingServer = std::make_unique<CloudPairingServer>(successCallback, errorCallback);
     else
-      m_PairingServer = std::make_unique<TCPPairingServer>(errorCallback);
+      m_PairingServer = std::make_unique<TCPPairingServer>(successCallback, errorCallback);
     m_ServerId = StringUtils::RandomString(8);
     m_EncKey = StringUtils::RandomString(64);
     if(isCloud) {

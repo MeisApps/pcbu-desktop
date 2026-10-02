@@ -56,15 +56,21 @@ public:
   Q_INVOKABLE void SetSkipPasswordCheck(bool skip);
 
 public slots:
+  void OnPairingSuccess(QObject *viewLoader, QObject *window);
   void OnPairingError(QObject *viewLoader, QObject *window, const QString &error);
+
   void OnBackClicked(QObject *viewLoader, QObject *window);
   void OnNextClicked(QObject *viewLoader, QObject *window);
+
   void Show(QObject *viewLoader, QObject *window);
 
 private:
   PairingStep GetNextStep();
   void UpdateStepForm(QObject *viewLoader, QObject *window);
+
   std::string BuildPairingPayload();
+
+  void ReportPairingSuccess(QObject *viewLoader, QObject *window);
   void ReportPairingError(QObject *viewLoader, QObject *window, const std::string &error);
 
   void BeginCloudPairing(QObject *viewLoader, QObject *window);
