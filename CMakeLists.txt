@@ -80,7 +80,7 @@ FetchContent_Declare(
 )
 FetchContent_Declare(
         Boost
-        URL https://github.com/boostorg/boost/releases/download/boost-1.91.0-1/boost-1.91.0-1-cmake.7z
+        URL https://github.com/boostorg/boost/releases/download/boost-1.92.0/boost-1.92.0-cmake.7z
         DOWNLOAD_EXTRACT_TIMESTAMP ON
 )
 
