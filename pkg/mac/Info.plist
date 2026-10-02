@@ -36,6 +36,8 @@
 	<string>${MACOSX_BUNDLE_COPYRIGHT}</string>
 	<key>NSBluetoothAlwaysUsageDescription</key>
 	<string>Required for pairing with phones using bluetooth.</string>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>Required for pairing and unlocking with phones on the local network.</string>
 	<key>LSMinimumSystemVersion</key>
 	<string>${CMAKE_OSX_DEPLOYMENT_TARGET}</string>
 </dict>

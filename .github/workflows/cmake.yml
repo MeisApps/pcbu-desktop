@@ -247,10 +247,42 @@ jobs:
           mkdir -p "$VCPKG_DEFAULT_BINARY_CACHE"
           ./vcpkg/vcpkg install --overlay-triplets=cmake/vcpkg-triplets --triplet arm64-osx-static openssl
 
+      - name: Import signing certificate
+        uses: apple-actions/import-codesign-certs@5142e029c445c10ffc7149d172e540235a065466
+        with:
+          keychain: signing_temp
+          p12-file-base64: ${{secrets.MACOS_CERTIFICATE}}
+          p12-password: ${{secrets.MACOS_CERTIFICATE_PASSWORD}}
+
+      - name: Prepare signing
+        env:
+          MACOS_NOTARY_KEY: ${{secrets.MACOS_NOTARY_KEY}}
+        run: |
+          curl -fsSL -o "$RUNNER_TEMP/DeveloperIDG2CA.cer" https://www.apple.com/certificateauthority/DeveloperIDG2CA.cer
+          security import "$RUNNER_TEMP/DeveloperIDG2CA.cer" -k signing_temp.keychain || true
+
+          SIGN_IDENTITY="$(security find-identity -v -p codesigning signing_temp.keychain | grep "Developer ID Application" | head -n 1 | awk '{print $2}')"
+          if [ -z "$SIGN_IDENTITY" ]; then
+            echo "No Developer ID Application identity found."
+            exit 1
+          fi
+          echo "MAC_SIGN_IDENTITY=$SIGN_IDENTITY" >> "$GITHUB_ENV"
+
+          (umask 077 && echo "$MACOS_NOTARY_KEY" | base64 --decode > "$RUNNER_TEMP/notary.p8")
+          echo "MAC_NOTARY_KEY_PATH=$RUNNER_TEMP/notary.p8" >> "$GITHUB_ENV"
+
       - name: Build
         run: bash -c "cd pkg && rm -Rf ./build/ && ARCH=arm64 QT_BASE_DIR=/opt/Qt/${{env.QT_VERSION}} CI_BUILD=1 ./build-desktop.sh"
         env:
           VCPKG_ROOT: ${{github.workspace}}/vcpkg
+          MAC_NOTARY_KEY_ID: ${{secrets.MACOS_NOTARY_KEY_ID}}
+          MAC_NOTARY_ISSUER_ID: ${{secrets.MACOS_NOTARY_ISSUER_ID}}
+
+      - name: Lock signing
+        if: always()
+        run: |
+          rm -f "$RUNNER_TEMP/notary.p8" "$RUNNER_TEMP/DeveloperIDG2CA.cer"
+          security lock-keychain signing_temp.keychain || true
 
       - name: Upload
         uses: softprops/action-gh-release@v3
