@@ -1,14 +1,18 @@
 #include "PlatformHelper.h"
 
+#include <climits>
+#include <pwd.h>
+#include <unistd.h>
+
 #include <CoreServices/CoreServices.h>
 #include <SystemConfiguration/SystemConfiguration.h>
 
-#include "shell/Shell.h"
+#include "shell/LocalShell.h"
 #include "utils/StringUtils.h"
 
 std::vector<std::string> PlatformHelper::GetAllUsers() {
   std::vector<std::string> result{};
-  auto cmdResult = Shell::RunUserCommand("dscl localhost -list /Local/Default/Users");
+  auto cmdResult = LocalShell::RunUserCommand("dscl localhost -list /Local/Default/Users");
   for(const auto &userLine : StringUtils::Split(cmdResult.output, "\n")) {
     if(userLine.empty() || userLine.starts_with("_") || userLine == "daemon" || userLine == "nobody")
       continue;
@@ -67,4 +71,40 @@ PlatformLoginStatus PlatformHelper::CheckLogin(const std::string &userName, cons
 
 bool PlatformHelper::HasNativeLibrary(const std::string &libName) {
   return false;
+}
+
+std::filesystem::path PlatformHelper::GetUserHomeDir(const std::string &userName) {
+  auto userStruct = userName.empty() ? getpwuid(geteuid()) : getpwnam(userName.c_str());
+  if(!userStruct || !userStruct->pw_dir || userStruct->pw_dir[0] == '\0')
+    return {};
+  return userStruct->pw_dir;
+}
+
+std::filesystem::path PlatformHelper::GetUserDataDir() {
+  auto homeDir = GetUserHomeDir();
+  if(homeDir.empty())
+    return {};
+  return homeDir / "Library/Application Support";
+}
+
+std::filesystem::path PlatformHelper::GetUserLogsDir() {
+  auto homeDir = GetUserHomeDir();
+  if(homeDir.empty())
+    return {};
+  return homeDir / "Library/Logs";
+}
+
+std::filesystem::path PlatformHelper::GetSystemDataDir() {
+  return "/etc";
+}
+
+std::filesystem::path PlatformHelper::GetSystemLogsDir() {
+  return "/Library/Logs";
+}
+
+std::filesystem::path PlatformHelper::GetTempDir() {
+  char tmpDir[PATH_MAX]{};
+  if(confstr(_CS_DARWIN_USER_TEMP_DIR, tmpDir, sizeof(tmpDir)) == 0)
+    return "/tmp";
+  return tmpDir;
 }

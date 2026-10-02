@@ -4,6 +4,7 @@
 #include <Windows.h>
 #include <WtsApi32.h>
 #include <LM.h>
+#include <ShlObj_core.h>
 #include <sddl.h>
 #include <spdlog/fmt/xchar.h>
 #include <spdlog/spdlog.h>
@@ -234,4 +235,81 @@ bool PlatformHelper::SetDefaultCredProv(const std::string &userName, const std::
   auto result = RegistryUtils::SetStringValueOrCreate(HKEY_LOCAL_MACHINE, R"(SOFTWARE\Microsoft\Windows\CurrentVersion\Authentication\LogonUI\UserTile)",
                                               userSid, provId);
   return result;
+}
+
+std::filesystem::path PlatformHelper::GetUserHomeDir(const std::string &userName) {
+  if(userName.empty())
+    return GetShellFolder(CSIDL_PROFILE);
+
+  auto userNameStr = StringUtils::ToWideString(userName);
+  DWORD sidSize{};
+  DWORD domainSize{};
+  SID_NAME_USE sidType{};
+  LookupAccountNameW(nullptr, userNameStr.c_str(), nullptr, &sidSize, nullptr, &domainSize, &sidType);
+  if(sidSize == 0) {
+    spdlog::error("Failed to look up user '{}'. (Code={})", userName, GetLastError());
+    return {};
+  }
+  std::vector<BYTE> sid(sidSize);
+  std::wstring domain(domainSize, L'\0');
+  if(!LookupAccountNameW(nullptr, userNameStr.c_str(), sid.data(), &sidSize, domain.data(), &domainSize, &sidType)) {
+    spdlog::error("Failed to look up user '{}'. (Code={})", userName, GetLastError());
+    return {};
+  }
+  LPWSTR sidStr{};
+  if(!ConvertSidToStringSidW(sid.data(), &sidStr)) {
+    spdlog::error("Failed to convert SID of user '{}'. (Code={})", userName, GetLastError());
+    return {};
+  }
+  auto subKey = fmt::format(L"SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\ProfileList\\{}", sidStr);
+  LocalFree(sidStr);
+
+  DWORD dataSize{};
+  auto result = RegGetValueW(HKEY_LOCAL_MACHINE, subKey.c_str(), L"ProfileImagePath", RRF_RT_REG_SZ, nullptr, nullptr, &dataSize);
+  if(result != ERROR_SUCCESS) {
+    spdlog::error("Failed to read profile path of user '{}'. (Status={})", userName, result);
+    return {};
+  }
+  std::wstring profilePath(dataSize / sizeof(wchar_t), L'\0');
+  result = RegGetValueW(HKEY_LOCAL_MACHINE, subKey.c_str(), L"ProfileImagePath", RRF_RT_REG_SZ, nullptr, profilePath.data(), &dataSize);
+  if(result != ERROR_SUCCESS) {
+    spdlog::error("Failed to read profile path of user '{}'. (Status={})", userName, result);
+    return {};
+  }
+  profilePath.resize(wcslen(profilePath.c_str()));
+  return profilePath;
+}
+
+std::filesystem::path PlatformHelper::GetUserDataDir() {
+  return GetShellFolder(CSIDL_LOCAL_APPDATA);
+}
+
+std::filesystem::path PlatformHelper::GetUserLogsDir() {
+  return GetShellFolder(CSIDL_LOCAL_APPDATA);
+}
+
+std::filesystem::path PlatformHelper::GetSystemDataDir() {
+  return GetShellFolder(CSIDL_COMMON_APPDATA);
+}
+
+std::filesystem::path PlatformHelper::GetSystemLogsDir() {
+  return GetShellFolder(CSIDL_COMMON_APPDATA);
+}
+
+std::filesystem::path PlatformHelper::GetTempDir() {
+  wchar_t tmpDir[MAX_PATH + 1]{};
+  if(GetTempPathW(MAX_PATH + 1, tmpDir) == 0)
+    return {};
+  return tmpDir;
+}
+
+std::filesystem::path PlatformHelper::GetProgramFilesDir() {
+  return GetShellFolder(CSIDL_PROGRAM_FILES);
+}
+
+std::filesystem::path PlatformHelper::GetShellFolder(int csidl) {
+  wchar_t folderPath[MAX_PATH]{};
+  if(SHGetFolderPathW(nullptr, csidl, nullptr, SHGFP_TYPE_CURRENT, folderPath) != S_OK)
+    return {};
+  return folderPath;
 }

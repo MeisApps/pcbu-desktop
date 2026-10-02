@@ -19,8 +19,13 @@ public slots:
   void OnDownloadClicked(QObject *window);
 
 private:
-  static boost::filesystem::path GetDownloadDirectory();
   static std::string GetDownloadURL();
+#ifndef WINDOWS
+  static std::string InstallUpdate(const boost::filesystem::path &downloadPath);
+#endif
+#ifdef APPLE
+  static boost::filesystem::path GetAppBundlePath();
+#endif
 
   QString m_LatestVersion{};
   std::mutex m_VersionMutex{};

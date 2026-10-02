@@ -2,6 +2,7 @@
 #include <QIcon>
 #include <QQmlApplicationEngine>
 
+#include "shell/Shell.h"
 #include "storage/LoggingSystem.h"
 
 int main(int argc, char *argv[]) {
@@ -15,7 +16,9 @@ int main(int argc, char *argv[]) {
   int result{};
   {
     QGuiApplication app(argc, argv);
+#ifndef APPLE
     QGuiApplication::setWindowIcon(QIcon(":/res/icons/icon.png"));
+#endif
 
     auto url = QUrl("qrc:/ui/MainWindow.qml");
     QQmlApplicationEngine engine{};
@@ -31,6 +34,7 @@ int main(int argc, char *argv[]) {
 
     result = QGuiApplication::exec();
   }
+  Shell::Destroy();
   LoggingSystem::Destroy();
   return result;
 }

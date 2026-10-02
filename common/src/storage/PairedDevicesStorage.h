@@ -2,6 +2,7 @@
 #define PCBU_DESKTOP_PAIREDDEVICESSTORAGE_H
 
 #include <cstdint>
+#include <mutex>
 #include <optional>
 #include <string>
 #include <vector>
@@ -44,12 +45,13 @@ public:
   static std::vector<PairedDevice> GetDevices();
   static void SaveDevices(const std::vector<PairedDevice> &devices);
 
-  static void ProtectFile(const std::string &filePath, bool protect);
+  static void InvalidateCache();
 
 private:
-#ifdef WINDOWS
-  static bool ModifyFileAccess(const std::string &filePath, const std::string &sid, bool deny);
-#endif
+  static std::vector<PairedDevice> Load();
+
+  static std::vector<PairedDevice> g_Cache;
+  static std::mutex g_Mutex;
 
   static constexpr std::string_view DEVICES_FILE_NAME = "paired_devices.json";
 };

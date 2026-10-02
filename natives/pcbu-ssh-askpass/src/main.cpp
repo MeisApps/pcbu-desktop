@@ -77,7 +77,7 @@ int main(int argc, char *argv[]) {
     return -1;
   }
   std::string userName = pw->pw_name;
-  std::string homeDir = pw->pw_dir ? pw->pw_dir : "";
+  auto homeDir = PlatformHelper::GetUserHomeDir(userName).string();
 
   if(geteuid() != 0) {
     fmt::print(stderr, "Missing root privileges.\n");

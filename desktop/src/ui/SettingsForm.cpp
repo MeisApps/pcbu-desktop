@@ -6,6 +6,11 @@
 #include "storage/PairedDevicesStorage.h"
 #include "utils/AppInfo.h"
 
+SettingsForm::~SettingsForm() {
+  if(m_SaveThread.joinable())
+    m_SaveThread.join();
+}
+
 AppSettingsModel SettingsForm::GetSettings() {
   return m_EditSettings;
 }
@@ -55,7 +60,7 @@ void SettingsForm::SetDebugLoggingEnabled(bool enabled) {
     if(!Shell::CreateFile(AppSettings::GetBaseDir() / "LOG_DEBUG"))
       spdlog::error("Failed to create debug log file.");
   } else {
-    if(!Shell::RemoveFile(AppSettings::GetBaseDir() / "LOG_DEBUG"))
+    if(!Shell::Remove(AppSettings::GetBaseDir() / "LOG_DEBUG"))
       spdlog::error("Failed to remove debug log file.");
   }
 }
@@ -86,13 +91,24 @@ void SettingsForm::Show(QObject *viewLoader) {
 
 void SettingsForm::OnSaveSettingsClicked(QObject *viewLoader, QObject *window) {
   AppSettings::Save(m_EditSettings.ToStorage());
-  try {
-    auto installer = ServiceInstaller();
-    installer.ApplySettings(m_EditServiceSettings, false);
-  } catch(const std::exception &ex) {
-    spdlog::error("{}", ex.what());
-    QMetaObject::invokeMethod(window, "showErrorMessage", Q_ARG(QVariant, "Failed to write service settings."));
-  }
-  AppSettings::InvalidateCache();
-  viewLoader->setProperty("source", QUrl("qrc:/ui/forms/MainForm.qml"));
+  if(m_SaveThread.joinable())
+    m_SaveThread.join();
+  QMetaObject::invokeMethod(window, "showLoadingScreen", Q_ARG(QVariant, QString::fromUtf8(I18n::Get("please_wait"))));
+  m_SaveThread = std::thread([viewLoader, window, serviceSettings = m_EditServiceSettings]() {
+    auto logCallback = [window](const std::string &str) {
+      spdlog::info(str);
+      QMetaObject::invokeMethod(window, "appendLoadingOutput", Q_ARG(QVariant, QString::fromUtf8(str)));
+    };
+    try {
+      auto installer = ServiceInstaller(logCallback);
+      installer.ApplySettings(serviceSettings, false);
+    } catch(const std::exception &ex) {
+      logCallback(ex.what());
+      QMetaObject::invokeMethod(window, "finishLoadingScreen", Q_ARG(QVariant, QString::fromUtf8(I18n::Get("error"))));
+      return;
+    }
+    AppSettings::InvalidateCache();
+    QMetaObject::invokeMethod(window, "finishLoadingScreen", Q_ARG(QVariant, QString::fromUtf8(I18n::Get("success"))));
+    QMetaObject::invokeMethod(viewLoader, [viewLoader]() { viewLoader->setProperty("source", QUrl("qrc:/ui/forms/MainForm.qml")); });
+  });
 }

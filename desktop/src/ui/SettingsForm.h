@@ -1,6 +1,8 @@
 #ifndef PCBU_DESKTOP_SETTINGSFORM_H
 #define PCBU_DESKTOP_SETTINGSFORM_H
 
+#include <thread>
+
 #include <QObject>
 #include <QStringList>
 #include <QtQmlIntegration>
@@ -89,6 +91,8 @@ class SettingsForm : public QObject {
   QML_ELEMENT
   QML_SINGLETON
 public:
+  ~SettingsForm() override;
+
   Q_INVOKABLE AppSettingsModel GetSettings();
   Q_INVOKABLE void SetSettings(const AppSettingsModel &settings);
 
@@ -110,6 +114,7 @@ public slots:
 private:
   AppSettingsModel m_EditSettings{};
   std::vector<ServiceSetting> m_EditServiceSettings{};
+  std::thread m_SaveThread{};
 };
 
 #endif // PCBU_DESKTOP_SETTINGSFORM_H

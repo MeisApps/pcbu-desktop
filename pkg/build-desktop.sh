@@ -78,6 +78,7 @@ fi
 if [[ "$PLATFORM" == "win" ]]; then
   mkdir -p installer_dir || true
   cp desktop/Release/pcbu_desktop.exe installer_dir/
+  cp desktop/Release/pcbu_elevator.exe installer_dir/
   "$WIN_MT_PATH" -manifest ../win/requireAdmin.manifest -outputresource:installer_dir/pcbu_desktop.exe
   "$WIN_QT_PATH/bin/windeployqt" --qmldir ../../desktop/qml installer_dir/pcbu_desktop.exe
   if [[ "$ARCH" == "arm64" ]]; then # ToDo: Workaround for no windeployqt on arm64
@@ -105,6 +106,7 @@ elif [[ "$PLATFORM" == "linux" ]]; then
   mkdir -p appimage_dir/usr/bin || true
   mkdir -p appimage_dir/usr/share/icons/hicolor/256x256/apps || true
   cp desktop/pcbu_desktop appimage_dir/usr/bin/
+  cp desktop/pcbu_elevator appimage_dir/usr/bin/
   cp ../linux/run-app.sh appimage_dir/usr/bin/
   cp ../../desktop/res/icons/icon.png appimage_dir/usr/share/icons/hicolor/256x256/apps/PulseUnlock.png
   chmod +x appimage_dir/usr/bin/run-app.sh
@@ -120,7 +122,18 @@ elif [[ "$PLATFORM" == "linux" ]]; then
   mv PulseUnlock*.AppImage PulseUnlock.AppImage
   chmod +x PulseUnlock.AppImage
 elif [[ "$PLATFORM" == "mac" ]]; then
-  "$QT_BASE_DIR/macos/bin/macdeployqt" desktop/pcbu_desktop.app -qmldir=../../desktop/qml
+  "$QT_BASE_DIR/macos/bin/macdeployqt" desktop/pcbu_desktop.app -qmldir=../../desktop/qml \
+    -executable=desktop/pcbu_desktop.app/Contents/MacOS/pcbu_elevator
+  for binary in desktop/pcbu_desktop.app/Contents/MacOS/* natives/pcbu-auth/pcbu_auth natives/pcbu-ssh-askpass/pcbu_ssh_askpass natives/pam_pulseunlock/pam_pulseunlock.dylib; do
+    if [ ! -f "$binary" ]; then
+      echo "$binary is missing."
+      exit 1
+    fi
+    if otool -L "$binary" | grep -E '^[[:space:]]+/(opt|usr/local)/'; then
+      echo "$binary links non-bundled libraries."
+      exit 1
+    fi
+  done
   find "desktop/pcbu_desktop.app" -type f -perm +111 | while read -r file; do
     echo "Signing $file"
     codesign --force --deep -s - "$file"

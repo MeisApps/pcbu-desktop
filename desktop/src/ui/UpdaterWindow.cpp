@@ -5,12 +5,16 @@
 #include <spdlog/spdlog.h>
 
 #include "connection/web/HttpClient.h"
+#include "platform/PlatformHelper.h"
+#include "shell/LocalShell.h"
 #include "shell/Shell.h"
 #include "utils/AppInfo.h"
 #include "utils/RestClient.h"
+#include "utils/StringUtils.h"
 
 #ifdef APPLE
 #include <mach-o/dyld.h>
+#include <unistd.h>
 #elif defined(LINUX)
 #include <unistd.h> // getpid()
 #endif
@@ -94,63 +98,116 @@ void UpdaterWindow::OnDownloadClicked(QObject *window) {
       if(matches.size() >= 2)
         downloadFileName = "Update-" + matches[1].str();
 
-    auto dlPath = GetDownloadDirectory() / downloadFileName;
+    auto dlPath = boost::filesystem::path(PlatformHelper::GetTempDir().native()) / downloadFileName;
     spdlog::info("Saving update to '{}'...", dlPath.string());
-    if(!Shell::WriteBytes(dlPath.string(), fileData)) {
+    if(!LocalShell::WriteBytes(dlPath.string(), fileData)) {
       auto errText = "Error saving update.";
       spdlog::error(errText);
       QMetaObject::invokeMethod(window, "closeUpdaterWindow", Q_ARG(QVariant, QString::fromUtf8(errText)));
       return;
     }
     auto updateCmd = dlPath.string();
-#ifdef LINUX
-    if(Shell::RunCommand(fmt::format("chmod +x {}", dlPath.string())).exitCode != 0) {
-      auto errText = "Error making AppImage executable.";
-      spdlog::error(errText);
+#ifndef WINDOWS
+    try {
+      updateCmd = InstallUpdate(dlPath);
+    } catch(const std::exception &ex) {
+      auto errText = "Error installing update.";
+      spdlog::error("{} ({})", errText, ex.what());
       QMetaObject::invokeMethod(window, "closeUpdaterWindow", Q_ARG(QVariant, QString::fromUtf8(errText)));
       return;
     }
-    auto dstPath = dlPath;
-    auto appImagePath = std::getenv("APPIMAGE");
-    if(appImagePath)
-      dstPath = boost::filesystem::path(appImagePath);
-    updateCmd = fmt::format("while ps -p {0} > /dev/null 2>&1; do sleep 1; done && mv {1} {2} && {2}", getpid(), dlPath.string(), dstPath.string());
 #endif
     spdlog::info("Starting update...");
-    Shell::SpawnCommand(updateCmd);
-    QCoreApplication::quit();
+    LocalShell::SpawnCommand(updateCmd);
+    QMetaObject::invokeMethod(QCoreApplication::instance(), []() { QCoreApplication::exit(0); }, Qt::QueuedConnection);
   });
 }
 
-boost::filesystem::path UpdaterWindow::GetDownloadDirectory() {
-#ifdef WINDOWS
-  return boost::filesystem::temp_directory_path();
-#else
 #ifdef LINUX
+std::string UpdaterWindow::InstallUpdate(const boost::filesystem::path &downloadPath) {
+  auto quote = [](const boost::filesystem::path &path) { return StringUtils::ShellQuote(path.string()); };
   auto appImagePath = std::getenv("APPIMAGE");
-  if(appImagePath)
-    return boost::filesystem::path(appImagePath).parent_path();
+  if(!appImagePath) {
+    LocalShell::Remove(downloadPath.string());
+    throw std::runtime_error("AppImage path not found.");
+  }
+
+  auto targetPath = boost::filesystem::path(appImagePath);
+  auto stagingPath = targetPath.parent_path() / fmt::format(".pcbu-update-{}.AppImage", StringUtils::RandomString(16, false));
+  auto replaceCmd = fmt::format("cp {0} {1} && chown --reference={2} {1} && chmod --reference={2} {1} && chmod +x {1} && mv -f {1} {2} "
+                                "|| {{ rm -f {1}; exit 1; }}",
+                                quote(downloadPath), quote(stagingPath), quote(targetPath));
+  auto replaceResult = Shell::RunCommand(replaceCmd);
+  LocalShell::Remove(downloadPath.string());
+  if(replaceResult.exitCode != 0)
+    throw std::runtime_error(fmt::format("Failed replacing AppImage. (Code={}, Output={})", replaceResult.exitCode, StringUtils::Trim(replaceResult.output)));
+  return fmt::format("while ps -p {0} > /dev/null 2>&1; do sleep 1; done; {1}", getpid(), quote(targetPath));
+}
 #elif APPLE
+boost::filesystem::path UpdaterWindow::GetAppBundlePath() {
   char exePath[PATH_MAX];
   uint32_t pathSize = sizeof(exePath);
-  if(_NSGetExecutablePath(exePath, &pathSize) == 0) {
-    auto resolvedPath = boost::filesystem::canonical(exePath);
-    boost::filesystem::path appBundlePath{};
-    for(auto it = resolvedPath.begin(); it != resolvedPath.end(); ++it) {
-      if(it->string().find(".app") != std::string::npos) {
-        appBundlePath = resolvedPath.root_path();
-        for(auto jt = resolvedPath.begin(); jt != std::next(it); ++jt)
-          appBundlePath /= *jt;
-        break;
-      }
+  if(_NSGetExecutablePath(exePath, &pathSize) != 0)
+    return {};
+  auto resolvedPath = boost::filesystem::canonical(exePath);
+  boost::filesystem::path appBundlePath{};
+  for(auto it = resolvedPath.begin(); it != resolvedPath.end(); ++it) {
+    if(it->string().find(".app") != std::string::npos) {
+      appBundlePath = resolvedPath.root_path();
+      for(auto jt = resolvedPath.begin(); jt != std::next(it); ++jt)
+        appBundlePath /= *jt;
+      break;
     }
-    if(!appBundlePath.empty())
-      return appBundlePath.parent_path();
   }
-#endif
-  return ".";
-#endif
+  return appBundlePath;
 }
+
+std::string UpdaterWindow::InstallUpdate(const boost::filesystem::path &downloadPath) {
+  auto quote = [](const boost::filesystem::path &path) { return StringUtils::ShellQuote(path.string()); };
+  auto bundlePath = GetAppBundlePath();
+  if(bundlePath.empty()) {
+    LocalShell::Remove(downloadPath.string());
+    throw std::runtime_error("App bundle not found.");
+  }
+
+  auto id = StringUtils::RandomString(16, false);
+  auto mountDir = boost::filesystem::path(PlatformHelper::GetTempDir().native()) / fmt::format("pcbu-update-{}", id);
+  auto mountCmd = LocalShell::RunUserCommand(fmt::format("hdiutil attach -nobrowse -readonly -noautoopen -mountpoint {} {}", quote(mountDir), quote(downloadPath)));
+  if(mountCmd.exitCode != 0) {
+    LocalShell::Remove(downloadPath.string());
+    throw std::runtime_error(fmt::format("Failed mounting update. (Output={})", StringUtils::Trim(mountCmd.output)));
+  }
+  auto cleanup = [&]() {
+    LocalShell::RunUserCommand(fmt::format("hdiutil detach -force {}", quote(mountDir)));
+    LocalShell::Remove(downloadPath.string());
+  };
+
+  boost::filesystem::path newAppPath{};
+  boost::system::error_code ec{};
+  for(const auto &entry : boost::filesystem::directory_iterator(mountDir, ec)) {
+    if(entry.path().extension() == ".app") {
+      newAppPath = entry.path();
+      break;
+    }
+  }
+  if(newAppPath.empty()) {
+    cleanup();
+    throw std::runtime_error("No app found in update.");
+  }
+
+  auto parentDir = bundlePath.parent_path();
+  auto stagingPath = parentDir / fmt::format(".pcbu-update-{}.app", id);
+  auto oldPath = parentDir / fmt::format(".pcbu-old-{}.app", id);
+  auto replaceCmd = fmt::format("ditto {0} {1} && chown -R \"$(stat -f %u:%g {2})\" {1} && mv {2} {3} && {{ mv {1} {2} || {{ mv {3} {2}; false; }}; }} "
+                                "|| {{ rm -rf {1}; exit 1; }}; rm -rf {3}; true",
+                                quote(newAppPath), quote(stagingPath), quote(bundlePath), quote(oldPath));
+  auto replaceResult = Shell::RunCommand(replaceCmd);
+  cleanup();
+  if(replaceResult.exitCode != 0)
+    throw std::runtime_error(fmt::format("Failed replacing app. (Code={}, Output={})", replaceResult.exitCode, StringUtils::Trim(replaceResult.output)));
+  return fmt::format("while ps -p {0} > /dev/null 2>&1; do sleep 1; done; open {1}", getpid(), quote(bundlePath));
+}
+#endif
 
 std::string UpdaterWindow::GetDownloadURL() {
   auto os = AppInfo::GetOperatingSystem();

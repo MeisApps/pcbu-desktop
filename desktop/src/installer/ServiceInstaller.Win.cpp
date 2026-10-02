@@ -87,7 +87,7 @@ void ServiceInstaller::Install() {
   // Migration
   auto oldLibPath = sysDir / LIB_MODULE_FILE_OLD;
   if(std::filesystem::exists(oldLibPath)) {
-    result = Shell::RemoveFile(oldLibPath);
+    result = Shell::Remove(oldLibPath);
     if(!result)
       throw std::runtime_error(I18n::Get("error_file_remove", oldLibPath.string()));
   }
@@ -117,9 +117,9 @@ void ServiceInstaller::Install() {
     WinFirewallHelper::RemoveAllRulesForProgram(exePath);
 
     // Migration
-    wchar_t programFiles[MAX_PATH]{};
-    if(SHGetFolderPathW(nullptr, CSIDL_PROGRAM_FILES, nullptr, 0, programFiles) == S_OK) {
-      auto oldInstallExe = std::filesystem::path(programFiles) / "PCBioUnlock" / "pcbu_desktop.exe";
+    auto programFilesDir = PlatformHelper::GetProgramFilesDir();
+    if(!programFilesDir.empty()) {
+      auto oldInstallExe = programFilesDir / "PCBioUnlock" / "pcbu_desktop.exe";
       if(std::filesystem::exists(oldInstallExe) && oldInstallExe != std::filesystem::path(wExePath))
         WinFirewallHelper::RemoveAllRulesForProgram(oldInstallExe.string());
     }
@@ -160,7 +160,7 @@ void ServiceInstaller::Uninstall(bool /*fullUninstall*/) {
     auto libPath = sysDir / moduleFile;
     if(!std::filesystem::exists(libPath))
       continue;
-    result = Shell::RemoveFile(libPath);
+    result = Shell::Remove(libPath);
     if(!result)
       throw std::runtime_error(I18n::Get("error_file_remove", libPath.string()));
   }

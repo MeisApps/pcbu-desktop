@@ -12,6 +12,7 @@
 
 #include "CSampleProvider.h"
 #include "guid.h"
+#include "platform/PlatformHelper.h"
 #include "storage/AppSettings.h"
 #include "utils/StringUtils.h"
 
@@ -272,20 +273,18 @@ HRESULT CUnlockCredential::GetBitmapValue(DWORD dwFieldID, _Outptr_result_nullon
       hr = S_OK;
       *phbmp = hbmp;
     } else {
-      wchar_t szPath[MAX_PATH]{};
-      hr = SHGetFolderPathW(nullptr, CSIDL_COMMON_APPDATA, nullptr, 0, szPath);
-      if(hr == S_OK) {
-        if(PathAppendW(szPath, L"Microsoft\\User Account Pictures\\user.bmp")) {
-          hbmp = (HBITMAP)LoadImageW(nullptr, szPath, IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE);
-          if(hbmp != nullptr) {
-            hr = S_OK;
-            *phbmp = hbmp;
-          } else {
-            hr = HRESULT_FROM_WIN32(GetLastError());
-          }
+      auto systemDataDir = PlatformHelper::GetSystemDataDir();
+      if(!systemDataDir.empty()) {
+        auto imagePath = systemDataDir / L"Microsoft\\User Account Pictures\\user.bmp";
+        hbmp = (HBITMAP)LoadImageW(nullptr, imagePath.c_str(), IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE);
+        if(hbmp != nullptr) {
+          hr = S_OK;
+          *phbmp = hbmp;
         } else {
-          hr = E_INVALIDARG;
+          hr = HRESULT_FROM_WIN32(GetLastError());
         }
+      } else {
+        hr = E_FAIL;
       }
     }
   } else {

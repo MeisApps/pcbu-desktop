@@ -87,3 +87,45 @@ bool PlatformHelper::HasNativeLibrary(const std::string &libName) {
          std::filesystem::exists(std::filesystem::path("/usr/lib/x86_64-linux-gnu") / libName) ||
          std::filesystem::exists(std::filesystem::path("/usr/lib/aarch64-linux-gnu") / libName);
 }
+
+std::filesystem::path PlatformHelper::GetUserHomeDir(const std::string &userName) {
+  auto userStruct = userName.empty() ? getpwuid(geteuid()) : getpwnam(userName.c_str());
+  if(!userStruct || !userStruct->pw_dir || userStruct->pw_dir[0] == '\0')
+    return {};
+  return userStruct->pw_dir;
+}
+
+std::filesystem::path PlatformHelper::GetUserDataDir() {
+  auto dataHome = std::getenv("XDG_DATA_HOME");
+  if(dataHome && dataHome[0] != '\0')
+    return dataHome;
+  auto homeDir = GetUserHomeDir();
+  if(homeDir.empty())
+    return {};
+  return homeDir / ".local/share";
+}
+
+std::filesystem::path PlatformHelper::GetUserLogsDir() {
+  auto stateHome = std::getenv("XDG_STATE_HOME");
+  if(stateHome && stateHome[0] != '\0')
+    return stateHome;
+  auto homeDir = GetUserHomeDir();
+  if(homeDir.empty())
+    return {};
+  return homeDir / ".local/state";
+}
+
+std::filesystem::path PlatformHelper::GetSystemDataDir() {
+  return "/etc";
+}
+
+std::filesystem::path PlatformHelper::GetSystemLogsDir() {
+  return "/var/log";
+}
+
+std::filesystem::path PlatformHelper::GetTempDir() {
+  auto tmpDir = std::getenv("TMPDIR");
+  if(tmpDir && tmpDir[0] != '\0')
+    return tmpDir;
+  return "/tmp";
+}

@@ -29,6 +29,8 @@ struct PCBUAppStorage {
 class AppSettings {
 public:
   static std::filesystem::path GetBaseDir();
+  static std::filesystem::path GetBaseUserDir();
+  static std::filesystem::path GetLogsDir(bool userDir);
 
   static PCBUAppStorage Get();
   static void Save(const PCBUAppStorage &storage);
@@ -41,9 +43,12 @@ public:
 
 private:
   static PCBUAppStorage Load();
+  static PCBUAppStorage LoadDefaults();
+  static void Write(const PCBUAppStorage &storage);
 
   static std::filesystem::path GetNewBaseDir();
   static std::filesystem::path GetOldBaseDir();
+  static void MovePath(const std::filesystem::path &from, const std::filesystem::path &to);
 
   static PCBUAppStorage g_Cache;
   static std::mutex g_Mutex;

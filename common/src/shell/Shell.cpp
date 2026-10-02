@@ -1,167 +1,115 @@
 #include "Shell.h"
 
-#include <boost/filesystem.hpp>
-#ifdef WINDOWS
-#include <boost/process/v1.hpp>
-#else
-#include <boost/asio.hpp>
-#include <boost/process/v2/environment.hpp>
-#include <boost/process/v2/process.hpp>
-#include <boost/process/v2/stdio.hpp>
-#endif
-#include <fstream>
-#include <spdlog/spdlog.h>
+#include "shell/ElevatorService.h"
+#include "shell/LocalShell.h"
 
-#include "utils/StringUtils.h"
+std::atomic<ElevatorService *> Shell::g_ElevatorService{};
+std::function<void()> Shell::g_ElevatorLostHandler{};
+std::mutex Shell::g_ElevatorLostMutex{};
 
-#ifdef WINDOWS
-#include <boost/process/v1/windows.hpp>
-//#include <boost/process/v2/windows/creation_flags.hpp>
-#undef CreateFile
+void Shell::Init() {
+  if(GetElevator() || LocalShell::IsRunningAsAdmin())
+    return;
+  g_ElevatorService.store(new ElevatorService(), std::memory_order_release);
+}
 
-#define SHELL_NAME "cmd.exe"
-#define SHELL_CMD_ARG "/c"
-#elif LINUX
-#define SHELL_NAME "bash"
-#define SHELL_CMD_ARG "-c"
-#elif APPLE
-#define SHELL_NAME "zsh"
-#define SHELL_CMD_ARG "-c"
-#endif
+void Shell::Destroy() {
+  SetElevatorLostHandler({});
+  delete g_ElevatorService.exchange(nullptr, std::memory_order_acq_rel);
+}
 
-bool Shell::IsRunningAsAdmin() {
-#ifdef WINDOWS
-  BOOL isAdmin = FALSE;
-  PSID adminGroup = nullptr;
-  SID_IDENTIFIER_AUTHORITY ntAuthority = SECURITY_NT_AUTHORITY;
-  if(!AllocateAndInitializeSid(&ntAuthority, 2, SECURITY_BUILTIN_DOMAIN_RID, DOMAIN_ALIAS_RID_ADMINS, 0, 0, 0, 0, 0, 0, &adminGroup)) {
-    spdlog::error("AllocateAndInitializeSid failed. (Code={})", GetLastError());
-    return false;
-  }
-  if(!CheckTokenMembership(nullptr, adminGroup, &isAdmin)) {
-    spdlog::error("CheckTokenMembership failed. (Code={})", GetLastError());
-    isAdmin = FALSE;
-  }
-  if(adminGroup)
-    FreeSid(adminGroup);
-  return isAdmin;
-#else
-  return geteuid() == 0;
-#endif
+void Shell::SetElevatorLostHandler(const std::function<void()> &handler) {
+  std::unique_lock lock(g_ElevatorLostMutex);
+  g_ElevatorLostHandler = handler;
+}
+
+ElevatorService *Shell::GetElevator() {
+  return g_ElevatorService.load(std::memory_order_acquire);
+}
+
+bool Shell::HasAdmin() {
+  auto elevator = GetElevator();
+  return elevator ? elevator->IsRunning() : LocalShell::IsRunningAsAdmin();
 }
 
 ShellCmdResult Shell::RunCommand(const std::string &cmd) {
-  /*boost::process::child proc(boost::process::search_path("osascript"), ToDo
-                             std::vector<std::string> {"-e", "do shell script \"echo test\" with administrator privileges"},
-                             boost::process::std_out > outStream);*/
-  return RunUserCommand(cmd);
-}
+  auto elevator = GetElevator();
+  if(!elevator)
+    return LocalShell::RunCommand(cmd);
 
-ShellCmdResult Shell::RunUserCommand(const std::string &cmd) {
-#ifdef WINDOWS
-  boost::process::v1::ipstream outStream{};
-  boost::process::v1::ipstream errStream{};
-  boost::process::v1::child proc(fmt::format("{0} {1} \"{2}\"", SHELL_NAME, SHELL_CMD_ARG, cmd), boost::process::v1::std_out > outStream,
-                                 boost::process::v1::std_err > errStream, boost::process::v1::windows::create_no_window);
-  std::string output{};
-  std::string line{};
-  while(outStream && std::getline(outStream, line) && !line.empty())
-    output.append(line + "\n");
-  while(errStream && std::getline(errStream, line) && !line.empty())
-    output.append(line + "\n");
-  proc.wait();
-#else
-  boost::asio::io_context ctx{};
-  boost::asio::readable_pipe pipe{ctx};
-  boost::process::v2::process proc(ctx, boost::process::v2::environment::find_executable(SHELL_NAME), {SHELL_CMD_ARG, cmd},
-                                   boost::process::v2::process_stdio{{}, pipe, pipe}
-
-#ifdef WINDOWS
-                                   ,
-                                   boost::process::v2::windows::process_creation_flags<CREATE_NO_WINDOW>{}
-#endif
-  );
-
-  std::string output{};
-  boost::system::error_code ec;
-  boost::asio::read(pipe, boost::asio::dynamic_buffer(output), ec);
-  proc.wait();
-#endif
-
-  spdlog::debug("Process exit. Code: {} Command: '{}' Output: '{}'", proc.exit_code(), cmd, StringUtils::Trim(output));
-  auto result = ShellCmdResult();
-  result.exitCode = proc.exit_code();
-  result.output = output;
-  return result;
-}
-
-void Shell::SpawnCommand(const std::string &cmd) {
-#ifdef WINDOWS
-  boost::process::v1::child proc(fmt::format("{0} {1} \"{2}\"", SHELL_NAME, SHELL_CMD_ARG, cmd), boost::process::v1::windows::create_no_window);
-  proc.detach();
-#else
-  boost::asio::io_context ctx{};
-  boost::process::v2::process proc(ctx, boost::process::v2::environment::find_executable(SHELL_NAME), {SHELL_CMD_ARG, cmd}
-#ifdef WINDOWS
-                                   ,
-                                   boost::process::v2::windows::process_creation_flags<CREATE_NO_WINDOW>{}
-#endif
-  );
-  proc.detach();
-#endif
+  auto resp = Exec(*elevator, ElevatorCommandType::RUN_CMD, {cmd});
+  if(resp.has_value())
+    return resp.value().cmdResult;
+  return {-1, "Elevator response timeout."};
 }
 
 bool Shell::CreateDir(const std::filesystem::path &path) {
-  boost::system::error_code ec{};
-  boost::filesystem::create_directories(boost::filesystem::path(path), ec);
-  return !ec.failed();
-  /*#ifdef WINDOWS
-      return RunCommand(fmt::format("mkdir \"{}\"", path.string())).exitCode == 0;
-  #else
-      return RunCommand(fmt::format("mkdir -p \"{}\"", path.string())).exitCode == 0;
-  #endif*/
-}
-
-bool Shell::RemoveDir(const std::filesystem::path &path) {
-  boost::system::error_code ec{};
-  boost::filesystem::remove(boost::filesystem::path(path), ec);
-  return !ec.failed();
-  /*#ifdef WINDOWS
-      return RunCommand(fmt::format("rd /s /q \"{}\"", path.string())).exitCode == 0;
-  #else
-      return RunCommand(fmt::format("rm -R \"{}\"", path.string())).exitCode == 0;
-  #endif*/
+  auto elevator = GetElevator();
+  if(!elevator)
+    return LocalShell::CreateDir(path);
+  return Exec(*elevator, ElevatorCommandType::CREATE_FILE, {path.string(), "true"}).has_value();
 }
 
 bool Shell::CreateFile(const std::filesystem::path &path) {
-  std::ofstream file(path);
-  return file.is_open();
+  auto elevator = GetElevator();
+  if(!elevator)
+    return LocalShell::CreateFile(path);
+  return Exec(*elevator, ElevatorCommandType::CREATE_FILE, {path.string(), "false"}).has_value();
 }
 
-bool Shell::RemoveFile(const std::filesystem::path &path) {
-  boost::system::error_code ec{};
-  boost::filesystem::remove(boost::filesystem::path(path), ec);
-  return !ec.failed();
-  /*#ifdef WINDOWS
-      return RunCommand(fmt::format("del \"{}\"", path.string())).exitCode == 0;
-  #else
-      return RunCommand(fmt::format("rm \"{}\"", path.string())).exitCode == 0;
-  #endif*/
+bool Shell::Remove(const std::filesystem::path &path) {
+  auto elevator = GetElevator();
+  if(!elevator)
+    return LocalShell::Remove(path);
+  return Exec(*elevator, ElevatorCommandType::REMOVE, {path.string()}).has_value();
 }
 
 std::vector<uint8_t> Shell::ReadBytes(const std::filesystem::path &path) {
-  std::ifstream file{};
-  file.open(path, std::ios_base::binary);
-  if(!file) {
-    spdlog::error("Failed to open file '{}'.", path.string());
-    return {};
-  }
-  return {std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>()};
+  auto elevator = GetElevator();
+  if(!elevator)
+    return LocalShell::ReadBytes(path);
+
+  auto resp = Exec(*elevator, ElevatorCommandType::READ_BYTES, {path.string()});
+  if(resp.has_value())
+    return std::move(resp.value().dataBytes);
+  return {};
 }
 
 bool Shell::WriteBytes(const std::filesystem::path &path, const std::vector<uint8_t> &data) {
-  std::ofstream file(path, std::ios::out | std::ios::binary);
-  file.write(reinterpret_cast<const char *>(data.data()), (std::streamsize)data.size());
-  file.close();
-  return !file.fail() && !file.bad();
+  auto elevator = GetElevator();
+  if(!elevator)
+    return LocalShell::WriteBytes(path, data);
+  return Exec(*elevator, ElevatorCommandType::WRITE_BYTES, {path.string()}, data).has_value();
+}
+
+bool Shell::ProtectFile(const std::filesystem::path &path, bool enabled) {
+  auto elevator = GetElevator();
+  if(!elevator)
+    return LocalShell::ProtectFile(path, enabled);
+  return Exec(*elevator, ElevatorCommandType::PROTECT_FILE, {path.string(), enabled ? "true" : "false"}).has_value();
+}
+
+std::optional<ElevatorCommandResponse> Shell::Exec(ElevatorService &elevator, ElevatorCommandType type, std::vector<std::string> args,
+                                                   std::vector<uint8_t> data) {
+  auto req = ElevatorCommand();
+  req.type = type;
+  req.args = std::move(args);
+  req.dataBytes = std::move(data);
+  auto resp = elevator.ExecCommand(req);
+  if(!resp.has_value() && !elevator.IsRunning())
+    OnElevatorLost();
+  if(!resp.has_value() || resp.value().isError)
+    return {};
+  return resp;
+}
+
+void Shell::OnElevatorLost() {
+  std::function<void()> handler{};
+  {
+    std::unique_lock lock(g_ElevatorLostMutex);
+    handler = std::move(g_ElevatorLostHandler);
+    g_ElevatorLostHandler = {};
+  }
+  if(handler)
+    handler();
 }

@@ -1,6 +1,8 @@
 #ifndef PCBU_DESKTOP_MAINWINDOW_H
 #define PCBU_DESKTOP_MAINWINDOW_H
 
+#include <thread>
+
 #include <QObject>
 #include <QQmlApplicationEngine>
 #include <QtQmlIntegration>
@@ -17,7 +19,7 @@ public:
   Q_INVOKABLE QString GetInstalledVersion();
   Q_INVOKABLE QString GetLicenseText();
 
-  Q_INVOKABLE bool PerformStartupChecks(QObject *viewLoader, QObject *window);
+  Q_INVOKABLE void PerformStartupChecks(QObject *window);
 
 public slots:
   void Show(QObject *viewLoader);

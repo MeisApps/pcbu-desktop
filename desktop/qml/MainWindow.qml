@@ -14,27 +14,52 @@ ApplicationWindow {
     visible: true
     title: QI18n.Get('product_name')
 
-    property bool canClose: true
-    onClosing: function(close) { close.accepted = window.canClose }
+    property bool canClose: false
+    onClosing: function (close) {
+        close.accepted = window.canClose;
+    }
 
-    ColumnLayout {
+    Item {
         anchors.fill: parent
-        anchors.margins: 25
-        Label {
-            id: title
-            text: QI18n.Get('product_name')
-            font.pointSize: 36
-        }
-        Loader {
-            id: viewLoader
-            Layout.fillWidth: true
-            Layout.fillHeight: true
-            source: "qrc:/ui/forms/MainForm.qml"
+        enabled: window.hasInitialized
+        ColumnLayout {
+            anchors.fill: parent
+            anchors.margins: 25
+            Label {
+                id: title
+                text: QI18n.Get('product_name')
+                font.pointSize: 36
+            }
+            Loader {
+                id: viewLoader
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                source: "qrc:/ui/forms/MainForm.qml"
+            }
         }
     }
 
-    property var onMessageDialogAccept: function () {};
-    property var onMessageDialogConfirmAccept: function () {};
+    Dialog {
+        id: startupDialog
+        title: QI18n.Get('product_name')
+        anchors.centerIn: Overlay.overlay
+        modal: true
+        closePolicy: Popup.NoAutoClose
+        visible: !window.hasInitialized
+        RowLayout {
+            spacing: 16
+            BusyIndicator {
+                running: startupDialog.visible
+            }
+            Label {
+                text: QI18n.Get('please_wait')
+                font.pointSize: 14
+            }
+        }
+    }
+
+    property var onMessageDialogAccept: function () {}
+    property var onMessageDialogConfirmAccept: function () {}
     MessageDialog {
         id: messageDialog
         title: 'Title'
@@ -44,7 +69,7 @@ ApplicationWindow {
     }
     MessageDialog {
         id: confirmMessageDialog
-        title: QI18n.Get('confirm');
+        title: QI18n.Get('confirm')
         text: 'Text'
         buttons: MessageDialog.Ok | MessageDialog.Cancel
         onAccepted: onMessageDialogConfirmAccept()
@@ -71,7 +96,7 @@ ApplicationWindow {
             }
         }
         onAccepted: {
-            if(!skipPasswordCheckBox.checked)
+            if (!skipPasswordCheckBox.checked)
                 return;
             PairingForm.SetSkipPasswordCheck(true);
             PairingForm.OnNextClicked(viewLoader, window);
@@ -82,7 +107,9 @@ ApplicationWindow {
         messageDialog.title = QI18n.Get('error');
         messageDialog.text = text;
         messageDialog.visible = true;
-        onMessageDialogAccept = function() { Qt.exit(1); }
+        onMessageDialogAccept = function () {
+            Qt.exit(1);
+        };
     }
     function showErrorMessage(text) {
         messageDialog.title = QI18n.Get('error');
@@ -128,15 +155,18 @@ ApplicationWindow {
         } catch (e) {}
         let selIdx = -1;
         viewLoader.item.selectBTListModel.clear();
-        for(let i = 0; i < devices.length; i++) {
-            viewLoader.item.selectBTListModel.append({name: devices[i].name, address: devices[i].address});
-            if(devices[i].name === selItemName)
+        for (let i = 0; i < devices.length; i++) {
+            viewLoader.item.selectBTListModel.append({
+                name: devices[i].name,
+                address: devices[i].address
+            });
+            if (devices[i].name === selItemName)
                 selIdx = i;
         }
         viewLoader.item.selectBTList.currentIndex = selIdx;
     }
     function finishBluetoothPairing(isSuccess) {
-        if(!isSuccess) {
+        if (!isSuccess) {
             showErrorMessage(QI18n.Get('error_bluetooth_pairing'));
             PairingForm.OnBackClicked(viewLoader, window);
             return;
@@ -149,9 +179,24 @@ ApplicationWindow {
         updaterWin.show();
     }
 
-    Component.onCompleted: {
-        if(MainWindow.PerformStartupChecks(viewLoader, window)) {
-            UpdaterWindow.CheckForUpdates(window);
+    property bool hasInitialized: false
+    property bool startupStarted: false
+    function onStartupChecksFinished(success, needsReinstall) {
+        hasInitialized = true;
+        if (!success)
+            return;
+        if (needsReinstall) {
+            MainWindow.OnReinstallClicked(window);
+        } else {
+            canClose = true;
+            MainWindow.Show(viewLoader);
+        }
+        UpdaterWindow.CheckForUpdates(window);
+    }
+    onFrameSwapped: {
+        if (!startupStarted) {
+            startupStarted = true;
+            MainWindow.PerformStartupChecks(window);
         }
     }
 }

@@ -2,7 +2,7 @@
 #include <boost/process/v2/posix/bind_fd.hpp>
 #include <boost/process/v2/process.hpp>
 #include <boost/process/v2/stdio.hpp>
-#include <spdlog/spdlog.h>
+#include <spdlog/fmt/fmt.h>
 
 #define PAM_SM_AUTH
 #include <security/pam_modules.h>
@@ -10,6 +10,8 @@
 #ifdef APPLE
 #include <security/pam_appl.h>
 #endif
+
+#include "PAMLogger.h"
 
 constexpr auto PCBU_AUTH_PATH = "/usr/local/sbin/pcbu_auth";
 constexpr int PASSWORD_PIPE = 3;
@@ -39,7 +41,7 @@ int pam_sm_authenticate(pam_handle_t *pamh, int flags, int argc, const char **ar
     }
   }
   if(statusCode != PAM_SUCCESS) {
-    spdlog::error("Failed to get PAM user info.");
+    PAMLogger::Error(pamh, "Failed to get PAM user info.");
     return PAM_IGNORE;
   }
 
@@ -50,7 +52,7 @@ int pam_sm_authenticate(pam_handle_t *pamh, int flags, int argc, const char **ar
     fcntl(pipeFd[1], F_SETFD, FD_CLOEXEC);
     hasPipe = true;
   } else {
-    spdlog::error("Failed to create password pipe.");
+    PAMLogger::Error(pamh, "Failed to create password pipe.");
   }
 
   int pamResult = PAM_IGNORE;
@@ -110,7 +112,7 @@ int pam_sm_authenticate(pam_handle_t *pamh, int flags, int argc, const char **ar
       pamResult = PAM_AUTH_ERR;
     }
   } catch(const std::exception &ex) {
-    spdlog::error("Installation is corrupt. {}", ex.what());
+    PAMLogger::Error(pamh, fmt::format("Installation is corrupt. {}", ex.what()));
   }
   return pamResult;
 }

@@ -22,6 +22,10 @@ std::string StringUtils::Replace(const std::string &str, const std::string &from
   return result;
 }
 
+std::string StringUtils::ShellQuote(const std::string &str) {
+  return "'" + Replace(str, "'", "'\\''") + "'";
+}
+
 std::vector<std::string> StringUtils::Split(const std::string &str, const std::string &delim) {
   size_t pos_start{}, pos_end{}, delim_len = delim.length();
   std::string token{};
@@ -71,11 +75,12 @@ std::string StringUtils::Truncate(const std::string &str, uint32_t maxLen, const
   return result;
 }
 
-std::string StringUtils::RandomString(size_t len) {
-  const std::string charset = "abcdefghijklmnopqrstuvwxyz"
-                              "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-                              "0123456789"
-                              "!@#$%^&*()-_=+[]{}|;:,.<>?";
+std::string StringUtils::RandomString(size_t len, bool withSpecialChars) {
+  std::string charset = "abcdefghijklmnopqrstuvwxyz"
+                        "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+                        "0123456789";
+  if(withSpecialChars)
+    charset += "!@#$%^&*()-_=+[]{}|;:,.<>?";
   std::vector<uint8_t> buffer(len);
   if(!RAND_bytes(buffer.data(), (int)len))
     return {};
@@ -93,12 +98,12 @@ std::string StringUtils::WithSeperators(const std::string &str, const std::strin
   return boost::algorithm::join(chunks, seperator);
 }
 
-std::vector<uint8_t> StringUtils::FromHexString(const std::string& hex) {
+std::vector<uint8_t> StringUtils::FromHexString(const std::string &hex) {
   std::vector<uint8_t> result{};
   result.reserve((hex.size() + 1) / 2);
   try {
     boost::algorithm::unhex(hex.begin(), hex.end(), std::back_inserter(result));
-  } catch (const boost::algorithm::hex_decode_error&) {
+  } catch(const boost::algorithm::hex_decode_error &) {
     return {};
   }
   return result;

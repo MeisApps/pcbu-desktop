@@ -1,6 +1,7 @@
 #include "ServiceInstaller.h"
 
 #include "EnvHelper.h"
+#include "shell/LocalShell.h"
 #include "shell/Shell.h"
 #include "storage/AppSettings.h"
 #include "utils/ResourceHelper.h"
@@ -82,6 +83,7 @@ void ServiceInstaller::ApplySettings(const std::vector<ServiceSetting> &settings
       spdlog::warn("Unknown service setting {}.", setting.id);
     }
   }
+  m_PAMHelper.Commit();
 }
 
 bool ServiceInstaller::IsInstalled() {
@@ -119,7 +121,7 @@ void ServiceInstaller::Install() {
     // Migration
     auto oldPamPath = pamDir / PAM_MODULE_FILE_OLD;
     if(std::filesystem::exists(oldPamPath)) {
-      result = Shell::RemoveFile(oldPamPath);
+      result = Shell::Remove(oldPamPath);
       if(!result)
         throw std::runtime_error(I18n::Get("error_file_remove", oldPamPath.string()));
     }
@@ -145,6 +147,7 @@ void ServiceInstaller::Install() {
   m_PAMHelper.MigrateConfigEntry("lightdm", PAM_CONFIG_ENTRY_OLD, PAM_CONFIG_ENTRY);
   m_PAMHelper.MigrateConfigEntry("cinnamon-screensaver", PAM_CONFIG_ENTRY_OLD, PAM_CONFIG_ENTRY);
   m_PAMHelper.MigrateConfigEntry("hyprlock", PAM_CONFIG_ENTRY_OLD, PAM_CONFIG_ENTRY);
+  m_PAMHelper.Commit();
 
   auto settings = AppSettings::Get();
   if(IsProgramInstalled(UFW_NAME)) {
@@ -173,7 +176,7 @@ void ServiceInstaller::Install() {
     result = Shell::RunCommand(fmt::format("semodule -i \"{}\"", tmpPath.string())).exitCode == 0;
     if(!result)
       throw std::runtime_error(I18n::Get("error_selinux_policy_install"));
-    Shell::RemoveFile(tmpPath);
+    Shell::Remove(tmpPath);
   }
   m_Logger("Done.");
 }
@@ -183,7 +186,7 @@ void ServiceInstaller::Uninstall(bool fullUninstall) {
   auto exePath = EXE_MODULE_DIR / EXE_MODULE_FILE;
   auto result = true;
   if(std::filesystem::exists(exePath)) {
-    result = Shell::RemoveFile(exePath);
+    result = Shell::Remove(exePath);
     if(!result)
       throw std::runtime_error(I18n::Get("error_file_remove", exePath.string()));
   }
@@ -194,7 +197,7 @@ void ServiceInstaller::Uninstall(bool fullUninstall) {
       auto pamPath = pamDir / moduleFile;
       if(!std::filesystem::exists(pamPath))
         continue;
-      result = Shell::RemoveFile(pamPath);
+      result = Shell::Remove(pamPath);
       if(!result)
         throw std::runtime_error(I18n::Get("error_file_remove", pamPath.string()));
     }
@@ -203,7 +206,7 @@ void ServiceInstaller::Uninstall(bool fullUninstall) {
   m_Logger("Removing SSH module...");
   auto askpassPath = EXE_MODULE_DIR / SSH_MODULE_FILE;
   if(std::filesystem::exists(askpassPath)) {
-    result = Shell::RemoveFile(askpassPath);
+    result = Shell::Remove(askpassPath);
     if(!result)
       throw std::runtime_error(I18n::Get("error_file_remove", askpassPath.string()));
   }
@@ -222,6 +225,7 @@ void ServiceInstaller::Uninstall(bool fullUninstall) {
       m_PAMHelper.SetConfigEntry("cinnamon-screensaver", entry, false);
       m_PAMHelper.SetConfigEntry("hyprlock", entry, false);
     }
+    m_PAMHelper.Commit();
     if(EnvHelper::IsSshEnabled()) {
       m_Logger("Removing SSH integration...");
       EnvHelper::SetSshEnabled(false);
@@ -257,6 +261,6 @@ void ServiceInstaller::Uninstall(bool fullUninstall) {
 }
 
 bool ServiceInstaller::IsProgramInstalled(const std::string &pathName) {
-  return Shell::RunUserCommand(fmt::format("which {}", pathName)).exitCode == 0 ||
-         Shell::RunUserCommand(fmt::format("systemctl cat {}", pathName)).exitCode == 0;
+  return LocalShell::RunUserCommand(fmt::format("which {}", pathName)).exitCode == 0 ||
+         LocalShell::RunUserCommand(fmt::format("systemctl cat {}", pathName)).exitCode == 0;
 }

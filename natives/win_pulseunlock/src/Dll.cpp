@@ -15,7 +15,12 @@
 #include "helpers.h"
 // clang-format on
 
+#include <mutex>
+
+#include "storage/LoggingSystem.h"
+
 static long g_cRef = 0;   // global dll reference count
+static std::mutex g_RefMutex{};
 HINSTANCE g_hinst = NULL; // global dll hinstance
 
 extern HRESULT CSample_CreateInstance(__in REFIID riid, __deref_out void **ppv);
@@ -91,11 +96,17 @@ HRESULT CClassFactory_CreateInstance(__in REFCLSID rclsid, __in REFIID riid, __d
 }
 
 void DllAddRef() {
-  InterlockedIncrement(&g_cRef);
+  std::lock_guard lock(g_RefMutex);
+  if(InterlockedIncrement(&g_cRef) == 1) {
+    LoggingSystem::Init("module");
+  }
 }
 
 void DllRelease() {
-  InterlockedDecrement(&g_cRef);
+  std::lock_guard lock(g_RefMutex);
+  if(InterlockedDecrement(&g_cRef) == 0) {
+    LoggingSystem::Destroy();
+  }
 }
 
 STDAPI DllCanUnloadNow() {

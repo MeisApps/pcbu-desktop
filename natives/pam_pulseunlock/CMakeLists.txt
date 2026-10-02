@@ -18,6 +18,7 @@ add_library(pam_pulseunlock SHARED
         src/pam_account.cpp
         src/pam_password.cpp
         src/pam_session.cpp
+        src/PAMLogger.h
 )
 target_include_directories(pam_pulseunlock PRIVATE common-cpp/src)
 target_link_libraries(pam_pulseunlock PRIVATE pam pcbu_common)

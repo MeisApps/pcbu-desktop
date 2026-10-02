@@ -12,6 +12,9 @@
 #define PAM_MODULE_FILE "pam_pulseunlock.dylib"
 #define PAM_MODULE_FILE_OLD "pam_pcbiounlock.dylib"
 
+#define PAM_SUDO_LOCAL_CONFIG "sudo_local"
+#define PAM_AUTHORIZATION_CONFIG "authorization"
+
 #define PAM_CONFIG_ENTRY "auth sufficient /usr/local/lib/pam/pam_pulseunlock.dylib"
 #define PAM_CONFIG_ENTRY_OLD "auth sufficient /usr/local/lib/pam/pam_pcbiounlock.dylib"
 
@@ -21,8 +24,8 @@ ServiceInstaller::ServiceInstaller(const std::function<void(const std::string &)
 }
 
 std::vector<ServiceSetting> ServiceInstaller::GetSettings() {
-  return {{"sudo", I18n::Get("service_setting_sudo"), PAMHelper::HasConfigEntry("sudo", PAM_CONFIG_ENTRY), true},
-          {"macOS", I18n::Get("service_setting_macos"), PAMHelper::HasConfigEntry("authorization", PAM_CONFIG_ENTRY), false},
+  return {{"sudo", I18n::Get("service_setting_sudo"), PAMHelper::HasConfigEntry(PAM_SUDO_LOCAL_CONFIG, PAM_CONFIG_ENTRY), true},
+          {"macOS", I18n::Get("service_setting_macos"), PAMHelper::HasConfigEntry(PAM_AUTHORIZATION_CONFIG, PAM_CONFIG_ENTRY), false},
           {"ssh", I18n::Get("service_setting_ssh"), EnvHelper::IsSshEnabled(), false}};
 }
 
@@ -30,15 +33,16 @@ void ServiceInstaller::ApplySettings(const std::vector<ServiceSetting> &settings
   for(auto setting : settings) {
     auto isEnabled = useDefault ? setting.defaultVal : setting.enabled;
     if(setting.id == "sudo") {
-      m_PAMHelper.SetConfigEntry("sudo", PAM_CONFIG_ENTRY, isEnabled);
+      m_PAMHelper.SetConfigEntry(PAM_SUDO_LOCAL_CONFIG, PAM_CONFIG_ENTRY, isEnabled);
     } else if(setting.id == "macOS") {
-      m_PAMHelper.SetConfigEntry("authorization", PAM_CONFIG_ENTRY, isEnabled);
+      m_PAMHelper.SetConfigEntry(PAM_AUTHORIZATION_CONFIG, PAM_CONFIG_ENTRY, isEnabled);
     } else if(setting.id == "ssh") {
       EnvHelper::SetSshEnabled(isEnabled);
     } else {
       spdlog::warn("Unknown service setting {}.", setting.id);
     }
   }
+  m_PAMHelper.Commit();
 }
 
 bool ServiceInstaller::IsInstalled() {
@@ -77,25 +81,34 @@ void ServiceInstaller::Install() {
     throw std::runtime_error(I18n::Get("error_exec_setuid", askpassPath.string()));
 
   // Migration
+  m_PAMHelper.MigrateConfigEntry(PAM_AUTHORIZATION_CONFIG, PAM_CONFIG_ENTRY_OLD, PAM_CONFIG_ENTRY);
+  m_PAMHelper.Commit();
   auto oldPamPath = PAM_MODULE_DIR / PAM_MODULE_FILE_OLD;
   if(std::filesystem::exists(oldPamPath)) {
-    result = Shell::RemoveFile(oldPamPath);
+    result = Shell::Remove(oldPamPath);
     if(!result)
       throw std::runtime_error(I18n::Get("error_file_remove", oldPamPath.string()));
   }
-  m_PAMHelper.MigrateConfigEntry("sudo", PAM_CONFIG_ENTRY_OLD, PAM_CONFIG_ENTRY);
-  m_PAMHelper.MigrateConfigEntry("authorization", PAM_CONFIG_ENTRY_OLD, PAM_CONFIG_ENTRY);
 
   // ToDo: Firewall echo "pass in proto tcp from any to any port 43295" | sudo pfctl -ef -
   m_Logger("Done.");
 }
 
 void ServiceInstaller::Uninstall(bool fullUninstall) {
+  if(fullUninstall) {
+    m_Logger("Removing PAM configuration...");
+    for(const auto &entry : {PAM_CONFIG_ENTRY, PAM_CONFIG_ENTRY_OLD}) {
+      m_PAMHelper.SetConfigEntry(PAM_SUDO_LOCAL_CONFIG, entry, false);
+      m_PAMHelper.SetConfigEntry(PAM_AUTHORIZATION_CONFIG, entry, false);
+    }
+    m_PAMHelper.Commit();
+  }
+
   m_Logger("Removing binary module...");
   auto exePath = EXE_MODULE_DIR / EXE_MODULE_FILE;
   auto result = true;
   if(std::filesystem::exists(exePath)) {
-    result = Shell::RemoveFile(exePath);
+    result = Shell::Remove(exePath);
     if(!result)
       throw std::runtime_error(I18n::Get("error_file_remove", exePath.string()));
   }
@@ -105,7 +118,7 @@ void ServiceInstaller::Uninstall(bool fullUninstall) {
     auto pamPath = PAM_MODULE_DIR / moduleFile;
     if(!std::filesystem::exists(pamPath))
       continue;
-    result = Shell::RemoveFile(pamPath);
+    result = Shell::Remove(pamPath);
     if(!result)
       throw std::runtime_error(I18n::Get("error_file_remove", pamPath.string()));
   }
@@ -113,21 +126,14 @@ void ServiceInstaller::Uninstall(bool fullUninstall) {
   m_Logger("Removing SSH module...");
   auto askpassPath = EXE_MODULE_DIR / SSH_MODULE_FILE;
   if(std::filesystem::exists(askpassPath)) {
-    result = Shell::RemoveFile(askpassPath);
+    result = Shell::Remove(askpassPath);
     if(!result)
       throw std::runtime_error(I18n::Get("error_file_remove", askpassPath.string()));
   }
 
-  if(fullUninstall) {
-    m_Logger("Removing PAM configuration...");
-    for(const auto &entry : {PAM_CONFIG_ENTRY, PAM_CONFIG_ENTRY_OLD}) {
-      m_PAMHelper.SetConfigEntry("sudo", entry, false);
-      m_PAMHelper.SetConfigEntry("authorization", entry, false);
-    }
-    if(EnvHelper::IsSshEnabled()) {
-      m_Logger("Removing SSH integration...");
-      EnvHelper::SetSshEnabled(false);
-    }
+  if(fullUninstall && EnvHelper::IsSshEnabled()) {
+    m_Logger("Removing SSH integration...");
+    EnvHelper::SetSshEnabled(false);
   }
   m_Logger("Done.");
 }

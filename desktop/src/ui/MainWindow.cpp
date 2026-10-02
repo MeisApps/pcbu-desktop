@@ -2,6 +2,7 @@
 
 #include "installer/ServiceInstaller.h"
 #include "platform/PlatformHelper.h"
+#include "shell/LocalShell.h"
 #include "shell/Shell.h"
 #include "storage/AppSettings.h"
 #include "storage/LoggingSystem.h"
@@ -37,46 +38,81 @@ QString MainWindow::GetLicenseText() {
   return {};
 }
 
-bool MainWindow::PerformStartupChecks(QObject *viewLoader, QObject *window) {
-  if(!Shell::IsRunningAsAdmin()) {
-    QMetaObject::invokeMethod(window, "showFatalErrorMessage", Q_ARG(QVariant, QString::fromUtf8(I18n::Get("error_not_admin"))));
-    return false;
-  }
+void MainWindow::PerformStartupChecks(QObject *window) {
+  if(m_LoadingThread.joinable())
+    m_LoadingThread.join();
+  m_LoadingThread = std::thread([window]() {
+    auto finish = [window](bool success, bool needsReinstall) {
+      QMetaObject::invokeMethod(window, "onStartupChecksFinished", Q_ARG(QVariant, success), Q_ARG(QVariant, needsReinstall));
+    };
+
+    Shell::Init();
+    auto testCmdResult = Shell::RunCommand("echo");
+    if(!Shell::HasAdmin() || testCmdResult.exitCode != 0) {
+#ifdef WINDOWS
+      auto errorKey = "error_not_admin";
+#elif LINUX
+      auto errorKey = "error_not_root";
+#elif APPLE
+      auto errorKey = "error_mac_admin_required";
+#endif
+      QMetaObject::invokeMethod(window, "showFatalErrorMessage", Q_ARG(QVariant, QString::fromUtf8(I18n::Get(errorKey, I18n::Get("product_name")))));
+      finish(false, false);
+      return;
+    }
+
 #if defined(LINUX) || defined(APPLE)
-  if(Shell::RunUserCommand("which bash").exitCode != 0) {
-    QMetaObject::invokeMethod(window, "showFatalErrorMessage", Q_ARG(QVariant, QString::fromUtf8(I18n::Get("error_unix_missing_dep", "bash"))));
-    return false;
-  }
+    if(LocalShell::RunUserCommand("which bash").exitCode != 0) {
+      QMetaObject::invokeMethod(window, "showFatalErrorMessage", Q_ARG(QVariant, QString::fromUtf8(I18n::Get("error_unix_missing_dep", "bash"))));
+      finish(false, false);
+      return;
+    }
 #ifdef LINUX
-  if(Shell::RunUserCommand("test -f /etc/shadow").exitCode != 0) {
-    QMetaObject::invokeMethod(window, "showFatalErrorMessage",
-                              Q_ARG(QVariant, QString::fromUtf8(I18n::Get("error_unix_missing_dep", "Shadow file"))));
-    return false;
-  }
-  if(!PlatformHelper::HasNativeLibrary("libcrypt.so.1")) {
-    QMetaObject::invokeMethod(window, "showFatalErrorMessage",
-                              Q_ARG(QVariant, QString::fromUtf8(I18n::Get("error_unix_missing_dep", "libcrypt.so.1 (libxcrypt-compat)"))));
-    return false;
-  }
-  if(!PlatformHelper::HasNativeLibrary("libcrypto.so.3") || !PlatformHelper::HasNativeLibrary("libssl.so.3")) {
-    QMetaObject::invokeMethod(window, "showFatalErrorMessage", Q_ARG(QVariant, QString::fromUtf8(I18n::Get("error_unix_missing_dep", "OpenSSL 3"))));
-    return false;
-  }
-  if(!PlatformHelper::HasNativeLibrary("libbluetooth.so") && !PlatformHelper::HasNativeLibrary("libbluetooth.so.3")) {
-    QMetaObject::invokeMethod(window, "showFatalErrorMessage",
-                              Q_ARG(QVariant, QString::fromUtf8(I18n::Get("error_unix_missing_dep", "libbluetooth"))));
-    return false;
-  }
+    if(LocalShell::RunUserCommand("test -f /etc/shadow").exitCode != 0) {
+      QMetaObject::invokeMethod(window, "showFatalErrorMessage",
+                                Q_ARG(QVariant, QString::fromUtf8(I18n::Get("error_unix_missing_dep", "Shadow file"))));
+      finish(false, false);
+      return;
+    }
+    if(!PlatformHelper::HasNativeLibrary("libcrypt.so.1")) {
+      QMetaObject::invokeMethod(window, "showFatalErrorMessage",
+                                Q_ARG(QVariant, QString::fromUtf8(I18n::Get("error_unix_missing_dep", "libcrypt.so.1 (libxcrypt-compat)"))));
+      finish(false, false);
+      return;
+    }
+    if(!PlatformHelper::HasNativeLibrary("libcrypto.so.3") || !PlatformHelper::HasNativeLibrary("libssl.so.3")) {
+      QMetaObject::invokeMethod(window, "showFatalErrorMessage",
+                                Q_ARG(QVariant, QString::fromUtf8(I18n::Get("error_unix_missing_dep", "OpenSSL 3"))));
+      finish(false, false);
+      return;
+    }
+    if(!PlatformHelper::HasNativeLibrary("libbluetooth.so") && !PlatformHelper::HasNativeLibrary("libbluetooth.so.3")) {
+      QMetaObject::invokeMethod(window, "showFatalErrorMessage",
+                                Q_ARG(QVariant, QString::fromUtf8(I18n::Get("error_unix_missing_dep", "libbluetooth"))));
+      finish(false, false);
+      return;
+    }
 #endif
 #endif
-  const auto installedVersion = AppSettings::Get().installedVersion;
-  if(ServiceInstaller::IsInstalled() && (AppInfo::CompareVersion(installedVersion, AppInfo::GetVersion()) == 1 || installedVersion.empty()))
-    OnReinstallClicked(window);
-  return true;
+
+    Shell::SetElevatorLostHandler([window]() {
+      QMetaObject::invokeMethod(window, "showFatalErrorMessage",
+                                Q_ARG(QVariant, QString::fromUtf8(I18n::Get("error_elevator_lost", I18n::Get("product_name")))));
+    });
+    AppSettings::InvalidateCache();
+    PairedDevicesStorage::InvalidateCache();
+    PairedDevicesStorage::GetDevices();
+    auto settings = AppSettings::Get();
+
+    const auto installedVersion = settings.installedVersion;
+    auto needsReinstall =
+        ServiceInstaller::IsInstalled() && (AppInfo::CompareVersion(installedVersion, AppInfo::GetVersion()) == 1 || installedVersion.empty());
+    finish(true, needsReinstall);
+  });
 }
 
 void MainWindow::Show(QObject *viewLoader) {
-  viewLoader->setProperty("source", QUrl("qrc:/ui/forms/MainForm.qml"));
+  QMetaObject::invokeMethod(viewLoader, "setSource", Q_ARG(QUrl, QUrl("qrc:/ui/forms/MainForm.qml")));
 }
 
 void MainWindow::OnInstallClicked(QObject *window) {
@@ -169,5 +205,5 @@ void MainWindow::OnReinstallClicked(QObject *window) {
 
 void MainWindow::OnRemoveDeviceClicked(QObject *viewLoader, const QString &pairingId) {
   PairedDevicesStorage::RemoveDevice(pairingId.toStdString());
-  QMetaObject::invokeMethod(viewLoader, "setSource", Q_ARG(QUrl, QUrl("qrc:/ui/forms/MainForm.qml")));
+  Show(viewLoader);
 }

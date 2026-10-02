@@ -2,6 +2,7 @@
 #define PCBU_DESKTOP_PLATFORMHELPER_H
 
 #include <cstdint>
+#include <filesystem>
 #include <spdlog/spdlog.h>
 #include <string>
 #include <vector>
@@ -33,11 +34,25 @@ public:
 
   static PlatformLoginStatus CheckLogin(const std::string &userName, const std::string &password);
 
+  static std::filesystem::path GetUserHomeDir(const std::string &userName = {});
+  static std::filesystem::path GetUserDataDir();
+  static std::filesystem::path GetUserLogsDir();
+  static std::filesystem::path GetSystemDataDir();
+  static std::filesystem::path GetSystemLogsDir();
+  static std::filesystem::path GetTempDir();
+#ifdef WINDOWS
+  static std::filesystem::path GetProgramFilesDir();
+#endif
+
 #ifdef WINDOWS
   static bool SetDefaultCredProv(const std::string &userName, const std::string &provId);
 #endif
 private:
   PlatformHelper() = default;
+
+#ifdef WINDOWS
+  static std::filesystem::path GetShellFolder(int csidl);
+#endif
 };
 
 #endif // PCBU_DESKTOP_PLATFORMHELPER_H
