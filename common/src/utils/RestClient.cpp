@@ -74,7 +74,13 @@ CloudUnlockResult RestClient::RequestCloudUnlock(const std::string &cloudToken, 
           resultStr = nlohmann::json::parse(result.body).value("result", "");
         } catch(const std::exception &) {
         }
-        return {resultStr == "SUBSCRIPTION_STALE" ? CloudUnlockStatus::SubscriptionStale : CloudUnlockStatus::NoSubscription};
+        if(resultStr == "SUBSCRIPTION_STALE")
+          return {CloudUnlockStatus::SubscriptionStale};
+        if(resultStr == "SUBSCRIPTION_ON_HOLD")
+          return {CloudUnlockStatus::SubscriptionOnHold};
+        if(resultStr == "SUBSCRIPTION_PAUSED")
+          return {CloudUnlockStatus::SubscriptionPaused};
+        return {CloudUnlockStatus::NoSubscription};
       }
       case 404:
         return {CloudUnlockStatus::DeviceUnknown};

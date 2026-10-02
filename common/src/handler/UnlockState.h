@@ -21,10 +21,12 @@ enum UnlockState {
   CLOUD_PHONE_UNREACHABLE = 13,
   CLOUD_RATE_LIMITED = 14,
   CLOUD_PAIRING_GONE = 15,
-  CLOUD_NO_SUBSCRIPTION = 16,
-  CLOUD_SUBSCRIPTION_STALE = 17,
-  CLOUD_DEVICE_STALE = 18,
-  UNK_ERROR = 19,
+  CLOUD_DEVICE_STALE = 16,
+  CLOUD_NO_SUBSCRIPTION = 17,
+  CLOUD_SUBSCRIPTION_STALE = 18,
+  CLOUD_SUBSCRIPTION_ON_HOLD = 19,
+  CLOUD_SUBSCRIPTION_PAUSED = 20,
+  UNK_ERROR = 21,
 };
 
 class UnlockStateUtils {
@@ -68,6 +70,10 @@ public:
       return I18n::Get("unlock_error_cloud_subscription_stale");
     } else if(state == UnlockState::CLOUD_DEVICE_STALE) {
       return I18n::Get("unlock_error_cloud_device_stale");
+    } else if(state == UnlockState::CLOUD_SUBSCRIPTION_ON_HOLD) {
+      return I18n::Get("unlock_error_cloud_subscription_on_hold");
+    } else if(state == UnlockState::CLOUD_SUBSCRIPTION_PAUSED) {
+      return I18n::Get("unlock_error_cloud_subscription_paused");
     } else {
       return I18n::Get("error_unknown");
     }

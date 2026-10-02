@@ -65,6 +65,10 @@ UnlockState CloudUnlockClient::MapRequestError(CloudUnlockStatus status) {
       return UnlockState::CLOUD_PAIRING_GONE;
     case CloudUnlockStatus::SubscriptionStale:
       return UnlockState::CLOUD_SUBSCRIPTION_STALE;
+    case CloudUnlockStatus::SubscriptionOnHold:
+      return UnlockState::CLOUD_SUBSCRIPTION_ON_HOLD;
+    case CloudUnlockStatus::SubscriptionPaused:
+      return UnlockState::CLOUD_SUBSCRIPTION_PAUSED;
     case CloudUnlockStatus::DeviceStale:
       return UnlockState::CLOUD_DEVICE_STALE;
     case CloudUnlockStatus::PhoneUnreachable:

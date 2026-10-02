@@ -19,6 +19,8 @@ enum class CloudUnlockStatus {
   PairingRevoked,
   NoSubscription,
   SubscriptionStale,
+  SubscriptionOnHold,
+  SubscriptionPaused,
   DeviceStale,
   PhoneUnreachable,
   ServerUnreachable,
