@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.22)
-project(pcbu_desktop_all VERSION 4.0.0)
+project(pcbu_desktop_all VERSION 4.1.0)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 include(DetectArchitecture)
