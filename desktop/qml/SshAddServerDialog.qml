@@ -4,6 +4,7 @@ import QtQuick.Controls.Material
 import QtQuick.Dialogs
 import QtQuick.Layouts
 import PulseUnlock
+import 'qrc:/ui/base'
 
 Dialog {
     id: addDialog
@@ -126,11 +127,10 @@ Dialog {
             Label {
                 text: '%1:'.arg(QI18n.Get('password'))
             }
-            TextField {
+            PasswordField {
                 id: passwordField
                 Layout.fillWidth: true
                 Layout.columnSpan: 2
-                echoMode: TextField.Password
                 onAccepted: addDialog.submit()
             }
         }

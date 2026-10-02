@@ -3,5 +3,7 @@
     <qresource prefix="/res/">
         <file>licenses.txt</file>
         <file>icons/icon.png</file>
+        <file>icons/visibility.svg</file>
+        <file>icons/visibility_off.svg</file>
     </qresource>
 </RCC>

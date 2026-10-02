@@ -110,10 +110,9 @@ StepForm {
                                 text: '%1:'.arg(QI18n.Get('password'))
                                 verticalAlignment: Text.AlignVCenter
                             }
-                            TextField {
+                            PasswordField {
                                 Layout.fillWidth: true
                                 id: pairingPwTextField
-                                echoMode: TextField.Password
                                 onTextChanged: {
                                     let data = PairingForm.GetData();
                                     data.password = pairingPwTextField.text;
