@@ -88,7 +88,7 @@ message("-- Fetching json...")
 FetchContent_MakeAvailable(json)
 
 message("-- Fetching boost...")
-set(BOOST_INCLUDE_LIBRARIES asio beast dll filesystem interprocess process system url CACHE STRING "" FORCE)
+set(BOOST_INCLUDE_LIBRARIES asio beast dll filesystem process system url CACHE STRING "" FORCE)
 set(Boost_USE_STATIC_LIBS ON CACHE BOOL "")
 FetchContent_MakeAvailable(Boost)
 set_property(TARGET boost_process PROPERTY POSITION_INDEPENDENT_CODE ON)

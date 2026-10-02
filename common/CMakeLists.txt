@@ -156,7 +156,6 @@ target_link_libraries(pcbu_common PUBLIC
         Boost::beast
         Boost::dll
         Boost::filesystem
-        Boost::interprocess
         Boost::process
         Boost::system
         Boost::url
