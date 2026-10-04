@@ -30,11 +30,12 @@ CUnlockCredential::CUnlockCredential()
 }
 
 CUnlockCredential::~CUnlockCredential() {
-  if(_pUnlockListener != nullptr) {
-    _pUnlockListener->Release();
-    delete _pUnlockListener;
-    _pUnlockListener = nullptr;
+  Shutdown();
+  if(_pCredProvCredentialEvents != nullptr) {
+    _pCredProvCredentialEvents->Release();
+    _pCredProvCredentialEvents = nullptr;
   }
+  ResetUnlockResult();
   if(_rgFieldStrings[SFI_PASSWORD]) {
     size_t lenPassword = wcslen(_rgFieldStrings[SFI_PASSWORD]);
     SecureZeroMemory(_rgFieldStrings[SFI_PASSWORD], lenPassword * sizeof(*_rgFieldStrings[SFI_PASSWORD]));
@@ -93,7 +94,7 @@ HRESULT CUnlockCredential::Initialize(CREDENTIAL_PROVIDER_USAGE_SCENARIO cpus, _
   if(SUCCEEDED(hr)) {
     _pUnlockListener = new(std::nothrow) CUnlockListener();
     if(_pUnlockListener != nullptr) {
-      _pUnlockListener->Initialize(_cpus, _pCredentialProvider, this, userDomain);
+      _pUnlockListener->Initialize(_cpus, this, userDomain);
     } else {
       hr = E_OUTOFMEMORY;
     }
@@ -102,8 +103,31 @@ HRESULT CUnlockCredential::Initialize(CREDENTIAL_PROVIDER_USAGE_SCENARIO cpus, _
   return hr;
 }
 
-bool CUnlockCredential::IsSelected() const {
-  return _isSelected;
+void CUnlockCredential::Shutdown() {
+  {
+    std::lock_guard<std::mutex> lock(_listenerMutex);
+    if(_pUnlockListener != nullptr) {
+      _pUnlockListener->Release();
+      delete _pUnlockListener;
+      _pUnlockListener = nullptr;
+    }
+  }
+  std::lock_guard<std::mutex> lock(_providerMutex);
+  _pCredentialProvider = nullptr;
+}
+
+uint64_t CUnlockCredential::SetUnlockData(const UnlockResult &result, const std::atomic<bool> *isRunning) {
+  uint64_t sequence{};
+  {
+    std::lock_guard<std::mutex> lock(_mutex);
+    if(isRunning != nullptr && !isRunning->load())
+      return 0;
+    ResetUnlockResult(result);
+    sequence = ++_unlockSequence;
+  }
+  UpdateStateMessage(result.state);
+  UpdateRetryButton();
+  return sequence;
 }
 
 bool CUnlockCredential::IsUnlockSuccess() const {
@@ -111,16 +135,46 @@ bool CUnlockCredential::IsUnlockSuccess() const {
   return _unlockResult.state == UnlockState::SUCCESS;
 }
 
-void CUnlockCredential::SetUnlockData(const UnlockResult &result) {
+bool CUnlockCredential::IsUnlockPending(uint64_t sequence) const {
+  std::lock_guard<std::mutex> lock(_mutex);
+  return sequence == _unlockSequence && _unlockResult.state == UnlockState::SUCCESS;
+}
+
+void CUnlockCredential::ExpireUnlockSuccess(uint64_t sequence) {
   {
     std::lock_guard<std::mutex> lock(_mutex);
-    _unlockResult = result;
+    if(sequence != _unlockSequence || _unlockResult.state != UnlockState::SUCCESS)
+      return;
+    ResetUnlockResult(UnlockResult(UnlockState::TIMEOUT));
   }
-  UpdateMessage(UnlockStateUtils::ToString(result.state));
+  UpdateStateMessage(UnlockState::TIMEOUT);
+  UpdateRetryButton();
+}
+
+void CUnlockCredential::UpdateProvider() {
+  ICredentialProviderEvents *events = nullptr;
+  UINT_PTR adviseContext{};
+  {
+    std::lock_guard<std::mutex> lock(_providerMutex);
+    if(_pCredentialProvider != nullptr)
+      events = _pCredentialProvider->GetEvents(&adviseContext);
+  }
+  if(events != nullptr) {
+    events->CredentialsChanged(adviseContext);
+    events->Release();
+  } else {
+    spdlog::error("Failed to update credential provider.");
+  }
 }
 
 void CUnlockCredential::UpdateMessage(const std::string &message) {
-  const auto wideMessage = StringUtils::ToWideString(message);
+  std::wstring wideMessage{};
+  try {
+    wideMessage = StringUtils::ToWideString(message);
+  } catch(const std::exception &ex) {
+    spdlog::error("Failed to convert message: {}", ex.what());
+    return;
+  }
   ICredentialProviderCredentialEvents2 *events = nullptr;
   PWSTR messageCopy = nullptr;
   {
@@ -141,26 +195,77 @@ void CUnlockCredential::UpdateMessage(const std::string &message) {
   CoTaskMemFree(messageCopy);
 }
 
-// LogonUI calls this in order to give us a callback in case we need to notify it of anything.
-HRESULT CUnlockCredential::Advise(_In_ ICredentialProviderCredentialEvents *pcpce) {
+void CUnlockCredential::UpdateRetryButton() {
   ICredentialProviderCredentialEvents2 *events = nullptr;
-  PWSTR messageCopy = nullptr;
-  HRESULT result;
+  bool isVisible{};
   {
     std::lock_guard<std::mutex> lock(_mutex);
-    if(_pCredProvCredentialEvents != nullptr) {
-      _pCredProvCredentialEvents->Release();
-    }
-    result = pcpce->QueryInterface(IID_PPV_ARGS(&_pCredProvCredentialEvents));
-    if(_pCredProvCredentialEvents) {
-      events = _pCredProvCredentialEvents;
+    isVisible = IsRetryVisible(_unlockResult.state);
+    events = _pCredProvCredentialEvents;
+    if(events)
       events->AddRef();
+  }
+  if(events) {
+    events->SetFieldState(this, SFI_RETRY_BUTTON, isVisible ? _rgFieldStatePairs[SFI_RETRY_BUTTON].cpfs : CPFS_HIDDEN);
+    events->Release();
+  }
+}
+
+void CUnlockCredential::ResetUnlockResult(const UnlockResult &result) {
+  SecureErase(_unlockResult.password);
+  SecureErase(_unlockResult.passwordKey);
+  _unlockResult = result;
+}
+
+void CUnlockCredential::FinishUnlockSubmission(uint64_t sequence, bool isSubmitted) {
+  {
+    std::lock_guard<std::mutex> lock(_mutex);
+    if(sequence != _unlockSequence || _unlockResult.state != UnlockState::SUCCESS)
+      return;
+    ResetUnlockResult(isSubmitted ? UnlockResult() : UnlockResult(UnlockState::UNK_ERROR));
+    _isAutoStartBlocked = isSubmitted && _cpus != CPUS_CREDUI;
+  }
+  if(!isSubmitted) {
+    UpdateStateMessage(UnlockState::UNK_ERROR);
+    UpdateRetryButton();
+  }
+}
+
+void CUnlockCredential::UpdateStateMessage(UnlockState state) {
+  std::string message{};
+  try {
+    message = UnlockStateUtils::ToString(state);
+  } catch(const std::exception &ex) {
+    spdlog::error("Failed to get state message: {}", ex.what());
+    return;
+  }
+  UpdateMessage(message);
+}
+
+bool CUnlockCredential::IsRetryVisible(UnlockState state) {
+  return state != UnlockState::UNKNOWN && state != UnlockState::SUCCESS;
+}
+
+// LogonUI calls this in order to give us a callback in case we need to notify it of anything.
+HRESULT CUnlockCredential::Advise(_In_ ICredentialProviderCredentialEvents *pcpce) {
+  ICredentialProviderCredentialEvents2 *newEvents = nullptr;
+  ICredentialProviderCredentialEvents2 *oldEvents = nullptr;
+  PWSTR messageCopy = nullptr;
+  HRESULT result = pcpce->QueryInterface(IID_PPV_ARGS(&newEvents));
+  {
+    std::lock_guard<std::mutex> lock(_mutex);
+    oldEvents = _pCredProvCredentialEvents;
+    _pCredProvCredentialEvents = newEvents;
+    if(newEvents) {
+      newEvents->AddRef();
       SHStrDupW(_rgFieldStrings[SFI_MESSAGE] ? _rgFieldStrings[SFI_MESSAGE] : L"", &messageCopy);
     }
   }
-  if(events) {
-    events->SetFieldString(this, SFI_MESSAGE, messageCopy);
-    events->Release();
+  if(oldEvents)
+    oldEvents->Release();
+  if(newEvents) {
+    newEvents->SetFieldString(this, SFI_MESSAGE, messageCopy);
+    newEvents->Release();
   }
   CoTaskMemFree(messageCopy);
   return result;
@@ -168,11 +273,14 @@ HRESULT CUnlockCredential::Advise(_In_ ICredentialProviderCredentialEvents *pcpc
 
 // LogonUI calls this to tell us to release the callback.
 HRESULT CUnlockCredential::UnAdvise() {
-  std::lock_guard<std::mutex> lock(_mutex);
-  if(_pCredProvCredentialEvents) {
-    _pCredProvCredentialEvents->Release();
+  ICredentialProviderCredentialEvents2 *oldEvents = nullptr;
+  {
+    std::lock_guard<std::mutex> lock(_mutex);
+    oldEvents = _pCredProvCredentialEvents;
+    _pCredProvCredentialEvents = nullptr;
   }
-  _pCredProvCredentialEvents = nullptr;
+  if(oldEvents)
+    oldEvents->Release();
   return S_OK;
 }
 
@@ -183,11 +291,20 @@ HRESULT CUnlockCredential::UnAdvise() {
 // more complicated, like change the contents of a field when the tile is
 // selected, you would do it here.
 HRESULT CUnlockCredential::SetSelected(_Out_ BOOL *pbAutoLogon) {
-  _isSelected = true;
-  if(_pUnlockListener != nullptr) {
-    _pUnlockListener->Start();
+  bool isUnlockSuccess{};
+  bool isAutoStartBlocked{};
+  {
+    std::lock_guard<std::mutex> lock(_mutex);
+    isUnlockSuccess = _unlockResult.state == UnlockState::SUCCESS;
+    isAutoStartBlocked = _isAutoStartBlocked;
   }
-  *pbAutoLogon = IsUnlockSuccess();
+  if(!isUnlockSuccess && !isAutoStartBlocked) {
+    std::lock_guard<std::mutex> lock(_listenerMutex);
+    if(_pUnlockListener != nullptr) {
+      _pUnlockListener->Start();
+    }
+  }
+  *pbAutoLogon = isUnlockSuccess;
   return S_OK;
 }
 
@@ -195,21 +312,32 @@ HRESULT CUnlockCredential::SetSelected(_Out_ BOOL *pbAutoLogon) {
 // and now no longer is. The most common thing to do here (which we do below)
 // is to clear out the password field.
 HRESULT CUnlockCredential::SetDeselected() {
-  _isSelected = false;
-  if(_pUnlockListener != nullptr) {
-    _pUnlockListener->Stop();
+  {
+    std::lock_guard<std::mutex> lock(_listenerMutex);
+    if(_pUnlockListener != nullptr) {
+      _pUnlockListener->Stop();
+    }
   }
   HRESULT hr = S_OK;
-  if(_rgFieldStrings[SFI_PASSWORD]) {
-    size_t lenPassword = wcslen(_rgFieldStrings[SFI_PASSWORD]);
-    SecureZeroMemory(_rgFieldStrings[SFI_PASSWORD], lenPassword * sizeof(*_rgFieldStrings[SFI_PASSWORD]));
+  ICredentialProviderCredentialEvents2 *events = nullptr;
+  {
+    std::lock_guard<std::mutex> lock(_mutex);
+    if(_rgFieldStrings[SFI_PASSWORD]) {
+      size_t lenPassword = wcslen(_rgFieldStrings[SFI_PASSWORD]);
+      SecureZeroMemory(_rgFieldStrings[SFI_PASSWORD], lenPassword * sizeof(*_rgFieldStrings[SFI_PASSWORD]));
 
-    CoTaskMemFree(_rgFieldStrings[SFI_PASSWORD]);
-    hr = SHStrDupW(L"", &_rgFieldStrings[SFI_PASSWORD]);
+      CoTaskMemFree(_rgFieldStrings[SFI_PASSWORD]);
+      hr = SHStrDupW(L"", &_rgFieldStrings[SFI_PASSWORD]);
 
-    if(SUCCEEDED(hr) && _pCredProvCredentialEvents) {
-      _pCredProvCredentialEvents->SetFieldString(this, SFI_PASSWORD, _rgFieldStrings[SFI_PASSWORD]);
+      if(SUCCEEDED(hr) && _pCredProvCredentialEvents) {
+        events = _pCredProvCredentialEvents;
+        events->AddRef();
+      }
     }
+  }
+  if(events) {
+    events->SetFieldString(this, SFI_PASSWORD, L"");
+    events->Release();
   }
   return hr;
 }
@@ -227,8 +355,15 @@ HRESULT CUnlockCredential::GetFieldState(DWORD dwFieldID, _Out_ CREDENTIAL_PROVI
       unlockState = _unlockResult.state;
     }
     auto hideUsername = dwFieldID == SFI_USERNAME && _cpus != CPUS_CREDUI;
-    auto hidePasswordField = dwFieldID == SFI_PASSWORD && AppSettings::Get().winHidePasswordField;
-    auto hideRetryButton = dwFieldID == SFI_RETRY_BUTTON && (unlockState == UnlockState::UNKNOWN || unlockState == UnlockState::SUCCESS);
+    auto hidePasswordField = false;
+    if(dwFieldID == SFI_PASSWORD) {
+      try {
+        hidePasswordField = AppSettings::Get().winHidePasswordField;
+      } catch(const std::exception &ex) {
+        spdlog::error("Failed to read settings: {}", ex.what());
+      }
+    }
+    auto hideRetryButton = dwFieldID == SFI_RETRY_BUTTON && !IsRetryVisible(unlockState);
     if(hideUsername || hidePasswordField || hideRetryButton)
     {
       *pcpfs = CPFS_HIDDEN;
@@ -273,17 +408,22 @@ HRESULT CUnlockCredential::GetBitmapValue(DWORD dwFieldID, _Outptr_result_nullon
       hr = S_OK;
       *phbmp = hbmp;
     } else {
-      auto systemDataDir = PlatformHelper::GetSystemDataDir();
-      if(!systemDataDir.empty()) {
-        auto imagePath = systemDataDir / L"Microsoft\\User Account Pictures\\user.bmp";
-        hbmp = (HBITMAP)LoadImageW(nullptr, imagePath.c_str(), IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE);
-        if(hbmp != nullptr) {
-          hr = S_OK;
-          *phbmp = hbmp;
+      try {
+        auto systemDataDir = PlatformHelper::GetSystemDataDir();
+        if(!systemDataDir.empty()) {
+          auto imagePath = systemDataDir / L"Microsoft\\User Account Pictures\\user.bmp";
+          hbmp = (HBITMAP)LoadImageW(nullptr, imagePath.c_str(), IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE);
+          if(hbmp != nullptr) {
+            hr = S_OK;
+            *phbmp = hbmp;
+          } else {
+            hr = HRESULT_FROM_WIN32(GetLastError());
+          }
         } else {
-          hr = HRESULT_FROM_WIN32(GetLastError());
+          hr = E_FAIL;
         }
-      } else {
+      } catch(const std::exception &ex) {
+        spdlog::error("Failed to load tile image: {}", ex.what());
         hr = E_FAIL;
       }
     }
@@ -322,6 +462,8 @@ HRESULT CUnlockCredential::SetStringValue(DWORD dwFieldID, _In_ PCWSTR pwz) {
      (CPFT_EDIT_TEXT == _rgCredProvFieldDescriptors[dwFieldID].cpft || CPFT_PASSWORD_TEXT == _rgCredProvFieldDescriptors[dwFieldID].cpft)) {
     std::lock_guard<std::mutex> lock(_mutex);
     PWSTR *ppwszStored = &_rgFieldStrings[dwFieldID];
+    if(*ppwszStored && CPFT_PASSWORD_TEXT == _rgCredProvFieldDescriptors[dwFieldID].cpft)
+      SecureZeroMemory(*ppwszStored, wcslen(*ppwszStored) * sizeof(**ppwszStored));
     CoTaskMemFree(*ppwszStored);
     hr = SHStrDupW(pwz, ppwszStored);
   } else {
@@ -375,15 +517,17 @@ HRESULT CUnlockCredential::CommandLinkClicked(__in DWORD dwFieldID) {
   if(dwFieldID == SFI_RETRY_BUTTON) {
     {
       std::lock_guard<std::mutex> lock(_mutex);
-      _unlockResult = {};
+      ResetUnlockResult();
+      _isAutoStartBlocked = false;
     }
-    if(_pUnlockListener != nullptr) {
-      _pUnlockListener->Stop();
-      _pUnlockListener->Start(true);
+    {
+      std::lock_guard<std::mutex> lock(_listenerMutex);
+      if(_pUnlockListener != nullptr) {
+        _pUnlockListener->Stop();
+        _pUnlockListener->Start(true);
+      }
     }
-    if(_pCredentialProvider != nullptr) {
-      _pCredentialProvider->UpdateCredsStatus();
-    }
+    UpdateRetryButton();
     hr = S_OK;
   } else {
     hr = E_INVALIDARG;
@@ -406,16 +550,23 @@ HRESULT CUnlockCredential::GetSerialization(_Out_ CREDENTIAL_PROVIDER_GET_SERIAL
 
   // Check for password or unlock success
   std::wstring pwd;
-  {
+  bool isUnlockResult{};
+  uint64_t unlockSequence{};
+  try {
     std::lock_guard<std::mutex> lock(_mutex);
     if(_unlockResult.state == UnlockState::SUCCESS) {
       pwd = StringUtils::ToWideString(_unlockResult.password);
-      _unlockResult.state = UnlockState::UNKNOWN;
+      isUnlockResult = true;
+      unlockSequence = _unlockSequence;
     } else if(_rgFieldStrings[SFI_PASSWORD] && lstrlenW(_rgFieldStrings[SFI_PASSWORD]) >= 1) {
       pwd = std::wstring(_rgFieldStrings[SFI_PASSWORD]);
     } else {
-      return E_ABORT;
+      return S_OK;
     }
+  } catch(const std::exception &ex) {
+    spdlog::error("Failed to read password: {}", ex.what());
+    SecureErase(pwd);
+    return E_OUTOFMEMORY;
   }
 
   // For local user, the domain and user name can be split from _pszQualifiedUserName (domain\username).
@@ -452,6 +603,7 @@ HRESULT CUnlockCredential::GetSerialization(_Out_ CREDENTIAL_PROVIDER_GET_SERIAL
         CoTaskMemFree(pszDomain);
         CoTaskMemFree(pszUsername);
       }
+      SecureZeroMemory(pwzProtectedPassword, wcslen(pwzProtectedPassword) * sizeof(*pwzProtectedPassword));
       CoTaskMemFree(pwzProtectedPassword);
     }
   } else {
@@ -487,13 +639,19 @@ HRESULT CUnlockCredential::GetSerialization(_Out_ CREDENTIAL_PROVIDER_GET_SERIAL
         }
 
         if(FAILED(hr)) {
+          SecureZeroMemory(pcpcs->rgbSerialization, pcpcs->cbSerialization);
           CoTaskMemFree(pcpcs->rgbSerialization);
+          pcpcs->rgbSerialization = nullptr;
+          pcpcs->cbSerialization = 0;
         }
       } else {
         hr = E_OUTOFMEMORY;
       }
     }
   }
+  SecureErase(pwd);
+  if(isUnlockResult)
+    FinishUnlockSubmission(unlockSequence, *pcpgsr == CPGSR_RETURN_CREDENTIAL_FINISHED);
   return hr;
 }
 
@@ -513,39 +671,63 @@ HRESULT CUnlockCredential::ReportResult(NTSTATUS ntsStatus, NTSTATUS ntsSubstatu
   *ppwszOptionalStatusText = nullptr;
   *pcpsiOptionalStatusIcon = CPSI_NONE;
 
-  REPORT_RESULT_STATUS_INFO rgLogonStatusInfo[] = {
-      {
-          STATUS_LOGON_FAILURE,
-          0,
-          StringUtils::ToWideString(I18n::Get("error_password")),
-          CPSI_ERROR,
-      },
-      {STATUS_ACCOUNT_RESTRICTION, STATUS_ACCOUNT_DISABLED, StringUtils::ToWideString(I18n::Get("error_account_disabled")), CPSI_WARNING},
-  };
+  const auto hasLogonFailed = FAILED(HRESULT_FROM_NT(ntsStatus));
+  bool hasUnlockFailed{};
   {
     std::lock_guard<std::mutex> lock(_mutex);
-    _unlockResult = UnlockResult(UnlockState::UNKNOWN);
-  }
-  DWORD dwStatusInfo = (DWORD)-1;
-
-  // Look for a match on status and substatus.
-  for(DWORD i = 0; i < ARRAYSIZE(rgLogonStatusInfo); i++) {
-    if(rgLogonStatusInfo[i].ntsStatus == ntsStatus && rgLogonStatusInfo[i].ntsSubstatus == ntsSubstatus) {
-      dwStatusInfo = i;
-      break;
-    }
+    hasUnlockFailed = hasLogonFailed && _isAutoStartBlocked;
+    ResetUnlockResult(hasUnlockFailed ? UnlockResult(UnlockState::UNK_ERROR) : UnlockResult());
+    _isAutoStartBlocked = hasUnlockFailed;
   }
 
-  if((DWORD)-1 != dwStatusInfo) {
-    if(SUCCEEDED(SHStrDupW(rgLogonStatusInfo[dwStatusInfo].pwzMessage.c_str(), ppwszOptionalStatusText))) {
-      *pcpsiOptionalStatusIcon = rgLogonStatusInfo[dwStatusInfo].cpsi;
+  try {
+    REPORT_RESULT_STATUS_INFO rgLogonStatusInfo[] = {
+        {
+            STATUS_LOGON_FAILURE,
+            0,
+            StringUtils::ToWideString(I18n::Get("error_password")),
+            CPSI_ERROR,
+        },
+        {STATUS_ACCOUNT_RESTRICTION, STATUS_ACCOUNT_DISABLED, StringUtils::ToWideString(I18n::Get("error_account_disabled")), CPSI_WARNING},
+    };
+    DWORD dwStatusInfo = (DWORD)-1;
+
+    // Look for a match on status and substatus.
+    for(DWORD i = 0; i < ARRAYSIZE(rgLogonStatusInfo); i++) {
+      if(rgLogonStatusInfo[i].ntsStatus == ntsStatus && rgLogonStatusInfo[i].ntsSubstatus == ntsSubstatus) {
+        dwStatusInfo = i;
+        break;
+      }
     }
+
+    if((DWORD)-1 != dwStatusInfo) {
+      if(SUCCEEDED(SHStrDupW(rgLogonStatusInfo[dwStatusInfo].pwzMessage.c_str(), ppwszOptionalStatusText))) {
+        *pcpsiOptionalStatusIcon = rgLogonStatusInfo[dwStatusInfo].cpsi;
+      }
+    }
+
+    if(hasUnlockFailed) {
+      UpdateMessage((DWORD)-1 != dwStatusInfo ? StringUtils::FromWideString(rgLogonStatusInfo[dwStatusInfo].pwzMessage)
+                                              : UnlockStateUtils::ToString(UnlockState::UNK_ERROR));
+    }
+  } catch(const std::exception &ex) {
+    spdlog::error("Failed to report logon result: {}", ex.what());
   }
+  if(hasUnlockFailed)
+    UpdateRetryButton();
 
   // If we failed the logon, try to erase the password field.
-  if(FAILED(HRESULT_FROM_NT(ntsStatus))) {
-    if(_pCredProvCredentialEvents) {
-      _pCredProvCredentialEvents->SetFieldString(this, SFI_PASSWORD, L"");
+  if(hasLogonFailed) {
+    ICredentialProviderCredentialEvents2 *events = nullptr;
+    {
+      std::lock_guard<std::mutex> lock(_mutex);
+      events = _pCredProvCredentialEvents;
+      if(events)
+        events->AddRef();
+    }
+    if(events) {
+      events->SetFieldString(this, SFI_PASSWORD, L"");
+      events->Release();
     }
   }
 

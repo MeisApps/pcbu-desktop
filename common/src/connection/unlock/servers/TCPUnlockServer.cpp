@@ -25,22 +25,28 @@ bool TCPUnlockServer::Start() {
   WSA_STARTUP
   m_IsRunning = true;
   SetPhase(UnlockPhase::SERVER_WAITING);
-  m_AcceptThread = std::thread(&TCPUnlockServer::AcceptThread, this);
+  m_AcceptThread = std::thread([this]() {
+    try {
+      AcceptThread();
+    } catch(const std::exception &ex) {
+      spdlog::error("TCP server failed: {}", ex.what());
+      m_UnlockState = UnlockState::UNK_ERROR;
+      m_IsRunning = false;
+    }
+  });
   return true;
 }
 
 void TCPUnlockServer::Stop() {
-  SOCKET_CLOSE(m_ServerSocket);
+  m_IsRunning = false;
   if(m_AcceptThread.joinable())
     m_AcceptThread.join();
-  m_IsRunning = false;
 }
 
 void TCPUnlockServer::AcceptThread() {
   struct sockaddr_in address {};
   socklen_t addrLen = sizeof(address);
   auto settings = AppSettings::Get();
-  auto clientSockets = std::vector<SOCKET>();
   auto clientThreads = std::vector<std::thread>();
   spdlog::info("Starting TCP server...");
 
@@ -102,33 +108,42 @@ void TCPUnlockServer::AcceptThread() {
     if(!SetSocketBlocking(clientSocket, false)) {
       spdlog::error("Failed setting client socket to non-blocking mode. (Code={})", SOCKET_LAST_ERROR);
       m_UnlockState = UnlockState::UNK_ERROR;
+      SOCKET_CLOSE(clientSocket);
       break;
     }
-    clientSockets.emplace_back(clientSocket);
-    clientThreads.emplace_back(&TCPUnlockServer::ClientThread, this, clientSocket);
+    try {
+      clientThreads.emplace_back(&TCPUnlockServer::ClientThread, this, clientSocket, settings.clientSocketTimeout);
+    } catch(const std::exception &ex) {
+      spdlog::error("Failed starting TCP client thread: {}", ex.what());
+      m_UnlockState = UnlockState::UNK_ERROR;
+      SOCKET_CLOSE(clientSocket);
+      break;
+    }
   }
 
 threadEnd:
-  for(auto clientSocket : clientSockets) {
-    SOCKET_CLOSE(clientSocket);
-  }
-  SOCKET_CLOSE(m_ServerSocket);
+  m_IsRunning = false;
   for(auto &thread : clientThreads)
     if(thread.joinable())
       thread.join();
-  m_IsRunning = false;
+  SOCKET_CLOSE(m_ServerSocket);
   spdlog::info("TCP server stopped.");
 }
 
-void TCPUnlockServer::ClientThread(SOCKET clientSocket) {
+void TCPUnlockServer::ClientThread(SOCKET clientSocket, uint32_t idleTimeoutSecs) {
   spdlog::info("TCP client connected.");
   ++m_NumConnections;
   int opt = 1;
   if(setsockopt(clientSocket, IPPROTO_TCP, TCP_NODELAY, reinterpret_cast<const char *>(&opt), sizeof(opt))) {
     spdlog::error("setsockopt(TCP_NODELAY) failed. (Code={})", SOCKET_LAST_ERROR);
   }
-  SocketStream stream(clientSocket);
-  PerformAuthFlow(stream, true);
+  try {
+    SocketStream stream(clientSocket, &m_IsRunning, idleTimeoutSecs);
+    PerformAuthFlow(stream, true);
+  } catch(const std::exception &ex) {
+    spdlog::error("TCP client failed: {}", ex.what());
+    m_UnlockState = UnlockState::UNK_ERROR;
+  }
   --m_NumConnections;
   if(PollResult() == UnlockState::UNKNOWN)
     SetPhase(m_NumConnections > 0 ? UnlockPhase::PHONE_UNLOCKING : UnlockPhase::SERVER_WAITING);

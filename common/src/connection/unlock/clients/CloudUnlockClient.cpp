@@ -18,7 +18,15 @@ bool CloudUnlockClient::Start() {
   SetPhase(UnlockPhase::CLOUD_REQUESTING);
   m_HttpClient = std::make_unique<HttpClient>();
   m_Stream = std::make_unique<WebSocketStream>();
-  m_AcceptThread = std::thread(&CloudUnlockClient::ConnectThread, this);
+  m_AcceptThread = std::thread([this]() {
+    try {
+      ConnectThread();
+    } catch(const std::exception &ex) {
+      spdlog::error("Cloud client failed: {}", ex.what());
+      m_UnlockState = UnlockState::UNK_ERROR;
+      m_IsRunning = false;
+    }
+  });
   return true;
 }
 

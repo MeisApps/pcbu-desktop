@@ -58,6 +58,7 @@ UnlockResult UnlockHandler::GetResult(const std::string &authUser, const std::st
     std::erase_if(devices, [&](const PairedDevice &device) { return std::ranges::find(deviceIds, device.id) == deviceIds.end(); });
 
   UDPUnlockBroadcaster *udpBroadcaster{};
+  std::vector<PairedDevice> udpDevices{};
   std::vector<BaseUnlockConnection *> connections{};
   for(const auto &device : devices) {
     BaseUnlockConnection *connection{};
@@ -74,6 +75,7 @@ UnlockResult UnlockHandler::GetResult(const std::string &authUser, const std::st
           udpBroadcaster = new UDPUnlockBroadcaster();
         auto port = device.pairingMethod == PairingMethod::UDP ? device.udpPort : device.udpManualPort;
         udpBroadcaster->AddDevice(device.id, port, device.pairingMethod == PairingMethod::MANUAL_UDP);
+        udpDevices.emplace_back(device);
         hasTCPServer = true;
         continue;
       }
@@ -94,6 +96,7 @@ UnlockResult UnlockHandler::GetResult(const std::string &authUser, const std::st
   if(hasTCPServer) {
     auto server = new TCPUnlockServer();
     server->SetUnlockInfo(authUser, authProgram);
+    server->SetAllowedDevices(udpDevices);
     udpServer = server;
     connections.emplace_back(server);
   }
@@ -114,17 +117,30 @@ UnlockResult UnlockHandler::GetResult(const std::string &authUser, const std::st
   threads.reserve(numServers);
   for(auto connection : connections) {
     threads.emplace_back([this, connection, numServers, isRunning, &currentResult, &completed, &cv, &mutex, udpBroadcaster, udpServer]() {
-      auto serverResult = RunServer(connection, connection == udpServer ? udpBroadcaster : nullptr, &currentResult, isRunning);
+      auto serverResult = UnlockResult(UnlockState::UNK_ERROR);
+      try {
+        serverResult = RunServer(connection, connection == udpServer ? udpBroadcaster : nullptr, &currentResult, isRunning);
+      } catch(const std::exception &ex) {
+        spdlog::error("Unlock server failed: {}", ex.what());
+      } catch(...) {
+        spdlog::error("Unlock server failed.");
+      }
       if(serverResult.state == UnlockState::SUCCESS)
         currentResult.store(serverResult);
       auto isLast = completed.fetch_add(1) + 1 == numServers;
-      if(serverResult.state == UnlockState::SUCCESS)
-        PrintStatus(UnlockStateUtils::ToString(serverResult.state));
-      if(isLast) {
-        if(currentResult.load().state != UnlockState::SUCCESS) {
-          currentResult.store(serverResult);
+      auto isFinalResult = serverResult.state == UnlockState::SUCCESS;
+      if(isLast && currentResult.load().state != UnlockState::SUCCESS) {
+        currentResult.store(serverResult);
+        isFinalResult = true;
+      }
+      if(isFinalResult) {
+        try {
           PrintStatus(UnlockStateUtils::ToString(serverResult.state));
+        } catch(const std::exception &ex) {
+          spdlog::error("Failed printing unlock status: {}", ex.what());
         }
+      }
+      if(isLast) {
         std::lock_guard l(mutex);
         cv.notify_one();
       }
@@ -141,7 +157,6 @@ UnlockResult UnlockHandler::GetResult(const std::string &authUser, const std::st
     std::unique_lock lock(mutex);
     cv.wait(lock, [&] { return completed.load() == numServers; });
   }
-  auto result = currentResult.load();
 
   // Cleanup
   if(udpBroadcaster) {
@@ -152,9 +167,11 @@ UnlockResult UnlockHandler::GetResult(const std::string &authUser, const std::st
     if(thread.joinable())
       thread.join();
   }
-  for(const auto connection : connections)
+  for(const auto connection : connections) {
+    connection->Stop();
     delete connection;
-  return result;
+  }
+  return currentResult.load();
 }
 
 UnlockResult UnlockHandler::RunServer(BaseUnlockConnection *connection, UDPUnlockBroadcaster *udpBroadcaster, AtomicUnlockResult *currentResult,

@@ -12,21 +12,35 @@ UDPBroadcaster::~UDPBroadcaster() {
 }
 
 void UDPBroadcaster::Start() {
-  if(m_IsRunning.exchange(true))
+  std::lock_guard lock(m_ControlMutex);
+  if(m_IsRunning)
     return;
-  m_Thread = std::thread([this]() { Run(); });
+  if(m_Thread.joinable())
+    m_Thread.join();
+  m_IsRunning = true;
+  try {
+    m_Thread = std::thread([this]() { Run(); });
+  } catch(const std::exception &ex) {
+    m_IsRunning = false;
+    spdlog::error("{}: Failed starting thread: {}", m_Name, ex.what());
+  }
 }
 
 void UDPBroadcaster::Stop() {
-  if(!m_IsRunning.exchange(false))
-    return;
+  std::lock_guard lock(m_ControlMutex);
+  m_IsRunning = false;
   if(m_Thread.joinable())
     m_Thread.join();
 }
 
 void UDPBroadcaster::Run() {
   spdlog::info("{} started.", m_Name);
-  auto broadcastTargets = NetworkHelper::GetBroadcastTargets();
+  std::vector<BroadcastTarget> broadcastTargets{};
+  try {
+    broadcastTargets = NetworkHelper::GetBroadcastTargets();
+  } catch(const std::exception &ex) {
+    spdlog::error("{}: Failed getting broadcast targets: {}", m_Name, ex.what());
+  }
   auto lastSend = std::chrono::steady_clock::now() - std::chrono::milliseconds(m_IntervalMs);
   while(m_IsRunning.load()) {
     auto now = std::chrono::steady_clock::now();

@@ -3,6 +3,7 @@
 
 #include <atomic>
 #include <cstdint>
+#include <mutex>
 #include <string>
 #include <thread>
 #include <vector>
@@ -28,6 +29,7 @@ private:
   std::string m_Name;
   int m_IntervalMs;
   std::thread m_Thread{};
+  std::mutex m_ControlMutex{};
   std::atomic<bool> m_IsRunning{};
 };
 

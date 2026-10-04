@@ -16,6 +16,7 @@
 #pragma once
 
 // clang-format off
+#include <atomic>
 #include <mutex>
 #include <string>
 #include <windows.h>
@@ -30,15 +31,16 @@
 #include "handler/UnlockHandler.h"
 // clang-format on
 
+class CSampleProvider;
 class CUnlockCredential : public ICredentialProviderCredential2, ICredentialProviderCredentialWithFieldOptions {
 public:
   // IUnknown
   IFACEMETHODIMP_(ULONG) AddRef() {
-    return ++_cRef;
+    return InterlockedIncrement(&_cRef);
   }
 
   IFACEMETHODIMP_(ULONG) Release() {
-    long cRef = --_cRef;
+    long cRef = InterlockedDecrement(&_cRef);
     if(!cRef) {
       delete this;
     }
@@ -91,18 +93,34 @@ public:
   IFACEMETHODIMP GetFieldOptions(DWORD dwFieldID, _Out_ CREDENTIAL_PROVIDER_CREDENTIAL_FIELD_OPTIONS *pcpcfo);
 
 public:
+  CUnlockCredential();
+  virtual ~CUnlockCredential();
   HRESULT Initialize(CREDENTIAL_PROVIDER_USAGE_SCENARIO cpus, _In_ CREDENTIAL_PROVIDER_FIELD_DESCRIPTOR const *rgcpfd,
                      _In_ FIELD_STATE_PAIR const *rgfsp, _In_ ICredentialProviderUser *pcpUser, _In_ CSampleProvider *pProvider,
                      _In_ const std::wstring &userDomain);
-  CUnlockCredential();
+  void Shutdown();
 
-  bool IsSelected() const;
+  uint64_t SetUnlockData(const UnlockResult &result, const std::atomic<bool> *isRunning = nullptr);
   bool IsUnlockSuccess() const;
-  void SetUnlockData(const UnlockResult &result);
+  bool IsUnlockPending(uint64_t sequence) const;
+  void ExpireUnlockSuccess(uint64_t sequence);
+
+  void UpdateProvider();
   void UpdateMessage(const std::string &message);
+  void UpdateRetryButton();
+
+  template <typename T> static void SecureErase(std::basic_string<T> &str) {
+    SecureZeroMemory(str.data(), str.size() * sizeof(T));
+    str.clear();
+  }
+
+private:
+  void ResetUnlockResult(const UnlockResult &result = {});
+  void FinishUnlockSubmission(uint64_t sequence, bool isSubmitted);
+  void UpdateStateMessage(UnlockState state);
+  static bool IsRetryVisible(UnlockState state);
 
 public:
-  virtual ~CUnlockCredential();
   long _cRef;
   CREDENTIAL_PROVIDER_USAGE_SCENARIO _cpus;                                           // The usage scenario for which we were enumerated.
   CREDENTIAL_PROVIDER_FIELD_DESCRIPTOR _rgCredProvFieldDescriptors[SFI_NUM_FIELDS]{}; // An array holding the type and name of each field in the tile.
@@ -120,6 +138,9 @@ public:
   CSampleProvider *_pCredentialProvider{};
   CUnlockListener *_pUnlockListener{};
   UnlockResult _unlockResult{};
-  bool _isSelected{};
+  uint64_t _unlockSequence{};
+  bool _isAutoStartBlocked{};
   mutable std::mutex _mutex{};
+  std::mutex _providerMutex{};
+  std::mutex _listenerMutex{};
 };

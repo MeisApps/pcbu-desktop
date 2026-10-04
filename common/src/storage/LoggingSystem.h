@@ -11,6 +11,9 @@ public:
 private:
   LoggingSystem() = default;
   static std::string g_LogName;
+
+  static constexpr const char *LOGGER_NAME = "pcbu_logger";
+  static constexpr const char *NULL_LOGGER_NAME = "pcbu_null_logger";
 };
 
 #endif // PCBU_DESKTOP_LOGGINGSYSTEM_H

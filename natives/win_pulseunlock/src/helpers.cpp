@@ -352,6 +352,7 @@ static HRESULT _ProtectAndCopyString(_In_ PCWSTR pwzToProtect, _Outptr_result_nu
       hr = E_UNEXPECTED;
     }
 
+    SecureZeroMemory(pwzToProtectCopy, wcslen(pwzToProtectCopy) * sizeof(*pwzToProtectCopy));
     CoTaskMemFree(pwzToProtectCopy);
   }
 
@@ -397,6 +398,7 @@ HRESULT ProtectIfNecessaryAndCopyPassword(_In_ PCWSTR pwzPassword, _In_ CREDENTI
         hr = _ProtectAndCopyString(pwzPasswordCopy, ppwzProtectedPassword);
       }
 
+      SecureZeroMemory(pwzPasswordCopy, wcslen(pwzPasswordCopy) * sizeof(*pwzPasswordCopy));
       CoTaskMemFree(pwzPasswordCopy);
     }
   } else {

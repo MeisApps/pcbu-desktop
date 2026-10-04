@@ -10,6 +10,7 @@ BaseUnlockConnection::BaseUnlockConnection() {
 
 BaseUnlockConnection::BaseUnlockConnection(const PairedDevice &device) : BaseUnlockConnection() {
   m_PairedDevice = device;
+  m_AllowedDevices = {device};
 }
 
 BaseUnlockConnection::~BaseUnlockConnection() {
@@ -20,6 +21,11 @@ BaseUnlockConnection::~BaseUnlockConnection() {
 void BaseUnlockConnection::SetUnlockInfo(const std::string &authUser, const std::string &authProgram) {
   m_AuthUser = authUser;
   m_AuthProgram = authProgram;
+}
+
+void BaseUnlockConnection::SetAllowedDevices(const std::vector<PairedDevice> &devices) {
+  std::lock_guard lock(m_StateMutex);
+  m_AllowedDevices = devices;
 }
 
 PairedDevice BaseUnlockConnection::GetDevice() {
@@ -44,140 +50,122 @@ UnlockState BaseUnlockConnection::PollResult() {
 
 void BaseUnlockConnection::PerformAuthFlow(ConnectionStream &stream, bool needsDeviceID) {
   SetPhase(UnlockPhase::PHONE_UNLOCKING);
-  m_StateMutex.lock();
-  m_ConnectionStates[&stream] = needsDeviceID ? UnlockConnectionState::NONE : UnlockConnectionState::HAS_DEVICE_ID;
-  m_StateMutex.unlock();
+  PairedDevice device{};
+  {
+    std::lock_guard lock(m_StateMutex);
+    auto &info = m_Connections[&stream];
+    info.state = needsDeviceID ? UnlockConnectionState::NONE : UnlockConnectionState::HAS_DEVICE_ID;
+    info.device = needsDeviceID ? PairedDevice() : m_PairedDevice;
+    device = info.device;
+  }
+
+  auto packet = Packet{PacketError::NONE};
+  auto isOpen = true;
   if(!needsDeviceID) {
-    if(SendUnlockRequest(stream)) {
-      m_StateMutex.lock();
-      m_ConnectionStates[&stream] = UnlockConnectionState::HAS_UNLOCK_REQUEST;
-      m_StateMutex.unlock();
+    auto writeError = SendUnlockRequest(stream, device);
+    if(writeError == PacketError::NONE) {
+      std::lock_guard lock(m_StateMutex);
+      m_Connections[&stream].state = UnlockConnectionState::HAS_UNLOCK_REQUEST;
     } else {
-      return;
+      m_UnlockState = MapPacketError(writeError, UnlockState::UNK_ERROR);
+      isOpen = false;
     }
   }
 
-  auto packet = ReadPacket(stream);
-  while(packet.error == PacketError::NONE) {
-    OnPacketReceived(stream, packet);
+  if(isOpen) {
     packet = ReadPacket(stream);
-  }
-  if(m_UnlockState == UnlockState::UNKNOWN) {
-    switch(packet.error) {
-      case PacketError::CLOSED_CONNECTION: {
-        m_UnlockState = UnlockState::CONNECT_ERROR;
+    while(packet.error == PacketError::NONE) {
+      if(!OnPacketReceived(stream, packet, needsDeviceID))
         break;
-      }
-      case PacketError::TIMEOUT: {
-        m_UnlockState = UnlockState::TIMEOUT;
-        break;
-      }
-      case PacketError::UNSUPPORTED_VERSION: {
-        m_UnlockState = UnlockState::PROTOCOL_ERROR;
-        break;
-      }
-      case PacketError::PEER_UNAVAILABLE: {
-        m_UnlockState = UnlockState::CLOUD_PHONE_UNREACHABLE;
-        break;
-      }
-      default: {
-        m_UnlockState = UnlockState::DATA_ERROR;
-        break;
-      }
+      packet = ReadPacket(stream);
     }
   }
+  {
+    std::lock_guard lock(m_StateMutex);
+    m_Connections.erase(&stream);
+  }
+
+  if(packet.error == PacketError::NONE || m_UnlockState != UnlockState::UNKNOWN)
+    return;
+  if(needsDeviceID) {
+    spdlog::warn("Server connection ended. (Error={})", static_cast<int>(packet.error));
+    return;
+  }
+  m_UnlockState = MapPacketError(packet.error, UnlockState::DATA_ERROR);
 }
 
-void BaseUnlockConnection::OnPacketReceived(ConnectionStream &stream, Packet &packet) {
-  std::unique_lock lock(m_StateMutex);
-  auto connectionState = m_ConnectionStates[&stream];
-  if(packet.id == PACKET_ID_DEVICE_ID && connectionState != UnlockConnectionState::NONE) {
-    spdlog::error("Unexpected packet received. Got PACKET_ID_DEVICE_ID at state {}.", static_cast<int>(m_ConnectionStates[&stream]));
-    return;
+bool BaseUnlockConnection::OnPacketReceived(ConnectionStream &stream, const Packet &packet, bool isServerConnection) {
+  ConnectionInfo info{};
+  {
+    std::lock_guard lock(m_StateMutex);
+    info = m_Connections[&stream];
   }
-  if(packet.id == PACKET_ID_UNLOCK_RESPONSE && connectionState != UnlockConnectionState::HAS_UNLOCK_REQUEST) {
-    spdlog::error("Unexpected packet received. Got PACKET_ID_UNLOCK_RESPONSE at state {}.", static_cast<int>(m_ConnectionStates[&stream]));
-    return;
+  if(packet.id == PACKET_ID_DEVICE_ID && info.state != UnlockConnectionState::NONE) {
+    spdlog::error("Unexpected packet received. Got PACKET_ID_DEVICE_ID at state {}.", static_cast<int>(info.state));
+    return true;
+  }
+  if(packet.id == PACKET_ID_UNLOCK_RESPONSE && info.state != UnlockConnectionState::HAS_UNLOCK_REQUEST) {
+    spdlog::error("Unexpected packet received. Got PACKET_ID_UNLOCK_RESPONSE at state {}.", static_cast<int>(info.state));
+    return true;
   }
 
   switch(packet.id) {
     case PACKET_ID_DEVICE_ID: {
       auto deviceId = std::string(reinterpret_cast<const char *>(packet.data.data()), packet.data.size());
-      auto device = PairedDevicesStorage::GetDeviceByID(deviceId);
+      auto device = FindAllowedDevice(deviceId);
       if(!device.has_value()) {
-        spdlog::error("Invalid device ID.");
-        m_UnlockState = UnlockState::DATA_ERROR;
-        return;
+        spdlog::error("Unknown or not allowed device ID.");
+        return HandleUnverifiedError(UnlockState::DATA_ERROR, isServerConnection);
       }
-      m_PairedDevice = device.value();
-      if(SendUnlockRequest(stream)) {
-        m_ConnectionStates[&stream] = UnlockConnectionState::HAS_UNLOCK_REQUEST;
-      }
-      break;
+      auto writeError = SendUnlockRequest(stream, device.value());
+      if(writeError != PacketError::NONE)
+        return HandleUnverifiedError(MapPacketError(writeError, UnlockState::UNK_ERROR), isServerConnection);
+      std::lock_guard lock(m_StateMutex);
+      auto &connection = m_Connections[&stream];
+      connection.state = UnlockConnectionState::HAS_UNLOCK_REQUEST;
+      connection.device = device.value();
+      return true;
     }
     case PACKET_ID_UNLOCK_RESPONSE: {
-      OnResponseReceived(packet);
-      break;
+      return OnResponseReceived(stream, packet, info.device, isServerConnection);
     }
     default: {
-      spdlog::error("Invalid response packet. (ID={0:X}, State={1})", packet.id, static_cast<int>(m_ConnectionStates[&stream]));
-      break;
+      spdlog::error("Invalid response packet. (ID={0:X}, State={1})", packet.id, static_cast<int>(info.state));
+      return true;
     }
   }
 }
 
-bool BaseUnlockConnection::SendUnlockRequest(ConnectionStream &stream) {
+PacketError BaseUnlockConnection::SendUnlockRequest(ConnectionStream &stream, const PairedDevice &device) {
   auto encData = PacketUnlockRequestData();
   encData.user = m_AuthUser;
   encData.program = m_AuthProgram;
   encData.unlockToken = m_UnlockToken;
   auto encDataStr = encData.ToJson().dump();
-  auto cryptResult = CryptUtils::EncryptAESPacket({encDataStr.begin(), encDataStr.end()}, m_PairedDevice.encryptionKey);
+  auto cryptResult = CryptUtils::EncryptAESPacket({encDataStr.begin(), encDataStr.end()}, device.encryptionKey);
   if(cryptResult.result != PacketCryptResult::OK) {
     spdlog::error("Failed to encrypt unlock request packet.");
-    m_UnlockState = UnlockState::UNK_ERROR;
-    return false;
+    return PacketError::UNKNOWN;
   }
   auto requestPacket = PacketUnlockRequest();
   requestPacket.protoVersion = AppInfo::GetUnlockProtocolVersion();
-  requestPacket.deviceId = m_PairedDevice.id;
+  requestPacket.deviceId = device.id;
   requestPacket.encData = StringUtils::ToHexString(cryptResult.data);
   auto requestStr = requestPacket.ToJson().dump();
   spdlog::debug("Writing PacketUnlockRequest...");
   auto writeResult = WritePacket(stream, PACKET_ID_UNLOCK_REQUEST, {requestStr.begin(), requestStr.end()});
-  if(writeResult != PacketError::NONE) {
-    switch(writeResult) {
-      case PacketError::CLOSED_CONNECTION:
-        m_UnlockState = UnlockState::CONNECT_ERROR;
-        break;
-      case PacketError::TIMEOUT:
-        m_UnlockState = UnlockState::TIMEOUT;
-        break;
-      case PacketError::UNSUPPORTED_VERSION:
-        m_UnlockState = UnlockState::PROTOCOL_ERROR;
-        break;
-      case PacketError::PEER_UNAVAILABLE:
-        m_UnlockState = UnlockState::CLOUD_PHONE_UNREACHABLE;
-        break;
-      default:
-        m_UnlockState = UnlockState::UNK_ERROR;
-        break;
-    }
-    spdlog::error("Failed to write unlock request packet. (WriteResult={}, UnlockState={})", static_cast<int>(writeResult),
-                  UnlockStateUtils::ToString(m_UnlockState));
-    return false;
-  }
-  return true;
+  if(writeResult != PacketError::NONE)
+    spdlog::error("Failed to write unlock request packet. (WriteResult={})", static_cast<int>(writeResult));
+  return writeResult;
 }
 
-void BaseUnlockConnection::OnResponseReceived(const Packet &packet) {
+bool BaseUnlockConnection::OnResponseReceived(ConnectionStream &stream, const Packet &packet, const PairedDevice &device, bool isServerConnection) {
   // Parse data
   auto respStr = std::string(packet.data.begin(), packet.data.end());
   auto responsePacket = PacketUnlockResponse::FromJson(respStr);
   if(!responsePacket.has_value()) {
     spdlog::error("Error parsing response packet.");
-    m_UnlockState = UnlockState::DATA_ERROR;
-    return;
+    return HandleUnverifiedError(UnlockState::DATA_ERROR, isServerConnection);
   }
 
   // Error handling
@@ -199,26 +187,20 @@ void BaseUnlockConnection::OnResponseReceived(const Packet &packet) {
     } else {
       m_UnlockState = UnlockState::UNK_ERROR;
     }
-    return;
+    return true;
   }
 
   // Decrypt data
   auto cryptData = StringUtils::FromHexString(responsePacket.value().encData);
-  auto cryptResult = CryptUtils::DecryptAESPacket(cryptData, m_PairedDevice.encryptionKey);
+  auto cryptResult = CryptUtils::DecryptAESPacket(cryptData, device.encryptionKey);
   if(cryptResult.result != PacketCryptResult::OK) {
-    switch(cryptResult.result) {
-      case INVALID_TIMESTAMP: {
-        spdlog::error("Invalid timestamp on AES data.");
-        m_UnlockState = UnlockState::TIME_ERROR;
-        break;
-      }
-      default: {
-        spdlog::error("Invalid data received. (Size={})", packet.data.size());
-        m_UnlockState = UnlockState::DATA_ERROR;
-        break;
-      }
+    if(cryptResult.result == INVALID_TIMESTAMP) {
+      spdlog::error("Invalid timestamp on AES data.");
+      m_UnlockState = UnlockState::TIME_ERROR;
+      return true;
     }
-    return;
+    spdlog::error("Invalid data received. (Size={})", packet.data.size());
+    return HandleUnverifiedError(UnlockState::DATA_ERROR, isServerConnection);
   }
 
   // Parse encrypted data
@@ -227,14 +209,57 @@ void BaseUnlockConnection::OnResponseReceived(const Packet &packet) {
   if(!dataPacket.has_value()) {
     spdlog::error("Error parsing response data.");
     m_UnlockState = UnlockState::DATA_ERROR;
-    return;
+    return true;
   }
-  m_ResponseData = dataPacket.value();
 
   // Token check
-  if(m_ResponseData.unlockToken == m_UnlockToken) {
-    m_UnlockState = UnlockState::SUCCESS;
-  } else {
-    m_UnlockState = UnlockState::UNK_ERROR;
+  if(dataPacket.value().unlockToken != m_UnlockToken) {
+    spdlog::error("Invalid unlock token.");
+    return HandleUnverifiedError(UnlockState::UNK_ERROR, isServerConnection);
+  }
+
+  std::lock_guard lock(m_StateMutex);
+  if(m_UnlockState != UnlockState::UNKNOWN)
+    return true;
+  m_PairedDevice = device;
+  m_ResponseData = dataPacket.value();
+  m_UnlockState = UnlockState::SUCCESS;
+  {
+    auto it = m_Connections.find(&stream);
+    if(it != m_Connections.end())
+      it->second.state = UnlockConnectionState::HAS_UNLOCK_RESPONSE;
+  }
+  return true;
+}
+
+bool BaseUnlockConnection::HandleUnverifiedError(UnlockState state, bool isServerConnection) {
+  if(isServerConnection) {
+    spdlog::warn("Closing server connection. (State={})", UnlockStateUtils::ToString(state));
+    return false;
+  }
+  m_UnlockState = state;
+  return true;
+}
+
+std::optional<PairedDevice> BaseUnlockConnection::FindAllowedDevice(const std::string &deviceId) {
+  std::lock_guard lock(m_StateMutex);
+  for(const auto &device : m_AllowedDevices)
+    if(device.id == deviceId)
+      return device;
+  return {};
+}
+
+UnlockState BaseUnlockConnection::MapPacketError(PacketError error, UnlockState fallback) {
+  switch(error) {
+    case PacketError::CLOSED_CONNECTION:
+      return UnlockState::CONNECT_ERROR;
+    case PacketError::TIMEOUT:
+      return UnlockState::TIMEOUT;
+    case PacketError::UNSUPPORTED_VERSION:
+      return UnlockState::PROTOCOL_ERROR;
+    case PacketError::PEER_UNAVAILABLE:
+      return UnlockState::CLOUD_PHONE_UNREACHABLE;
+    default:
+      return fallback;
   }
 }

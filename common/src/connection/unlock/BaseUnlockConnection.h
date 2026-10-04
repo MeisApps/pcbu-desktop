@@ -2,8 +2,12 @@
 #define PAM_PCBIOUNLOCK_BASEUNLOCKSERVER_H
 
 #include <atomic>
+#include <map>
+#include <mutex>
 #include <nlohmann/json.hpp>
+#include <optional>
 #include <string>
+#include <vector>
 #include <thread>
 #include <utility>
 
@@ -35,6 +39,8 @@ public:
   [[nodiscard]] UnlockPhase GetPhase() const;
 
   void SetUnlockInfo(const std::string &authUser, const std::string &authProgram);
+  void SetAllowedDevices(const std::vector<PairedDevice> &devices);
+
   UnlockState PollResult();
 
 protected:
@@ -42,9 +48,18 @@ protected:
   void PerformAuthFlow(ConnectionStream &stream, bool needsDeviceID = false);
 
 private:
-  void OnPacketReceived(ConnectionStream &stream, Packet &packet);
-  bool SendUnlockRequest(ConnectionStream &stream);
-  void OnResponseReceived(const Packet &packet);
+  struct ConnectionInfo {
+    UnlockConnectionState state{};
+    PairedDevice device{};
+  };
+
+  bool OnPacketReceived(ConnectionStream &stream, const Packet &packet, bool isServerConnection);
+  bool OnResponseReceived(ConnectionStream &stream, const Packet &packet, const PairedDevice &device, bool isServerConnection);
+  PacketError SendUnlockRequest(ConnectionStream &stream, const PairedDevice &device);
+
+  bool HandleUnverifiedError(UnlockState state, bool isServerConnection);
+  std::optional<PairedDevice> FindAllowedDevice(const std::string &deviceId);
+  static UnlockState MapPacketError(PacketError error, UnlockState fallback);
 
 protected:
   std::atomic<bool> m_IsRunning{};
@@ -56,7 +71,8 @@ protected:
   PairedDevice m_PairedDevice{};
   PacketUnlockResponseData m_ResponseData{};
 
-  std::map<ConnectionStream *, UnlockConnectionState> m_ConnectionStates{};
+  std::map<ConnectionStream *, ConnectionInfo> m_Connections{};
+  std::vector<PairedDevice> m_AllowedDevices{};
   std::mutex m_StateMutex{};
 
   std::string m_AuthUser{};

@@ -10,6 +10,7 @@
 // clang-format off
 #include "helpers.h"
 
+#include <mutex>
 #include <string>
 
 #include <windows.h>
@@ -23,11 +24,11 @@ class CSampleProvider : public ICredentialProvider, public ICredentialProviderSe
 public:
   // IUnknown
   IFACEMETHODIMP_(ULONG) AddRef() {
-    return ++_cRef;
+    return InterlockedIncrement(&_cRef);
   }
 
   IFACEMETHODIMP_(ULONG) Release() {
-    long cRef = --_cRef;
+    long cRef = InterlockedDecrement(&_cRef);
     if(!cRef) {
       delete this;
     }
@@ -62,7 +63,7 @@ public:
 
 public:
   void AddFieldDescriptor(DWORD id, CREDENTIAL_PROVIDER_FIELD_TYPE type, const std::string &label, GUID guid = {});
-  void UpdateCredsStatus() const;
+  ICredentialProviderEvents *GetEvents(UINT_PTR *adviseContext) const;
 
 protected:
   CSampleProvider();
@@ -83,5 +84,6 @@ private:
   CREDENTIAL_PROVIDER_USAGE_SCENARIO _cpus;
   ICredentialProviderUserArray *_pCredProviderUserArray;
   ICredentialProviderEvents *_pCredProvEvents;
+  mutable std::mutex _eventsMutex{};
   UINT_PTR _upAdviseContext; // Used to tell our owner who we are when asking to
 };

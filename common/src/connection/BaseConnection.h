@@ -1,6 +1,7 @@
 #ifndef PCBU_DESKTOP_BASECONNECTION_H
 #define PCBU_DESKTOP_BASECONNECTION_H
 
+#include <atomic>
 #include <cstdint>
 #include <utility>
 #include <vector>
@@ -28,6 +29,7 @@ protected:
 
   static bool SetSocketBlocking(SOCKET socket, bool isBlocking);
   static bool SetSocketRWTimeout(SOCKET socket, uint32_t secs);
+  static int WaitForConnection(SOCKET socket, uint32_t timeoutSecs, const std::atomic<bool> &isRunning);
 
   static Packet ReadPacket(ConnectionStream &stream);
   static PacketError WritePacket(ConnectionStream &stream, uint16_t packetId, const std::vector<uint8_t> &data);

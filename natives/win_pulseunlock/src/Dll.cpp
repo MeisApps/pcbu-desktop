@@ -16,6 +16,7 @@
 // clang-format on
 
 #include <mutex>
+#include <new>
 
 #include "storage/LoggingSystem.h"
 
@@ -28,7 +29,9 @@ EXTERN_C GUID CLSID_CSample;
 
 class CClassFactory : public IClassFactory {
 public:
-  CClassFactory() : _cRef(1) {}
+  CClassFactory() : _cRef(1) {
+    DllAddRef();
+  }
 
   // IUnknown
   IFACEMETHODIMP QueryInterface(__in REFIID riid, __deref_out void **ppv) {
@@ -72,7 +75,9 @@ public:
   }
 
 private:
-  ~CClassFactory() {}
+  ~CClassFactory() {
+    DllRelease();
+  }
   long _cRef;
 };
 
@@ -82,7 +87,7 @@ HRESULT CClassFactory_CreateInstance(__in REFCLSID rclsid, __in REFIID riid, __d
   HRESULT hr;
 
   if(CLSID_CSample == rclsid) {
-    CClassFactory *pcf = new CClassFactory();
+    CClassFactory *pcf = new(std::nothrow) CClassFactory();
     if(pcf) {
       hr = pcf->QueryInterface(riid, ppv);
       pcf->Release();
@@ -98,14 +103,20 @@ HRESULT CClassFactory_CreateInstance(__in REFCLSID rclsid, __in REFIID riid, __d
 void DllAddRef() {
   std::lock_guard lock(g_RefMutex);
   if(InterlockedIncrement(&g_cRef) == 1) {
-    LoggingSystem::Init("module");
+    try {
+      LoggingSystem::Init("module");
+    } catch(...) {
+    }
   }
 }
 
 void DllRelease() {
   std::lock_guard lock(g_RefMutex);
   if(InterlockedDecrement(&g_cRef) == 0) {
-    LoggingSystem::Destroy();
+    try {
+      LoggingSystem::Destroy();
+    } catch(...) {
+    }
   }
 }
 
@@ -120,8 +131,6 @@ STDAPI DllGetClassObject(__in REFCLSID rclsid, __in REFIID riid, __deref_out voi
 STDAPI_(BOOL) DllMain(__in HINSTANCE hinstDll, __in DWORD dwReason, __in void *) {
   switch(dwReason) {
     case DLL_PROCESS_ATTACH:
-      DisableThreadLibraryCalls(hinstDll);
-      break;
     case DLL_PROCESS_DETACH:
     case DLL_THREAD_ATTACH:
     case DLL_THREAD_DETACH:

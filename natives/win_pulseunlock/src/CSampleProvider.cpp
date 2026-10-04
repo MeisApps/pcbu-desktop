@@ -27,18 +27,21 @@ CSampleProvider::CSampleProvider()
       _fRecreateEnumeratedCredentials(true), _cpus() {
   DllAddRef();
 
-  AddFieldDescriptor(SFI_TILEIMAGE, CPFT_TILE_IMAGE, "Image", CPFG_CREDENTIAL_PROVIDER_LOGO);
-  AddFieldDescriptor(SFI_USERNAME, CPFT_SMALL_TEXT, "Username");
-  AddFieldDescriptor(SFI_MESSAGE, CPFT_SMALL_TEXT, "Message");
-  AddFieldDescriptor(SFI_PASSWORD, CPFT_PASSWORD_TEXT, I18n::Get("password"));
-  AddFieldDescriptor(SFI_SUBMIT_BUTTON, CPFT_SUBMIT_BUTTON, "Submit");
-  AddFieldDescriptor(SFI_RETRY_BUTTON, CPFT_COMMAND_LINK, I18n::Get("retry"), CPFG_STYLE_LINK_AS_BUTTON);
+  try {
+    AddFieldDescriptor(SFI_TILEIMAGE, CPFT_TILE_IMAGE, "Image", CPFG_CREDENTIAL_PROVIDER_LOGO);
+    AddFieldDescriptor(SFI_USERNAME, CPFT_SMALL_TEXT, "Username");
+    AddFieldDescriptor(SFI_MESSAGE, CPFT_SMALL_TEXT, "Message");
+    AddFieldDescriptor(SFI_PASSWORD, CPFT_PASSWORD_TEXT, I18n::Get("password"));
+    AddFieldDescriptor(SFI_SUBMIT_BUTTON, CPFT_SUBMIT_BUTTON, "Submit");
+    AddFieldDescriptor(SFI_RETRY_BUTTON, CPFT_COMMAND_LINK, I18n::Get("retry"), CPFG_STYLE_LINK_AS_BUTTON);
+  } catch(const std::exception &ex) {
+    spdlog::error("Failed to create field descriptors: {}", ex.what());
+  }
 }
 
 CSampleProvider::~CSampleProvider() {
-  for(const auto cred : _pCredentials)
-    cred->Release();
-  _pCredentials.clear();
+  UnAdvise();
+  _ReleaseEnumeratedCredentials();
   if(_pCredProviderUserArray != nullptr) {
     _pCredProviderUserArray->Release();
     _pCredProviderUserArray = nullptr;
@@ -109,20 +112,30 @@ HRESULT CSampleProvider::SetSerialization(_In_ CREDENTIAL_PROVIDER_CREDENTIAL_SE
 // Called by LogonUI to give you a callback.  Providers often use the callback if they
 // some event would cause them to need to change the set of tiles that they enumerated.
 HRESULT CSampleProvider::Advise(_In_ ICredentialProviderEvents *pcpe, _In_ UINT_PTR upAdviseContext) {
-  if(_pCredProvEvents != NULL) {
-    _pCredProvEvents->Release();
+  ICredentialProviderEvents *oldEvents = nullptr;
+  pcpe->AddRef();
+  {
+    std::lock_guard<std::mutex> lock(_eventsMutex);
+    oldEvents = _pCredProvEvents;
+    _pCredProvEvents = pcpe;
+    _upAdviseContext = upAdviseContext;
   }
-  _pCredProvEvents = pcpe;
-  _pCredProvEvents->AddRef();
-  _upAdviseContext = upAdviseContext;
+  if(oldEvents != nullptr) {
+    oldEvents->Release();
+  }
   return S_OK;
 }
 
 // Called by LogonUI when the ICredentialProviderEvents callback is no longer valid.
 HRESULT CSampleProvider::UnAdvise() {
-  if(_pCredProvEvents != NULL) {
-    _pCredProvEvents->Release();
-    _pCredProvEvents = NULL;
+  ICredentialProviderEvents *oldEvents = nullptr;
+  {
+    std::lock_guard<std::mutex> lock(_eventsMutex);
+    oldEvents = _pCredProvEvents;
+    _pCredProvEvents = nullptr;
+  }
+  if(oldEvents != nullptr) {
+    oldEvents->Release();
   }
   return S_OK;
 }
@@ -164,15 +177,22 @@ HRESULT CSampleProvider::GetCredentialCount(_Out_ DWORD *pdwCount, _Out_ DWORD *
   *pbAutoLogonWithDefault = FALSE;
 
   bool recreated = false;
-  if(_fRecreateEnumeratedCredentials) {
-    _fRecreateEnumeratedCredentials = false;
-    _ReleaseEnumeratedCredentials();
-    _CreateEnumeratedCredentials();
-    recreated = true;
+  bool forceDefaultProv{};
+  try {
+    if(_fRecreateEnumeratedCredentials) {
+      _fRecreateEnumeratedCredentials = false;
+      _ReleaseEnumeratedCredentials();
+      _CreateEnumeratedCredentials();
+      recreated = true;
+    }
+    forceDefaultProv = AppSettings::Get().winForceDefaultCredProv;
+  } catch(const std::exception &ex) {
+    spdlog::error("Failed to enumerate credentials: {}", ex.what());
+  } catch(...) {
+    spdlog::error("Failed to enumerate credentials.");
   }
 
   int idx{};
-  bool forceDefaultProv = AppSettings::Get().winForceDefaultCredProv;
   for(const auto cred : _pCredentials) {
     if(cred->IsUnlockSuccess()) {
       *pdwDefault = idx;
@@ -208,11 +228,13 @@ HRESULT CSampleProvider::GetCredentialAt(DWORD dwIndex, _Outptr_result_nullonfai
 // This function will be called by LogonUI after SetUsageScenario succeeds.
 // Sets the User Array with the list of users to be enumerated on the logon screen.
 HRESULT CSampleProvider::SetUserArray(_In_ ICredentialProviderUserArray *users) {
+  if(users != nullptr) {
+    users->AddRef();
+  }
   if(_pCredProviderUserArray) {
     _pCredProviderUserArray->Release();
   }
   _pCredProviderUserArray = users;
-  _pCredProviderUserArray->AddRef();
   return S_OK;
 }
 
@@ -230,13 +252,20 @@ void CSampleProvider::_CreateEnumeratedCredentials() {
 }
 
 void CSampleProvider::_ReleaseEnumeratedCredentials() {
-  for(const auto cred : _pCredentials)
+  std::vector<CUnlockCredential *> credentials{};
+  credentials.swap(_pCredentials);
+  for(const auto cred : credentials) {
+    cred->Shutdown();
     cred->Release();
-  _pCredentials.clear();
+  }
 }
 
 HRESULT CSampleProvider::_EnumerateCredentials() {
   HRESULT hr = S_OK;
+  if(_rgCredProvFieldDescriptors.size() != SFI_NUM_FIELDS) {
+    spdlog::error("Field descriptors are incomplete. (Count={})", _rgCredProvFieldDescriptors.size());
+    return E_UNEXPECTED;
+  }
   if(_pCredProviderUserArray != nullptr) {
     DWORD dwUserCount = 0;
     hr = _pCredProviderUserArray->GetCount(&dwUserCount);
@@ -292,12 +321,13 @@ HRESULT CSampleProvider::_EnumerateCredentials() {
   return hr;
 }
 
-void CSampleProvider::UpdateCredsStatus() const {
+ICredentialProviderEvents *CSampleProvider::GetEvents(UINT_PTR *adviseContext) const {
+  std::lock_guard<std::mutex> lock(_eventsMutex);
   if(_pCredProvEvents != nullptr) {
-    _pCredProvEvents->CredentialsChanged(_upAdviseContext);
-  } else {
-    spdlog::error("Failed to update credential provider.");
+    _pCredProvEvents->AddRef();
+    *adviseContext = _upAdviseContext;
   }
+  return _pCredProvEvents;
 }
 
 // Boilerplate code to create our provider.

@@ -42,7 +42,7 @@ void LoggingSystem::Init(const std::string &logName, bool printToConsole, bool w
       sinks.push_back(fileSink);
     }
 
-    auto loggerPtr = std::make_shared<spdlog::logger>("pcbu_logger", sinks.begin(), sinks.end());
+    auto loggerPtr = std::make_shared<spdlog::logger>(LOGGER_NAME, sinks.begin(), sinks.end());
     loggerPtr->set_pattern("[%Y-%m-%d %H:%M:%S.%e] [%l] %v");
     loggerPtr->set_level(logLevel);
     spdlog::set_default_logger(loggerPtr);
@@ -55,6 +55,9 @@ void LoggingSystem::Init(const std::string &logName, bool printToConsole, bool w
 
 void LoggingSystem::Destroy() {
   spdlog::info("Logger destroy.");
-  spdlog::shutdown();
+  auto nullLogger = std::make_shared<spdlog::logger>(NULL_LOGGER_NAME);
+  nullLogger->set_level(spdlog::level::off);
+  spdlog::set_default_logger(nullLogger);
+  spdlog::drop(LOGGER_NAME);
   g_LogName = {};
 }

@@ -5,20 +5,48 @@
 
 #include "connection/SocketDefs.h"
 
-SocketStream::SocketStream(SOCKET socket) : m_Socket(socket) {}
+#ifndef WINDOWS
+#include <poll.h>
+#endif
+
+constexpr int READ_WAIT_SLICE_MS = 100;
+
+SocketStream::SocketStream(SOCKET socket, const std::atomic<bool> *isRunning, uint32_t idleTimeoutSecs)
+    : m_Socket(socket), m_IsRunning(isRunning), m_IdleTimeout(idleTimeoutSecs), m_LastActivity(std::chrono::steady_clock::now()) {}
 
 StreamResult SocketStream::Read(uint8_t *buffer, size_t length) {
+  if(m_IsRunning != nullptr) {
+    if(!m_IsRunning->load())
+      return {0, PacketError::CLOSED_CONNECTION};
+    if(WaitReadable(READ_WAIT_SLICE_MS) == 0) {
+      if(IsIdleTimedOut())
+        return {0, PacketError::TIMEOUT};
+      return {0, PacketError::NONE};
+    }
+  }
   int result = SocketRead(m_Socket, buffer, length);
-  if(result > 0)
+  if(result > 0) {
+    m_LastActivity = std::chrono::steady_clock::now();
     return {result, PacketError::NONE};
-  return {0, GetPacketError(result, SOCKET_LAST_ERROR)};
+  }
+  auto error = GetPacketError(result, SOCKET_LAST_ERROR);
+  if(error == PacketError::NONE && IsIdleTimedOut())
+    return {0, PacketError::TIMEOUT};
+  return {0, error};
 }
 
 StreamResult SocketStream::WriteRaw(const uint8_t *buffer, size_t length) {
+  if(m_IsRunning != nullptr && !m_IsRunning->load())
+    return {0, PacketError::CLOSED_CONNECTION};
   int result = SocketWrite(m_Socket, buffer, length);
-  if(result > 0)
+  if(result > 0) {
+    m_LastActivity = std::chrono::steady_clock::now();
     return {result, PacketError::NONE};
-  return {0, GetPacketError(result, SOCKET_LAST_ERROR)};
+  }
+  auto error = GetPacketError(result, SOCKET_LAST_ERROR);
+  if(error == PacketError::NONE && IsIdleTimedOut())
+    return {0, PacketError::TIMEOUT};
+  return {0, error};
 }
 
 void SocketStream::Close() {
@@ -27,6 +55,32 @@ void SocketStream::Close() {
 
 SOCKET SocketStream::GetSocket() const {
   return m_Socket;
+}
+
+bool SocketStream::IsIdleTimedOut() const {
+  if(m_IdleTimeout.count() == 0)
+    return false;
+  if(std::chrono::steady_clock::now() - m_LastActivity < m_IdleTimeout)
+    return false;
+  spdlog::error("Socket idle timeout reached. (Timeout={}s)", m_IdleTimeout.count());
+  return true;
+}
+
+int SocketStream::WaitReadable(int timeoutMs) const {
+#ifdef WINDOWS
+  fd_set readSet{};
+  FD_ZERO(&readSet);
+  FD_SET(m_Socket, &readSet);
+  struct timeval timeout{};
+  timeout.tv_sec = timeoutMs / 1000;
+  timeout.tv_usec = (timeoutMs % 1000) * 1000;
+  return select(0, &readSet, nullptr, nullptr, &timeout);
+#else
+  struct pollfd pfd{};
+  pfd.fd = m_Socket;
+  pfd.events = POLLIN;
+  return poll(&pfd, 1, timeoutMs);
+#endif
 }
 
 PacketError SocketStream::GetPacketError(int result, int error) {

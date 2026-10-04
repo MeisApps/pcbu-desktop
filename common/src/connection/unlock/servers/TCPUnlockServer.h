@@ -12,7 +12,7 @@ public:
 
 private:
   void AcceptThread();
-  void ClientThread(SOCKET clientSocket);
+  void ClientThread(SOCKET clientSocket, uint32_t idleTimeoutSecs);
 
   SOCKET m_ServerSocket;
   std::atomic<int> m_NumConnections{};

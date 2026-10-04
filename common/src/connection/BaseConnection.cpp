@@ -7,6 +7,10 @@
 #include "Packets.h"
 #include "SocketDefs.h"
 
+#ifndef WINDOWS
+#include <poll.h>
+#endif
+
 #ifdef LINUX
 #define htonll(x) ((1 == htonl(1)) ? (x) : (((uint64_t)htonl((x) & 0xFFFFFFFFUL)) << 32) | htonl((uint32_t)((x) >> 32)))
 #define ntohll(x) ((1 == ntohl(1)) ? (x) : (((uint64_t)ntohl((x) & 0xFFFFFFFFUL)) << 32) | ntohl((uint32_t)((x) >> 32)))
@@ -39,6 +43,31 @@ bool BaseConnection::SetSocketRWTimeout(SOCKET socket, uint32_t secs) {
     return false;
   }
   return true;
+}
+
+int BaseConnection::WaitForConnection(SOCKET socket, uint32_t timeoutSecs, const std::atomic<bool> &isRunning) {
+  const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(timeoutSecs);
+  while(isRunning) {
+#ifdef WINDOWS
+    fd_set writeSet{};
+    fd_set exceptSet{};
+    FD_ZERO(&writeSet);
+    FD_ZERO(&exceptSet);
+    FD_SET(socket, &writeSet);
+    FD_SET(socket, &exceptSet);
+    struct timeval slice{};
+    slice.tv_usec = 100 * 1000;
+    auto result = select(0, nullptr, &writeSet, &exceptSet, &slice);
+#else
+    struct pollfd pfd{};
+    pfd.fd = socket;
+    pfd.events = POLLOUT;
+    auto result = poll(&pfd, 1, 100);
+#endif
+    if(result != 0 || std::chrono::steady_clock::now() >= deadline)
+      return result;
+  }
+  return 0;
 }
 
 Packet BaseConnection::ReadPacket(ConnectionStream &stream) {
