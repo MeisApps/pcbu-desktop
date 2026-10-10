@@ -412,6 +412,21 @@ Form {
                                 children[i].enabled = sshOn;
                         }
                     }
+
+                    function updateUnlockBehavior() {
+                        let settings = SettingsForm.GetServiceSettings();
+                        let loginScreenOn = true;
+                        for (let i = 0; i < settings.length; i++) {
+                            if (settings[i].id === 'macLoginScreen') {
+                                loginScreenOn = settings[i].enabled;
+                                break;
+                            }
+                        }
+                        for (let i = 0; i < children.length; i++) {
+                            if (children[i].objectName === 'unlockBehavior')
+                                children[i].enabled = loginScreenOn;
+                        }
+                    }
                 }
             }
 
@@ -504,6 +519,7 @@ Form {
 
                     ColumnLayout {
                         id: serviceSettingChoice%1
+                        objectName: \"%5\"
                         Layout.fillWidth: true
                         spacing: 2
                         property string settingId: \"%5\"
@@ -550,8 +566,11 @@ Form {
                             }
                             SettingsForm.SetServiceSettings(settings);
 
-                            // SSH Button
+                            // Update controls
+                            parent.updateUnlockBehavior();
                             parent.updateSshButton();
+
+                            // SSH Warning
                             if (serviceSettingCheckBox%1.settingId === 'ssh' && serviceSettingCheckBox%1.checked) {
                                 window.showInfoMessage(QI18n.Get('ssh_reboot_notice'));
                             }
@@ -560,6 +579,7 @@ Form {
                 ".arg(i).arg(settings[i].name).arg(settings[i].enabled ? 'true' : 'false').arg(settings[i].id), serviceSettingsLayout);
             }
         }
+        serviceSettingsLayout.updateUnlockBehavior();
 
         // SSH Button
         if (SettingsForm.GetOperatingSystem() !== 'Windows') {

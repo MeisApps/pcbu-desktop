@@ -123,9 +123,12 @@ bool LocalShell::CreateFile(const std::filesystem::path &path) {
   return file.is_open();
 }
 
-bool LocalShell::Remove(const std::filesystem::path &path) {
+bool LocalShell::Remove(const std::filesystem::path &path, bool recursive) {
   boost::system::error_code ec{};
-  boost::filesystem::remove(boost::filesystem::path(path), ec);
+  if(recursive)
+    boost::filesystem::remove_all(boost::filesystem::path(path), ec);
+  else
+    boost::filesystem::remove(boost::filesystem::path(path), ec);
   return !ec.failed();
 }
 

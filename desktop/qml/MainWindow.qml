@@ -103,6 +103,49 @@ ApplicationWindow {
         }
     }
 
+    Dialog {
+        id: accessibilityDialog
+        title: QI18n.Get('accessibility_required_title')
+        anchors.centerIn: Overlay.overlay
+        width: Math.min(window.width - 200, 600)
+        modal: true
+        closePolicy: Popup.NoAutoClose
+        ColumnLayout {
+            width: parent.width
+            Label {
+                Layout.fillWidth: true
+                wrapMode: Text.WordWrap
+                text: QI18n.Get('accessibility_required')
+            }
+            RowLayout {
+                Layout.alignment: Qt.AlignRight
+                Button {
+                    text: QI18n.Get('later')
+                    onClicked: accessibilityDialog.close()
+                }
+                Button {
+                    text: QI18n.Get('open_settings')
+                    highlighted: true
+                    onClicked: MainWindow.RequestAccessibility()
+                }
+            }
+        }
+        Timer {
+            interval: 1000
+            repeat: true
+            running: accessibilityDialog.visible
+            onTriggered: {
+                if (!MainWindow.NeedsAccessibility())
+                    accessibilityDialog.close();
+            }
+        }
+    }
+
+    function checkMacAgentPermissions() {
+        if (!accessibilityDialog.visible && MainWindow.NeedsAccessibility())
+            accessibilityDialog.open();
+    }
+
     function showFatalErrorMessage(text) {
         messageDialog.title = QI18n.Get('error');
         messageDialog.text = text;
@@ -190,6 +233,7 @@ ApplicationWindow {
         } else {
             canClose = true;
             MainWindow.Show(viewLoader);
+            checkMacAgentPermissions();
         }
         UpdaterWindow.CheckForUpdates(window);
     }

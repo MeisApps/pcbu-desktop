@@ -151,7 +151,7 @@ elif [[ "$PLATFORM" == "linux" ]]; then
 elif [[ "$PLATFORM" == "mac" ]]; then
   "$QT_BASE_DIR/macos/bin/macdeployqt" desktop/pcbu_desktop.app -qmldir=../../desktop/qml \
     -executable=desktop/pcbu_desktop.app/Contents/MacOS/pcbu_elevator
-  for binary in desktop/pcbu_desktop.app/Contents/MacOS/* natives/pcbu-auth/pcbu_auth natives/pcbu-ssh-askpass/pcbu_ssh_askpass natives/pam_pulseunlock/pam_pulseunlock.dylib; do
+  for binary in desktop/pcbu_desktop.app/Contents/MacOS/* desktop/pcbu_desktop.app/Contents/Library/PulseUnlockAgent.app/Contents/MacOS/PulseUnlockAgent natives/pcbu-auth/pcbu_auth natives/pcbu-ssh-askpass/pcbu_ssh_askpass natives/pam_pulseunlock/pam_pulseunlock.dylib; do
     if [ ! -f "$binary" ]; then
       echo "$binary is missing."
       exit 1
@@ -173,6 +173,7 @@ elif [[ "$PLATFORM" == "mac" ]]; then
     mac_sign "$framework"
   done
   mac_sign desktop/pcbu_desktop.app/Contents/MacOS/pcbu_elevator
+  mac_sign desktop/pcbu_desktop.app/Contents/Library/PulseUnlockAgent.app
   mac_sign --entitlements ../mac/entitlements.plist desktop/pcbu_desktop.app
 
   rm -Rf dmg_dir/ || true

@@ -19,7 +19,7 @@ public:
 
   static bool CreateDir(const std::filesystem::path &path);
   static bool CreateFile(const std::filesystem::path &path);
-  static bool Remove(const std::filesystem::path &path);
+  static bool Remove(const std::filesystem::path &path, bool recursive = false);
 
   static std::vector<uint8_t> ReadBytes(const std::filesystem::path &path);
   static bool WriteBytes(const std::filesystem::path &path, const std::vector<uint8_t> &data);

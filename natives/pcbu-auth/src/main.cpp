@@ -1,3 +1,6 @@
+#include <atomic>
+#include <chrono>
+#include <thread>
 #include <unistd.h>
 
 #include "handler/UnlockHandler.h"
@@ -13,6 +16,7 @@
 #endif
 
 constexpr int PASSWORD_PIPE = 3;
+constexpr int CANCEL_PIPE = 4;
 
 std::string GetServiceName() {
   auto fallback = fmt::format("PID {}", getppid());
@@ -54,14 +58,25 @@ std::string GetServiceName() {
 }
 
 int runMain(int argc, char *argv[]) {
-  if(argc != 2) {
+  if(argc != 2 && (argc != 3 || strcmp(argv[2], "--cancel-pipe") != 0)) {
     printf("Invalid parameters.\n");
     return -1;
   }
 
+  static std::atomic<bool> isRunning{true};
+  if(argc == 3) {
+    std::thread([]() {
+      char buffer{};
+      while(read(CANCEL_PIPE, &buffer, 1) > 0) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+      }
+      isRunning.store(false);
+    }).detach();
+  }
+
   std::string userName = argv[1];
   auto handler = UnlockHandler([](const std::string &s) { printf("%s\n", s.c_str()); });
-  auto result = handler.GetResult(userName, GetServiceName());
+  auto result = handler.GetResult(userName, GetServiceName(), {}, &isRunning);
   if(result.state == UnlockState::SUCCESS) {
     if(userName == result.device.userName && PlatformHelper::CheckLogin(userName, result.password).result == PlatformLoginResult::SUCCESS) {
       if(AppSettings::Get().unixSetPasswordPAM) {

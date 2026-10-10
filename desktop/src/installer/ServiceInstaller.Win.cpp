@@ -43,7 +43,7 @@ std::vector<ServiceSetting> ServiceInstaller::GetSettings() {
            {"key_press", I18n::Get("unlock_behavior_key_press")},
            {"none", I18n::Get("unlock_behavior_none")},
        },
-       AppSettings::Get().winUnlockBehavior,
+       AppSettings::Get().unlockBehavior,
        "key_press_lock_only"},
       {"hidePasswordField", I18n::Get("service_setting_hide_pw_field"), AppSettings::Get().winHidePasswordField, false},
       {"forceCredProv", I18n::Get("service_setting_force_cred_prov"), AppSettings::Get().winForceDefaultCredProv, true},
@@ -54,7 +54,7 @@ void ServiceInstaller::ApplySettings(const std::vector<ServiceSetting> &settings
   for(auto setting : settings) {
     if(setting.id == "unlockBehavior") {
       auto storage = AppSettings::Get();
-      storage.winUnlockBehavior = useDefault ? setting.defaultValue : setting.selectedValue;
+      storage.unlockBehavior = useDefault ? setting.defaultValue : setting.selectedValue;
       AppSettings::Save(storage);
     } else if(setting.id == "hidePasswordField") {
       auto storage = AppSettings::Get();

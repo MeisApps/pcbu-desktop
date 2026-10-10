@@ -28,7 +28,7 @@ public:
     clientConnectRetries = settings.clientConnectRetries;
   }
   [[nodiscard]] PCBUAppStorage ToStorage() const {
-    auto settings = PCBUAppStorage();
+    auto settings = AppSettings::Get();
     settings.machineID = machineID.toStdString();
     settings.installedVersion = installedVersion.toStdString();
     settings.language = language.toStdString();

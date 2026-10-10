@@ -273,7 +273,7 @@ void PAMHelper::CommitWithTerminal(const std::map<std::filesystem::path, std::op
   auto commandFile = stagingDir / "update.command";
   auto statusFile = PlatformHelper::GetTempDir() / fmt::format("pcbu-pam-{}.status", id);
   auto cleanup = [&]() {
-    Shell::RunCommand(fmt::format("rm -rf {}", StringUtils::ShellQuote(stagingDir.string())));
+    Shell::Remove(stagingDir, true);
     LocalShell::Remove(statusFile);
   };
 

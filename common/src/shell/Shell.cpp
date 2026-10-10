@@ -57,11 +57,11 @@ bool Shell::CreateFile(const std::filesystem::path &path) {
   return Exec(*elevator, ElevatorCommandType::CREATE_FILE, {path.string(), "false"}).has_value();
 }
 
-bool Shell::Remove(const std::filesystem::path &path) {
+bool Shell::Remove(const std::filesystem::path &path, bool recursive) {
   auto elevator = GetElevator();
   if(!elevator)
-    return LocalShell::Remove(path);
-  return Exec(*elevator, ElevatorCommandType::REMOVE, {path.string()}).has_value();
+    return LocalShell::Remove(path, recursive);
+  return Exec(*elevator, ElevatorCommandType::REMOVE, {path.string(), recursive ? "true" : "false"}).has_value();
 }
 
 std::vector<uint8_t> Shell::ReadBytes(const std::filesystem::path &path) {

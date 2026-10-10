@@ -19,6 +19,9 @@ public:
   Q_INVOKABLE QString GetInstalledVersion();
   Q_INVOKABLE QString GetLicenseText();
 
+  Q_INVOKABLE bool NeedsAccessibility();
+  Q_INVOKABLE void RequestAccessibility();
+
   Q_INVOKABLE void PerformStartupChecks(QObject *window);
 
 public slots:

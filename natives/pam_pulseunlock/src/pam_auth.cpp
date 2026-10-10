@@ -104,6 +104,9 @@ int pam_sm_authenticate(pam_handle_t *pamh, int flags, int argc, const char **ar
     if(result == 0) {
       if(!password.empty() && password[0] != '\0') {
         pam_set_item(pamh, PAM_AUTHTOK, password.c_str());
+#ifdef APPLE
+        pamResult = PAM_SUCCESS;
+#endif
       } else {
         pamResult = PAM_SUCCESS;
       }

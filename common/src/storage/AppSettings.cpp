@@ -79,10 +79,15 @@ PCBUAppStorage AppSettings::Load() {
     settings.clientConnectTimeout = json.value("clientConnectTimeout", defaults.clientConnectTimeout);
     settings.clientConnectRetries = json.value("clientConnectRetries", defaults.clientConnectRetries);
 
-    settings.winUnlockBehavior = json.value("winUnlockBehavior", defaults.winUnlockBehavior);
+    settings.unlockBehavior = json.value("unlockBehavior", json.value("winUnlockBehavior", defaults.unlockBehavior));
     settings.winHidePasswordField = json.value("winHidePasswordField", defaults.winHidePasswordField);
     settings.winForceDefaultCredProv = json.value("winForceDefaultCredProv", defaults.winForceDefaultCredProv);
+#ifdef APPLE
+    settings.unixSetPasswordPAM = true;
+#else
     settings.unixSetPasswordPAM = json.value("unixSetPasswordPAM", defaults.unixSetPasswordPAM);
+#endif
+    settings.macLoginScreen = json.value("macLoginScreen", defaults.macLoginScreen);
     if(!json.contains("machineID"))
       Write(settings);
     return settings;
@@ -104,10 +109,15 @@ PCBUAppStorage AppSettings::LoadDefaults() {
   def.clientConnectTimeout = 5;
   def.clientConnectRetries = 2;
 
-  def.winUnlockBehavior = "key_press_lock_only";
+  def.unlockBehavior = "key_press_lock_only";
   def.winHidePasswordField = false;
   def.winForceDefaultCredProv = true;
+#ifdef APPLE
+  def.unixSetPasswordPAM = true;
+#else
   def.unixSetPasswordPAM = false;
+#endif
+  def.macLoginScreen = true;
   return def;
 }
 
@@ -132,10 +142,11 @@ void AppSettings::Write(const PCBUAppStorage &storage) {
         {"clientConnectTimeout", storage.clientConnectTimeout},
         {"clientConnectRetries", storage.clientConnectRetries},
 
-        {"winUnlockBehavior", storage.winUnlockBehavior},
+        {"unlockBehavior", storage.unlockBehavior},
         {"winHidePasswordField", storage.winHidePasswordField},
         {"winForceDefaultCredProv", storage.winForceDefaultCredProv},
         {"unixSetPasswordPAM", storage.unixSetPasswordPAM},
+        {"macLoginScreen", storage.macLoginScreen},
     };
     auto baseDir = GetBaseDir();
     if(!std::filesystem::exists(baseDir))

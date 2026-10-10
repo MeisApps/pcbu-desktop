@@ -44,7 +44,10 @@ Form {
                 Layout.alignment: Qt.AlignRight
                 text: "Ok"
                 enabled: false
-                onClicked: MainWindow.Show(viewLoader)
+                onClicked: {
+                    MainWindow.Show(viewLoader);
+                    window.checkMacAgentPermissions();
+                }
             }
         }
     }

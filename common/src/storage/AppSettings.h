@@ -20,10 +20,11 @@ struct PCBUAppStorage {
   uint32_t clientConnectTimeout{};
   uint32_t clientConnectRetries{};
 
-  std::string winUnlockBehavior{};
+  std::string unlockBehavior{};
   bool winHidePasswordField{};
   bool winForceDefaultCredProv{};
   bool unixSetPasswordPAM{};
+  bool macLoginScreen{};
 };
 
 class AppSettings {

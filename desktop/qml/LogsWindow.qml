@@ -10,7 +10,8 @@ ApplicationWindow {
     height: 600
     title: QI18n.Get('logs')
 
-    property var logTexts: [QI18n.Get('loading'), QI18n.Get('loading'), QI18n.Get('loading')]
+    property var logNames: Qt.platform.os === 'osx' ? ['desktop_logs', 'module_logs', 'elevator_logs', 'mac_agent_logs'] : ['desktop_logs', 'module_logs', 'elevator_logs']
+    property var logTexts: logNames.map(function () { return QI18n.Get('loading'); })
 
     ColumnLayout {
         anchors.fill: parent
@@ -24,7 +25,7 @@ ApplicationWindow {
             id: logTabBar
             Layout.fillWidth: true
             Repeater {
-                model: ['desktop_logs', 'module_logs', 'elevator_logs']
+                model: logsWindow.logNames
                 TabButton {
                     text: QI18n.Get(modelData)
                 }
@@ -51,7 +52,7 @@ ApplicationWindow {
         LogsWindow.LoadLogs(logsWindow);
     }
 
-    function setLogs(desktopLogs, moduleLogs, elevatorLogs) {
-        logTexts = [desktopLogs, moduleLogs, elevatorLogs];
+    function setLogs(desktopLogs, moduleLogs, elevatorLogs, macAgentLogs) {
+        logTexts = [desktopLogs, moduleLogs, elevatorLogs, macAgentLogs].slice(0, logNames.length);
     }
 }

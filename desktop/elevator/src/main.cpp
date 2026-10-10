@@ -62,8 +62,10 @@ ElevatorCommandResponse ElevatorApp::HandleCommand(const ElevatorCommand &cmd) {
         auto isDir = cmd.args.at(1) == "true";
         return ToResponse(isDir ? LocalShell::CreateDir(cmd.args.at(0)) : LocalShell::CreateFile(cmd.args.at(0)));
       }
-      case ElevatorCommandType::REMOVE:
-        return ToResponse(LocalShell::Remove(cmd.args.at(0)));
+      case ElevatorCommandType::REMOVE: {
+        auto recursive = cmd.args.at(1) == "true";
+        return ToResponse(LocalShell::Remove(cmd.args.at(0), recursive));
+      }
       case ElevatorCommandType::PROTECT_FILE: {
         auto enabled = cmd.args.at(1) == "true";
         return ToResponse(LocalShell::ProtectFile(cmd.args.at(0), enabled));

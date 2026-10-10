@@ -49,6 +49,8 @@ elseif(APPLE)
             src/connection/unlock/servers/BTUnlockServer.Mac.mm
             src/platform/PlatformHelper.Mac.cpp
             src/platform/BluetoothHelper.Mac.mm
+            src/storage/MacAgentStorage.cpp
+            src/storage/MacAgentStorage.h
     )
 elseif(UNIX)
     find_package(PkgConfig REQUIRED)

@@ -5,4 +5,7 @@
         <file alias="pcbu_auth">natives/mac/arm64/pcbu_auth</file>
         <file alias="pcbu_ssh_askpass">natives/mac/arm64/pcbu_ssh_askpass</file>
     </qresource>
+    <qresource prefix="/res/mac/">
+        <file alias="com.meisapps.PulseUnlock.agent.plist">mac/com.meisapps.PulseUnlock.agent.plist</file>
+    </qresource>
 </RCC>

@@ -10,6 +10,10 @@
 #include "utils/AppInfo.h"
 #include "utils/ResourceHelper.h"
 
+#ifdef APPLE
+#include "storage/MacAgentStorage.h"
+#endif
+
 MainWindow::~MainWindow() {
   if(m_LoadingThread.joinable())
     m_LoadingThread.join();
@@ -36,6 +40,22 @@ QString MainWindow::GetLicenseText() {
   } catch(...) {
   }
   return {};
+}
+
+bool MainWindow::NeedsAccessibility() {
+#ifdef APPLE
+  if(!ServiceInstaller::IsInstalled())
+    return false;
+  return !MacAgentStorage::HasAccessibility().value_or(false);
+#else
+  return false;
+#endif
+}
+
+void MainWindow::RequestAccessibility() {
+#ifdef APPLE
+  MacAgentStorage::RequestAccessibility();
+#endif
 }
 
 void MainWindow::PerformStartupChecks(QObject *window) {

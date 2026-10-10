@@ -141,7 +141,7 @@ void CUnlockListener::Listen(ListenContext &context) {
     // Unlock behavior
     if(!context.ignoreWaitKeyPress) {
       const bool isUnlock = context.providerUsage == CPUS_UNLOCK_WORKSTATION || (context.providerUsage == CPUS_LOGON && isUserLoggedOn);
-      if(storage.winUnlockBehavior == "key_press" || (storage.winUnlockBehavior == "key_press_lock_only" && isUnlock)) {
+      if(storage.unlockBehavior == "key_press" || (storage.unlockBehavior == "key_press_lock_only" && isUnlock)) {
         Sleep(500);
         printMessage(I18n::Get("wait_key_press"));
         byte lastKeys[KEY_RANGE];
@@ -153,7 +153,7 @@ void CUnlockListener::Listen(ListenContext &context) {
             break;
           Sleep(10);
         }
-      } else if(storage.winUnlockBehavior == "foreground_always" || (storage.winUnlockBehavior == "foreground_lock_only" && isUnlock)) {
+      } else if(storage.unlockBehavior == "foreground_always" || (storage.unlockBehavior == "foreground_lock_only" && isUnlock)) {
         // HACK: Might not be 100% reliable
         DWORD currentProcessId = GetCurrentProcessId();
         while(isRunning) {

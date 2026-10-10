@@ -99,7 +99,7 @@ std::vector<NetworkInterface> NetworkHelper::GetLocalNetInterfaces(bool onlyVali
 
   std::map<std::string, NetworkInterface> ifMap{};
   for(auto ifa = ifaddr; ifa != nullptr; ifa = ifa->ifa_next) {
-    if(ifa->ifa_addr == nullptr || ifa->ifa_flags & IFF_LOOPBACK || !(ifa->ifa_flags & IFF_UP))
+    if(ifa->ifa_addr == nullptr || ifa->ifa_flags & IFF_LOOPBACK || !(ifa->ifa_flags & IFF_UP) || !(ifa->ifa_flags & IFF_RUNNING))
       continue;
     int family = ifa->ifa_addr->sa_family;
     if(family == AF_INET || family == AF_PACKET) {
@@ -165,9 +165,25 @@ std::vector<NetworkInterface> NetworkHelper::GetLocalNetInterfaces(bool onlyVali
   auto ipv4States = SCDynamicStoreCopyMultiple(store, nullptr, patterns);
   CFRelease(patterns);
   CFRelease(pattern);
-  CFRelease(store);
-  if(ipv4States == nullptr)
+  if(ipv4States == nullptr) {
+    CFRelease(store);
     return {};
+  }
+  auto isLinkDown = [&store](const std::string &ifName) {
+    auto ifNameStr = CFStringCreateWithCString(nullptr, ifName.c_str(), kCFStringEncodingUTF8);
+    if(ifNameStr == nullptr)
+      return false;
+    auto key = SCDynamicStoreKeyCreateNetworkInterfaceEntity(nullptr, kSCDynamicStoreDomainState, ifNameStr, kSCEntNetLink);
+    CFRelease(ifNameStr);
+    auto link = SCDynamicStoreCopyValue(store, key);
+    CFRelease(key);
+    if(link == nullptr)
+      return false;
+    auto active = CFGetTypeID(link) == CFDictionaryGetTypeID() ? CFDictionaryGetValue(static_cast<CFDictionaryRef>(link), kSCPropNetLinkActive) : nullptr;
+    auto isDown = active != nullptr && CFGetTypeID(active) == CFBooleanGetTypeID() && !CFBooleanGetValue(static_cast<CFBooleanRef>(active));
+    CFRelease(link);
+    return isDown;
+  };
 
   std::map<std::string, SCNetworkInterfaceRef> hwInterfaces{};
   auto scInterfaces = SCNetworkInterfaceCopyAll();
@@ -187,7 +203,7 @@ std::vector<NetworkInterface> NetworkHelper::GetLocalNetInterfaces(bool onlyVali
     netIf.ipAddress = firstString(ipv4, kSCPropNetIPv4Addresses);
     netIf.netmask = firstString(ipv4, kSCPropNetIPv4SubnetMasks);
     netIf.gateway = toString(CFDictionaryGetValue(ipv4, kSCPropNetIPv4Router));
-    if(netIf.ifName.empty() || netIf.ipAddress.empty())
+    if(netIf.ifName.empty() || netIf.ipAddress.empty() || isLinkDown(netIf.ifName))
       continue;
     if(auto it = hwInterfaces.find(netIf.ifName); it != hwInterfaces.end()) {
       auto ifType = SCNetworkInterfaceGetInterfaceType(it->second);
@@ -199,6 +215,7 @@ std::vector<NetworkInterface> NetworkHelper::GetLocalNetInterfaces(bool onlyVali
   if(scInterfaces != nullptr)
     CFRelease(scInterfaces);
   CFRelease(ipv4States);
+  CFRelease(store);
 #endif
 
   auto isVirtual = [](const NetworkInterface &netIf) {
@@ -289,8 +306,9 @@ bool NetworkHelper::HasLANConnection() {
   }
   CoUninitialize();
   return hasLAN;
+#else
+  return !GetLocalNetInterfaces(true).empty();
 #endif
-  return false;
 }
 
 NetworkInterface NetworkHelper::GetSavedNetworkInterface() {
