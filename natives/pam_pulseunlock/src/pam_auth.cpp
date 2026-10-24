@@ -45,6 +45,10 @@ int pam_sm_authenticate(pam_handle_t *pamh, int flags, int argc, const char **ar
     return PAM_IGNORE;
   }
 
+  const void *authToken = nullptr;
+  if(pam_get_item(pamh, PAM_AUTHTOK, &authToken) == PAM_SUCCESS && authToken && *static_cast<const char *>(authToken) != '\0')
+    return PAM_IGNORE;
+
   int pipeFd[2]{};
   bool hasPipe = false;
   if(!pipe(pipeFd)) {

@@ -5,6 +5,7 @@
 #include <pwd.h>
 #include <set>
 #include <string_view>
+#include <unistd.h>
 
 #import <AppKit/AppKit.h>
 #include <spdlog/spdlog.h>
@@ -93,6 +94,29 @@ bool LoginWindowInspector::SubmitPassword(const std::string &password) {
     return false;
   }
   return true;
+}
+
+bool LoginWindowInspector::FocusPasswordField(const std::function<bool()> &shouldContinue) {
+  for(auto attempt = 0; attempt < FOCUS_MAX_ATTEMPTS && shouldContinue(); attempt++) {
+    if(GetFocusedPasswordFieldFrame().has_value()) {
+      if(attempt > 0)
+        spdlog::info("Password field focused. (Attempt={})", attempt);
+      return true;
+    }
+    auto scan = ScanLoginWindow();
+    if(!scan.passwordField)
+      return false;
+    if(attempt == FOCUS_CLICK_ATTEMPT && scan.passwordFieldFrame.has_value()) {
+      spdlog::info("Password field not focused, clicking it...");
+      ClickAt(CGPointMake(CGRectGetMidX(*scan.passwordFieldFrame), CGRectGetMidY(*scan.passwordFieldFrame)));
+    } else {
+      auto error = AXUIElementSetAttributeValue(scan.passwordField.get(), kAXFocusedAttribute, kCFBooleanTrue);
+      if(error != kAXErrorSuccess)
+        spdlog::warn("Failed focusing password field. (Code={})", static_cast<int>(error));
+    }
+    usleep(FOCUS_RETRY_DELAY_US);
+  }
+  return GetFocusedPasswordFieldFrame().has_value();
 }
 
 AXUIElementRef LoginWindowInspector::CopyFocusedElement() {
@@ -252,4 +276,15 @@ std::vector<LocalUser> LoginWindowInspector::GetLocalUsers() {
   }
   endpwent();
   return result;
+}
+
+void LoginWindowInspector::ClickAt(CGPoint point) {
+  for(auto type : {kCGEventLeftMouseDown, kCGEventLeftMouseUp}) {
+    auto event = CGEventCreateMouseEvent(nullptr, type, point, kCGMouseButtonLeft);
+    if(!event)
+      continue;
+    CGEventPost(kCGHIDEventTap, event);
+    CFRelease(event);
+    usleep(CLICK_DELAY_US);
+  }
 }

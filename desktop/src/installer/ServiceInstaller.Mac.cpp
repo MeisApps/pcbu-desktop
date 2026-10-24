@@ -46,25 +46,25 @@ std::vector<ServiceSetting> ServiceInstaller::GetSettings() {
            settings.unlockBehavior,
            "key_press_lock_only"},
           {"sudo", I18n::Get("service_setting_sudo"), PAMHelper::HasConfigEntry(PAM_SUDO_LOCAL_CONFIG, PAM_CONFIG_ENTRY), true},
-          {"macOS", I18n::Get("service_setting_mac_auth_dialog"), PAMHelper::HasConfigEntry(PAM_AUTHORIZATION_CONFIG, PAM_CONFIG_ENTRY), false},
           {"macLoginScreen", I18n::Get("service_setting_mac_login_screen"), settings.macLoginScreen, true},
+          {"macAuthDialog", I18n::Get("service_setting_mac_auth_dialog"), PAMHelper::HasConfigEntry(PAM_AUTHORIZATION_CONFIG, PAM_CONFIG_ENTRY), false},
           {"ssh", I18n::Get("service_setting_ssh"), EnvHelper::IsSshEnabled(), false}};
 }
 
 void ServiceInstaller::ApplySettings(const std::vector<ServiceSetting> &settings, bool useDefault) {
   for(auto setting : settings) {
     auto isEnabled = useDefault ? setting.defaultVal : setting.enabled;
-    if(setting.id == "macLoginScreen") {
-      auto storage = AppSettings::Get();
-      storage.macLoginScreen = isEnabled;
-      AppSettings::Save(storage);
-    } else if(setting.id == "unlockBehavior") {
+    if(setting.id == "unlockBehavior") {
       auto storage = AppSettings::Get();
       storage.unlockBehavior = useDefault ? setting.defaultValue : setting.selectedValue;
       AppSettings::Save(storage);
     } else if(setting.id == "sudo") {
       m_PAMHelper.SetConfigEntry(PAM_SUDO_LOCAL_CONFIG, PAM_CONFIG_ENTRY, isEnabled);
-    } else if(setting.id == "macOS") {
+    } else if(setting.id == "macLoginScreen") {
+      auto storage = AppSettings::Get();
+      storage.macLoginScreen = isEnabled;
+      AppSettings::Save(storage);
+    } else if(setting.id == "macAuthDialog") {
       m_PAMHelper.SetConfigEntry(PAM_AUTHORIZATION_CONFIG, PAM_CONFIG_ENTRY, isEnabled);
     } else if(setting.id == "ssh") {
       EnvHelper::SetSshEnabled(isEnabled);

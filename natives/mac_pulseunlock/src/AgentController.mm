@@ -259,8 +259,11 @@ void AgentController::Inject(uint64_t generation, std::shared_ptr<std::string> p
   m_Overlay.Show(I18n::Get("unlock_success"), OverlayStyle::SUCCESS);
   auto injector = m_Mode == AgentMode::LOCK_SCREEN ? std::make_shared<PasswordInjector>() : nullptr;
   dispatch_async(m_InjectQueue, ^{
+    auto shouldContinue = [this, generation]() { return m_Generation.load() == generation; };
     if(injector) {
-      injector->Type(*password, [this, generation]() { return m_Generation.load() == generation; });
+      if(!LoginWindowInspector::FocusPasswordField(shouldContinue))
+        spdlog::info("Password field not focused, typing anyway.");
+      injector->Type(*password, shouldContinue);
     } else if(!LoginWindowInspector::SubmitPassword(*password)) {
       WipePassword(password);
       dispatch_async(dispatch_get_main_queue(), ^{

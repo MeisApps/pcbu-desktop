@@ -1,6 +1,7 @@
 #ifndef PCBU_MAC_LOGINWINDOWINSPECTOR_H
 #define PCBU_MAC_LOGINWINDOWINSPECTOR_H
 
+#include <functional>
 #include <memory>
 #include <optional>
 #include <string>
@@ -26,6 +27,7 @@ public:
   static bool IsOtherElementFocused();
   static std::string GetSelectedUser();
   static bool SubmitPassword(const std::string &password);
+  static bool FocusPasswordField(const std::function<bool()> &shouldContinue);
 
 private:
   LoginWindowInspector() = default;
@@ -39,8 +41,13 @@ private:
   static std::vector<pid_t> GetLoginWindowPids();
   static void CollectElements(AXUIElementRef element, int depth, size_t &visited, LoginWindowScan &scan);
   static std::vector<LocalUser> GetLocalUsers();
+  static void ClickAt(CGPoint point);
 
   static constexpr float MESSAGING_TIMEOUT = 0.25f;
+  static constexpr int FOCUS_MAX_ATTEMPTS = 10;
+  static constexpr int FOCUS_CLICK_ATTEMPT = 5;
+  static constexpr useconds_t FOCUS_RETRY_DELAY_US = 100000;
+  static constexpr useconds_t CLICK_DELAY_US = 10000;
   static constexpr int MAX_TREE_DEPTH = 12;
   static constexpr size_t MAX_TREE_ELEMENTS = 512;
 };
