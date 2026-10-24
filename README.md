@@ -1,16 +1,15 @@
 # PulseUnlock
 
-**Unlock your PC with your phone.** Instead of typing your password at the login screen, the lock screen or a permission prompt, just confirm it with your fingerprint or face on your Android phone.
+**Unlock your PC or Mac with your phone.** Instead of typing your password at the login screen, the lock screen or a permission prompt, just confirm it with your fingerprint or face on your phone.
 
-This repository holds the desktop app. The phone app is available on Google Play:
+This repository holds the desktop app. The phone app is available on the App Store and Google Play:
 
-<a href="https://play.google.com/store/apps/details?id=com.meisapps.pcbiounlock" target="_blank">
-<img alt="Get it on Google Play" src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png" height="80">
-</a>
+<a href="https://apps.apple.com/app/id6816902850" target="_blank"><img alt="Download on the App Store" src=".github/badges/app-store.svg" width="150" height="50"></a>
+<a href="https://play.google.com/store/apps/details?id=com.meisapps.pcbiounlock" target="_blank"><img alt="Get it on Google Play" src=".github/badges/google-play.svg" width="169" height="50"></a>
 
 ## Features
 
-- Unlock your PC with your Android phone
+- Unlock your PC or Mac with your phone, on iPhone and Android
 - Works over Wi-Fi, LAN or Bluetooth. No sign-up and no internet connection required
 - Unlock from anywhere over the internet with Cloud. No sign-up required. Traffic is end-to-end encrypted
 - Finds your PC automatically, so there is nothing to configure
@@ -18,10 +17,7 @@ This repository holds the desktop app. The phone app is available on Google Play
 - Pair multiple phones, and different phones for different user accounts
 - Wake your PC with Wake-on-LAN before unlocking it
 - Set up Linux servers without a desktop from the terminal with the `pulseunlock` command-line tool
-- Windows and Linux on x64 and ARM, plus macOS\* on Apple Silicon
-
-> [!WARNING]
-> macOS support is considered experimental and not ready for end users.
+- Windows and Linux on x64 and ARM, plus macOS on Apple silicon
 
 ### Where it works
 
@@ -36,16 +32,15 @@ This repository holds the desktop app. The phone app is available on Google Play
 - `sudo` and `polkit`
 - SSH logins for configured hosts
 
-**macOS**\*
+**macOS**
 
+- Login and lock screen
 - `sudo` and system permission prompts
 - SSH logins for configured hosts
 
-\* experimental
-
 ## Installation
 
-Download the latest release for your system from the [releases page](https://github.com/MeisApps/pcbu-desktop/releases), then follow the [installation guide](https://meis-apps.com/pc-bio-unlock/how-to-install), which walks through the system requirements, the setup and the pairing.
+Download the latest release for your system from the [releases page](https://github.com/MeisApps/pcbu-desktop/releases), then follow the [installation guide](https://meis-apps.com/pulse-unlock/how-to-install), which walks through the system requirements, the setup and the pairing.
 
 ### Linux servers without a desktop
 
@@ -160,7 +155,7 @@ cd pkg/linux && ARCH=x64 TARGET=cli ./docker-build.sh
 
 ## Troubleshooting
 
-Connection problems, pairing issues and how to get back into a PC that won't let you in are covered in the [troubleshooting guide](https://meis-apps.com/pc-bio-unlock/troubleshooting).
+Connection problems, pairing issues and how to get back into a PC that won't let you in are covered in the [troubleshooting guide](https://meis-apps.com/pulse-unlock/troubleshooting).
 
 For anything else, the app has two tools built in: a log viewer for both the app and the login component, with a _debug logging_ switch in the settings, and an unlock test that lets you try a paired device without locking your screen.
 
@@ -181,5 +176,6 @@ Issues and pull requests are welcome. A few pointers:
 ## Links
 
 - Website: [meis-apps.com](https://meis-apps.com)
+- iPhone app: [App Store](https://apps.apple.com/app/id6816902850)
 - Android app: [Google Play](https://play.google.com/store/apps/details?id=com.meisapps.pcbiounlock)
 - Support the project: [Ko-fi](https://ko-fi.com/meisapps)
