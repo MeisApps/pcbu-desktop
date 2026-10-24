@@ -24,5 +24,6 @@ target_include_directories(pam_pulseunlock PRIVATE common-cpp/src)
 target_link_libraries(pam_pulseunlock PRIVATE pam pcbu_common)
 add_custom_command(TARGET pam_pulseunlock
         POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_SOURCE_DIR}/desktop/res/natives/${TARGET_OS}/${TARGET_ARCH}
-        COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:pam_pulseunlock> ${CMAKE_SOURCE_DIR}/desktop/res/natives/${TARGET_OS}/${TARGET_ARCH})
+        COMMAND ${CMAKE_COMMAND} -E make_directory ${PCBU_NATIVES_DIR}
+        COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:pam_pulseunlock> ${PCBU_NATIVES_DIR}
+        BYPRODUCTS ${PCBU_NATIVES_DIR}/pam_pulseunlock${CMAKE_SHARED_LIBRARY_SUFFIX})

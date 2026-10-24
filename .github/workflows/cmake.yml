@@ -199,6 +199,38 @@ jobs:
           files: |
             pkg/build/PulseUnlock-arm64.AppImage
 
+  build-linux-cli-x64:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          submodules: recursive
+
+      - name: Build docker
+        run: bash -c "cd ${{github.workspace}}/pkg/linux && chmod +x docker-build.sh && ARCH=x64 TARGET=cli ./docker-build.sh"
+
+      - name: Upload
+        uses: softprops/action-gh-release@v3
+        with:
+          files: |
+            pkg/build/PulseUnlock-CLI-x64.tar.gz
+
+  build-linux-cli-arm64:
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          submodules: recursive
+
+      - name: Build docker
+        run: bash -c "cd ${{github.workspace}}/pkg/linux && chmod +x docker-build.sh && ARCH=arm64 TARGET=cli ./docker-build.sh"
+
+      - name: Upload
+        uses: softprops/action-gh-release@v3
+        with:
+          files: |
+            pkg/build/PulseUnlock-CLI-arm64.tar.gz
+
   build-mac-arm64:
     runs-on: macos-latest
     steps:

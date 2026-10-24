@@ -3,10 +3,12 @@
 .cache
 cmake-build-debug
 cmake-build-release
+cmake-build-relwithdebinfo
 cmake-nvim-debug
 cmake-nvim-release
+cmake-nvim-relwithdebinfo
 pkg/build
 common/src/generated
-desktop/res/natives
+common-desktop/res/natives
 desktop/.qmlls.ini
 compile_commands.json

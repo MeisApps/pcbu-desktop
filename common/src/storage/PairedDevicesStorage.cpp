@@ -1,5 +1,6 @@
 #include "PairedDevicesStorage.h"
 
+#include <algorithm>
 #include <nlohmann/json.hpp>
 #include <spdlog/spdlog.h>
 #include <stdexcept>
@@ -178,4 +179,14 @@ void PairedDevicesStorage::SaveDevices(const std::vector<PairedDevice> &devices)
 void PairedDevicesStorage::InvalidateCache() {
   std::unique_lock lock(g_Mutex);
   g_Cache = {};
+}
+
+bool PairedDevicesStorage::HasDevicesWithMethod(PairingMethod method) {
+  return std::ranges::any_of(GetDevices(), [method](const PairedDevice &device) { return device.pairingMethod == method; });
+}
+
+void PairedDevicesStorage::RemoveDevicesWithMethod(PairingMethod method) {
+  auto devices = GetDevices();
+  std::erase_if(devices, [method](const PairedDevice &device) { return device.pairingMethod == method; });
+  SaveDevices(devices);
 }

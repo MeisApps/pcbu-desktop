@@ -1,7 +1,10 @@
 #ifndef PCBU_DESKTOP_RESOURCEHELPER_H
 #define PCBU_DESKTOP_RESOURCEHELPER_H
 
+#include <cstdint>
+#include <span>
 #include <spdlog/spdlog.h>
+#include <string>
 #include <vector>
 
 class ResourceHelper {
@@ -14,6 +17,11 @@ public:
 
 private:
   ResourceHelper() = default;
+
+  static std::span<const uint8_t> GetResourceData(const std::string &url);
+#ifdef WINDOWS
+  static std::span<const uint8_t> LoadRcData(int id);
+#endif
 };
 
 #endif // PCBU_DESKTOP_RESOURCEHELPER_H

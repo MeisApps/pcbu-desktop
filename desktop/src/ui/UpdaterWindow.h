@@ -3,7 +3,8 @@
 
 #include <QObject>
 #include <QtQmlIntegration>
-#include <boost/filesystem.hpp>
+#include <mutex>
+#include <thread>
 
 class UpdaterWindow : public QObject {
   Q_OBJECT
@@ -19,14 +20,6 @@ public slots:
   void OnDownloadClicked(QObject *window);
 
 private:
-  static std::string GetDownloadURL();
-#ifndef WINDOWS
-  static std::string InstallUpdate(const boost::filesystem::path &downloadPath);
-#endif
-#ifdef APPLE
-  static boost::filesystem::path GetAppBundlePath();
-#endif
-
   QString m_LatestVersion{};
   std::mutex m_VersionMutex{};
   std::thread m_CheckThread{};

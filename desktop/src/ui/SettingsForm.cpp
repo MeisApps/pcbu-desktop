@@ -1,8 +1,6 @@
 #include "SettingsForm.h"
 
-#include <algorithm>
-
-#include "shell/Shell.h"
+#include "storage/LoggingSystem.h"
 #include "storage/PairedDevicesStorage.h"
 #include "utils/AppInfo.h"
 
@@ -52,35 +50,25 @@ void SettingsForm::SetServiceSettings(const QVariantList &settings) {
 }
 
 bool SettingsForm::IsDebugLoggingEnabled() {
-  return std::filesystem::exists(AppSettings::GetBaseDir() / "LOG_DEBUG");
+  return LoggingSystem::IsDebugEnabled();
 }
 
 void SettingsForm::SetDebugLoggingEnabled(bool enabled) {
-  if(enabled) {
-    if(!Shell::CreateFile(AppSettings::GetBaseDir() / "LOG_DEBUG"))
-      spdlog::error("Failed to create debug log file.");
-  } else {
-    if(!Shell::Remove(AppSettings::GetBaseDir() / "LOG_DEBUG"))
-      spdlog::error("Failed to remove debug log file.");
-  }
+  if(!LoggingSystem::SetDebugEnabled(enabled))
+    spdlog::error(enabled ? "Failed to create debug log file." : "Failed to remove debug log file.");
 }
 
 QString SettingsForm::GetOperatingSystem() {
   return QString::fromUtf8(AppInfo::GetOperatingSystem());
 }
 
-static bool IsUDPMethod(PairingMethod method) {
-  return method == PairingMethod::UDP || method == PairingMethod::MANUAL_UDP;
-}
-
 bool SettingsForm::HasUDPDevices() {
-  return std::ranges::any_of(PairedDevicesStorage::GetDevices(), [](PairedDevice &device) { return IsUDPMethod(device.pairingMethod); });
+  return PairedDevicesStorage::HasDevicesWithMethod(PairingMethod::UDP) || PairedDevicesStorage::HasDevicesWithMethod(PairingMethod::MANUAL_UDP);
 }
 
 void SettingsForm::RemoveUDPDevices() {
-  auto devices = PairedDevicesStorage::GetDevices();
-  std::erase_if(devices, [](const PairedDevice &device) { return IsUDPMethod(device.pairingMethod); });
-  PairedDevicesStorage::SaveDevices(devices);
+  PairedDevicesStorage::RemoveDevicesWithMethod(PairingMethod::UDP);
+  PairedDevicesStorage::RemoveDevicesWithMethod(PairingMethod::MANUAL_UDP);
 }
 
 void SettingsForm::Show(QObject *viewLoader) {

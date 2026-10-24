@@ -1,29 +1,17 @@
 #include "PairingForm.h"
 
-#include "installer/ServiceInstaller.h"
+#include "installer/service/ServiceInstaller.h"
 #include "platform/BluetoothHelper.h"
-#include "platform/NetworkHelper.h"
-#include "platform/PlatformHelper.h"
-#include "storage/AppSettings.h"
-#include "utils/CryptUtils.h"
 #include "utils/I18n.h"
 #include "utils/QRUtils.h"
-#include "utils/RestClient.h"
-#include "utils/StringUtils.h"
 
 PairingForm::~PairingForm() {
-  StopCloudPairing();
+  m_Session.Stop();
   m_IsBluetoothScanRunning = false;
   if(m_BluetoothScanThread.joinable())
     m_BluetoothScanThread.join();
   if(m_BluetoothPairThread.joinable())
     m_BluetoothPairThread.join();
-  if(m_PairingServer)
-    m_PairingServer->Stop();
-  if(m_CloudPairingServer)
-    m_CloudPairingServer->Stop();
-  if(m_DiscoveryBeacon)
-    m_DiscoveryBeacon->Stop();
 }
 
 PairingAssistantModel PairingForm::GetData() {
@@ -35,27 +23,17 @@ void PairingForm::SetData(const PairingAssistantModel &data) {
 }
 
 QUrl PairingForm::GetQRImage() {
-  auto qrSvg = QRUtils::GenerateSVG(BuildPairingPayload());
+  auto qrSvg = QRUtils::GenerateSVG(m_Session.GetPayload());
   qrSvg = "data:image/svg+xml;utf8," + qrSvg;
   return {QString::fromUtf8(qrSvg.c_str())};
 }
 
 QString PairingForm::GetPairingCode() {
-  auto codeStr = StringUtils::WithSeperators(StringUtils::ToBase32String(BuildPairingPayload()), "-", 5);
-  return QString::fromUtf8(codeStr);
+  return QString::fromUtf8(m_Session.GetPairingCode());
 }
 
 bool PairingForm::HasBluetooth() {
   return BluetoothHelper::IsAvailable();
-}
-
-std::string PairingForm::BuildPairingPayload() {
-  auto settings = AppSettings::Get();
-  auto method = PairingMethodUtils::FromString(m_PairingData.pairingMethod.toStdString());
-  if(m_PairingData.useLegacyPairing && method != PairingMethod::CLOUD) {
-    return LegacyPairingQRData(NetworkHelper::GetSavedNetworkInterface().ipAddress, settings.pairingServerPort, method, m_EncKey).ToJson().dump();
-  }
-  return PairingQRData(m_ServerId, settings.pairingDiscoveryPort, method, m_EncKey).ToJson().dump();
 }
 
 void PairingForm::ReportPairingSuccess(QObject *viewLoader, QObject *window) {
@@ -76,58 +54,6 @@ void PairingForm::OnPairingError(QObject *viewLoader, QObject *window, const QSt
   QMetaObject::invokeMethod(window, "showErrorMessage", Q_ARG(QVariant, error));
   if(m_CurrentStep == PairingStep::QR_SCAN)
     OnBackClicked(viewLoader, window);
-}
-
-void PairingForm::BeginCloudPairing(QObject *viewLoader, QObject *window) {
-  StopCloudPairing();
-  m_CloudPollClient = std::make_unique<HttpClient>();
-  m_IsCloudPollRunning = true;
-  m_CloudPollThread = std::thread(&PairingForm::CloudPollThread, this, viewLoader, window);
-}
-
-void PairingForm::StopCloudPairing() {
-  m_IsCloudPollRunning = false;
-  if(m_CloudPollClient)
-    m_CloudPollClient->Cancel();
-  if(m_CloudPollThread.joinable())
-    m_CloudPollThread.join();
-  m_CloudPollClient.reset();
-}
-
-void PairingForm::CloudPollThread(QObject *viewLoader, QObject *window) {
-  auto pollSecret = m_PollSecret;
-  auto startTime = std::chrono::steady_clock::now();
-  auto lastPollTime = startTime - CloudPollInterval;
-  auto failures = 0;
-  while(m_IsCloudPollRunning) {
-    if(std::chrono::steady_clock::now() - startTime > std::chrono::seconds(CloudPairingTimeoutSecs)) {
-      ReportPairingError(viewLoader, window, I18n::Get("error_cloud_pairing_expired"));
-      return;
-    }
-    if(std::chrono::steady_clock::now() - lastPollTime >= CloudPollInterval) {
-      lastPollTime = std::chrono::steady_clock::now();
-      auto result = RestClient::PollCloudPairing(pollSecret, m_CloudPollClient.get());
-      if(result.status == CloudPairingStatus::Ok) {
-        if(m_CloudPairingServer)
-          m_CloudPairingServer->ConnectRelay(result.info.relayUrl, result.info.sessionId, result.info.joinToken);
-        return;
-      }
-      if(result.status == CloudPairingStatus::Pending) {
-        failures = 0;
-      } else if(result.status != CloudPairingStatus::ServerUnreachable || ++failures >= 5) {
-        if(m_IsCloudPollRunning) {
-          auto key = "error_cloud_pairing";
-          if(result.status == CloudPairingStatus::ServerUnreachable)
-            key = "error_cloud_unreachable";
-          else if(result.status == CloudPairingStatus::UnsupportedVersion)
-            key = "error_protocol_mismatch";
-          ReportPairingError(viewLoader, window, I18n::Get(key));
-        }
-        return;
-      }
-    }
-    std::this_thread::sleep_for(std::chrono::milliseconds(50));
-  }
 }
 
 void PairingForm::SetSkipPasswordCheck(bool skip) {
@@ -181,69 +107,17 @@ void PairingForm::UpdateStepForm(QObject *viewLoader, QObject *window) {
 
   // Pairing server
   if(m_CurrentStep == PairingStep::QR_SCAN) {
-    StopCloudPairing();
-    if(m_PairingServer) {
-      m_PairingServer->Stop();
-    }
-    if(m_CloudPairingServer) {
-      m_CloudPairingServer->Stop();
-    }
-    m_PairingServer.reset();
-    m_CloudPairingServer.reset();
-    if(m_DiscoveryBeacon) {
-      m_DiscoveryBeacon->Stop();
-      m_DiscoveryBeacon.reset();
-    }
-
     auto successCallback = [this, viewLoader, window]() { ReportPairingSuccess(viewLoader, window); };
     auto errorCallback = [this, viewLoader, window](const std::string &error) { ReportPairingError(viewLoader, window, error); };
-    auto method = PairingMethodUtils::FromString(m_PairingData.pairingMethod.toStdString());
-    auto isCloud = method == PairingMethod::CLOUD;
-    if(isCloud)
-      m_CloudPairingServer = std::make_unique<CloudPairingServer>(successCallback, errorCallback);
-    else
-      m_PairingServer = std::make_unique<TCPPairingServer>(successCallback, errorCallback);
-    m_ServerId = StringUtils::RandomString(8);
-    m_EncKey = StringUtils::RandomString(64);
-    if(isCloud) {
-      m_PollSecret = StringUtils::RandomString(48);
-      m_ServerId = CryptUtils::Sha256(m_PollSecret);
-    }
     auto uiData = PairingUIData();
     uiData.userName = m_PairingData.userName.toStdString();
     uiData.password = m_PairingData.password.toStdString();
-    uiData.encKey = m_EncKey;
-    uiData.method = method;
-    uiData.macAddress = NetworkHelper::GetSavedNetworkInterface().macAddress;
+    uiData.method = PairingMethodUtils::FromString(m_PairingData.pairingMethod.toStdString());
     uiData.btAddress = m_PairingData.bluetoothAddress.toStdString();
     uiData.useLegacy = m_PairingData.useLegacyPairing;
-    if(isCloud) {
-      m_CloudPairingServer->Start(uiData);
-      BeginCloudPairing(viewLoader, window);
-    } else {
-      m_PairingServer->Start(uiData);
-    }
-    if(!m_PairingData.useLegacyPairing && !isCloud) {
-      m_DiscoveryBeacon = std::make_unique<UDPPairingBroadcaster>(m_ServerId, m_EncKey);
-      m_DiscoveryBeacon->Start();
-    }
+    m_Session.Start(uiData, successCallback, errorCallback);
   } else {
-    StopCloudPairing();
-    m_ServerId = {};
-    m_PollSecret = {};
-    m_EncKey = {};
-    if(m_PairingServer) {
-      m_PairingServer->Stop();
-    }
-    if(m_CloudPairingServer) {
-      m_CloudPairingServer->Stop();
-    }
-    m_PairingServer.reset();
-    m_CloudPairingServer.reset();
-    if(m_DiscoveryBeacon) {
-      m_DiscoveryBeacon->Stop();
-      m_DiscoveryBeacon.reset();
-    }
+    m_Session.Stop();
   }
 
   // Bluetooth scanner
@@ -337,64 +211,17 @@ void PairingForm::OnBackClicked(QObject *viewLoader, QObject *window) {
 
 void PairingForm::OnNextClicked(QObject *viewLoader, QObject *window) {
   if(m_CurrentStep == PairingStep::USER_PASSWORD_SELECT) {
-#ifdef WINDOWS
-    auto userNameStr = m_PairingData.userName.toStdString();
-    if(StringUtils::Split(userNameStr, "\\").size() != 2 && userNameStr.find('@') == std::string::npos) {
-      QMetaObject::invokeMethod(window, "showErrorMessage", Q_ARG(QVariant, QString::fromUtf8(I18n::Get("error_win_invalid_user"))));
-      return;
-    }
-#endif
     auto skipPasswordCheck = m_SkipPasswordCheck;
     m_SkipPasswordCheck = false;
-    if(!skipPasswordCheck) {
-      if(!PlatformHelper::HasUserPassword(m_PairingData.userName.toStdString())) {
-        auto errorStr = m_PairingData.isManualUserName ? I18n::Get("error_invalid_user_or_no_password") : I18n::Get("error_user_no_password");
-        QMetaObject::invokeMethod(window, "showErrorMessage", Q_ARG(QVariant, QString::fromUtf8(errorStr)));
+    auto check = PairingSession::CheckCredentials(m_PairingData.userName.toStdString(), m_PairingData.password.toStdString(),
+                                                  m_PairingData.isManualUserName, skipPasswordCheck);
+    if(!check.error.empty()) {
+      if(check.canSkip) {
+        QMetaObject::invokeMethod(window, "showSkipPasswordCheckMessage", Q_ARG(QVariant, QString::fromUtf8(check.error)));
         return;
       }
-      auto loginStatus = PlatformHelper::CheckLogin(m_PairingData.userName.toStdString(), m_PairingData.password.toStdString());
-      std::string errorStr{};
-      bool canSkipCheck = false;
-      switch(loginStatus.result) {
-        case PlatformLoginResult::INVALID_USER:
-          errorStr = I18n::Get("error_invalid_user_input");
-          break;
-        case PlatformLoginResult::INVALID_PASSWORD:
-          errorStr = m_PairingData.isManualUserName ? I18n::Get("error_invalid_user_or_incorrect_password") : I18n::Get("error_incorrect_password");
-          canSkipCheck = true;
-          break;
-        case PlatformLoginResult::ACCOUNT_LOCKED:
-          errorStr = I18n::Get("error_win_account_locked");
-          break;
-        case PlatformLoginResult::ACCOUNT_RESTRICTED:
-          errorStr = I18n::Get("error_win_account_restricted");
-          break;
-        case PlatformLoginResult::PW_EXPIRED:
-          errorStr = I18n::Get("error_win_password_expired");
-          break;
-        case PlatformLoginResult::ACCOUNT_DISABLED:
-          errorStr = I18n::Get("error_account_disabled");
-          break;
-        case PlatformLoginResult::LOGON_TYPE_DENIED:
-          errorStr = I18n::Get("error_win_logon_type_denied");
-          break;
-        case PlatformLoginResult::UNKNOWN_ERROR: {
-          errorStr = I18n::Get("error_login_unknown");
-          if(loginStatus.errorCode != 0)
-            errorStr = I18n::Get("error_with_code", errorStr, loginStatus.errorCode);
-          break;
-        }
-        case PlatformLoginResult::SUCCESS:
-          break;
-      }
-      if(!errorStr.empty()) {
-        if(canSkipCheck) {
-          QMetaObject::invokeMethod(window, "showSkipPasswordCheckMessage", Q_ARG(QVariant, QString::fromUtf8(errorStr)));
-          return;
-        }
-        QMetaObject::invokeMethod(window, "showErrorMessage", Q_ARG(QVariant, QString::fromUtf8(errorStr)));
-        return;
-      }
+      QMetaObject::invokeMethod(window, "showErrorMessage", Q_ARG(QVariant, QString::fromUtf8(check.error)));
+      return;
     }
   }
 

@@ -7,7 +7,7 @@
 #include <QStringList>
 #include <QtQmlIntegration>
 
-#include "installer/ServiceInstaller.h"
+#include "installer/service/ServiceInstaller.h"
 #include "storage/AppSettings.h"
 
 struct AppSettingsModel {

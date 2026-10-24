@@ -2,9 +2,8 @@
 
 #include <QDir>
 
+#include "ssh/SshServerHelper.h"
 #include "storage/PairedDevicesStorage.h"
-#include "utils/CryptUtils.h"
-#include "utils/I18n.h"
 #include "utils/StringUtils.h"
 
 SshServersWindow::~SshServersWindow() {
@@ -43,33 +42,13 @@ bool SshServersWindow::AddServer(QObject *dialog, const QString &deviceId, const
 
   m_IsRunning.store(true);
   m_UnlockThread = std::thread([this, dialog, device, hostStr, userStr, keyStr, passStr]() {
-    auto result = m_UnlockHandler->GetResult(device->userName, "Add server (SSH)", {device->id}, &m_IsRunning);
-    auto ok = false;
-    auto error = QString();
-    if(result.state != UnlockState::SUCCESS) {
-      error = QString::fromUtf8(UnlockStateUtils::ToString(result.state));
-    } else if(result.device.id != device->id || result.passwordKey.empty()) {
-      error = QString::fromUtf8(I18n::Get("error_ssh_wrong_device"));
-    } else {
-      auto enc = CryptUtils::EncryptAES(passStr, result.passwordKey);
-      auto newDevice = PairedDevicesStorage::GetDeviceByID(device->id);
-      if(!enc.has_value()) {
-        error = QString::fromUtf8(I18n::Get("error_ssh_encrypt"));
-      } else if(!newDevice.has_value()) {
-        error = QString::fromUtf8(I18n::Get("error_unknown"));
-      } else {
-        auto server = SshServer();
-        server.host = hostStr;
-        server.user = userStr;
-        server.keyPath = keyStr;
-        server.passwordEnc = enc.value();
-        newDevice->sshServers.emplace_back(server);
-        PairedDevicesStorage::AddDevice(newDevice.value());
-        ok = true;
-      }
-    }
+    auto server = SshServer();
+    server.host = hostStr;
+    server.user = userStr;
+    server.keyPath = keyStr;
+    auto error = SshServerHelper::AddServer(*m_UnlockHandler, device.value(), server, passStr, &m_IsRunning);
     m_IsRunning.store(false);
-    QMetaObject::invokeMethod(dialog, "finishAdd", Q_ARG(QVariant, ok), Q_ARG(QVariant, error));
+    QMetaObject::invokeMethod(dialog, "finishAdd", Q_ARG(QVariant, error.empty()), Q_ARG(QVariant, QString::fromUtf8(error)));
   });
   return true;
 }
@@ -81,9 +60,5 @@ void SshServersWindow::CancelAdd() {
 }
 
 void SshServersWindow::RemoveServer(const QString &deviceId, int serverIndex) {
-  auto device = PairedDevicesStorage::GetDeviceByID(deviceId.toStdString());
-  if(!device.has_value() || serverIndex < 0 || serverIndex >= (int)device->sshServers.size())
-    return;
-  device->sshServers.erase(device->sshServers.begin() + serverIndex);
-  PairedDevicesStorage::AddDevice(device.value());
+  SshServerHelper::RemoveServer(deviceId.toStdString(), serverIndex);
 }

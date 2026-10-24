@@ -1,0 +1,14 @@
+FROM ubuntu:24.04
+RUN apt-get update && apt-get install -y build-essential pkg-config cmake git file
+RUN apt-get install -y libssl-dev libpam-dev libcrypt-dev libbluetooth-dev
+
+ARG ARCH=x64
+ENV ARCH=${ARCH}
+ENV LANG C.UTF-8
+ENV LC_ALL C.UTF-8
+
+WORKDIR /project
+COPY . .
+WORKDIR /project/pkg
+RUN chmod +x build-desktop.sh
+ENTRYPOINT ["bash", "-c", "cd /project/pkg && TARGET=cli PLATFORM=linux ./build-desktop.sh"]

@@ -47,6 +47,9 @@ public:
 
   static void InvalidateCache();
 
+  static bool HasDevicesWithMethod(PairingMethod method);
+  static void RemoveDevicesWithMethod(PairingMethod method);
+
 private:
   static std::vector<PairedDevice> Load();
 

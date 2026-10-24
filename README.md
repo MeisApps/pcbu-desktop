@@ -17,6 +17,7 @@ This repository holds the desktop app. The phone app is available on Google Play
 - Pair by scanning a QR code, or by entering a pairing code by hand
 - Pair multiple phones, and different phones for different user accounts
 - Wake your PC with Wake-on-LAN before unlocking it
+- Set up Linux servers without a desktop from the terminal with the `pulseunlock` command-line tool
 - Windows and Linux on x64 and ARM, plus macOS\* on Apple Silicon
 
 > [!WARNING]
@@ -45,6 +46,24 @@ This repository holds the desktop app. The phone app is available on Google Play
 ## Installation
 
 Download the latest release for your system from the [releases page](https://github.com/MeisApps/pcbu-desktop/releases), then follow the [installation guide](https://meis-apps.com/pc-bio-unlock/how-to-install), which walks through the system requirements, the setup and the pairing.
+
+### Linux servers without a desktop
+
+For machines without a graphical session, download `PulseUnlock-CLI-x64.tar.gz` or `PulseUnlock-CLI-arm64.tar.gz` instead. It contains `pulseunlock`, a command-line tool that does everything the desktop app does from a terminal, including over SSH.
+
+```bash
+tar -xzf PulseUnlock-CLI-x64.tar.gz
+cd PulseUnlock-CLI-*-x64
+sudo ./install.sh
+sudo pulseunlock install
+sudo pulseunlock pair
+```
+
+`pair` asks for the user, their password and the pairing method, then shows a QR code in the terminal to scan with the phone app, along with a pairing code you can type in instead. Every prompt also has an option, so the setup can be scripted. `pulseunlock help` lists all commands, and `sudo pulseunlock update` keeps the tool and the modules up to date.
+
+The server needs bash, OpenSSL 3 and `libcrypt.so.1` (`libxcrypt-compat` on some distributions). `libbluetooth` is only needed for Bluetooth pairing.
+
+The desktop app installs the same tool to `/usr/bin/pulseunlock` on Linux and `/usr/local/bin/pulseunlock` on macOS, so it is available there as well.
 
 ## How it works
 
@@ -86,7 +105,7 @@ Found a security issue? Please report it privately through [GitHub security advi
 
 ## Building from source
 
-You need CMake 3.22+, a C++23 compiler, Qt 6 and OpenSSL 3. Boost, spdlog and nlohmann/json are downloaded automatically during configuration.
+You need CMake 3.22+, a C++23 compiler, OpenSSL 3 and, for the desktop app, Qt 6. Boost, spdlog and nlohmann/json are downloaded automatically during configuration.
 
 **Windows**: Visual Studio 2026, the Windows SDK, [Inno Setup](https://jrsoftware.org/isinfo.php) for the installer, and [vcpkg](https://github.com/microsoft/vcpkg) with `VCPKG_ROOT` set:
 
@@ -122,6 +141,8 @@ cmake --build build
 
 Qt is detected automatically; pass `-DQT_BASE_DIR=<path>` to pick a specific installation.
 
+Both the desktop app and the `pulseunlock` CLI are built by default. Pass `-DPCBU_BUILD_GUI=OFF` to build without Qt, which leaves the CLI and the login components, or `-DPCBU_BUILD_CLI=OFF` to skip the CLI.
+
 ### Packaging
 
 From the `pkg` directory, `./build-desktop.sh` builds and packages a release: a setup executable on Windows, an AppImage on Linux, or a disk image on macOS. Platform, architecture and Qt path are detected automatically, or can be set through the `PLATFORM`, `ARCH` and `QT_BASE_DIR` environment variables.
@@ -130,11 +151,20 @@ From the `pkg` directory, `./build-desktop.sh` builds and packages a release: a 
 cd pkg && ./build-desktop.sh
 ```
 
+On Linux, `TARGET=cli ./build-desktop.sh` builds the CLI package (`PulseUnlock-CLI-<arch>.tar.gz`) instead, without Qt. Both packages can also be built in Docker from `pkg/linux`:
+
+```bash
+cd pkg/linux && ARCH=x64 QT_VERSION=6.10.2 ./docker-build.sh
+cd pkg/linux && ARCH=x64 TARGET=cli ./docker-build.sh
+```
+
 ## Troubleshooting
 
 Connection problems, pairing issues and how to get back into a PC that won't let you in are covered in the [troubleshooting guide](https://meis-apps.com/pc-bio-unlock/troubleshooting).
 
 For anything else, the app has two tools built in: a log viewer for both the app and the login component, with a _debug logging_ switch in the settings, and an unlock test that lets you try a paired device without locking your screen.
+
+On the command line, the same tools are `sudo pulseunlock logs`, `sudo pulseunlock debug-log on` and `sudo pulseunlock test <device-id>`, with the device IDs listed by `sudo pulseunlock devices`.
 
 ## Contributing
 

@@ -1,6 +1,6 @@
 #include "ServiceInstaller.h"
 
-#include "EnvHelper.h"
+#include "installer/helpers/EnvHelper.h"
 #include "shell/LocalShell.h"
 #include "shell/Shell.h"
 #include "storage/AppSettings.h"
@@ -137,6 +137,8 @@ void ServiceInstaller::Install() {
   if(!result)
     throw std::runtime_error(I18n::Get("error_exec_setuid", askpassPath.string()));
 
+  InstallCli();
+
   // Migration
   m_PAMHelper.MigrateConfigEntry("sudo", PAM_CONFIG_ENTRY_OLD, PAM_CONFIG_ENTRY);
   m_PAMHelper.MigrateConfigEntry("polkit-1", PAM_CONFIG_ENTRY_OLD, PAM_CONFIG_ENTRY);
@@ -257,6 +259,8 @@ void ServiceInstaller::Uninstall(bool fullUninstall) {
     if(!result)
       throw std::runtime_error(I18n::Get("error_selinux_policy_uninstall"));
   }
+  if(fullUninstall)
+    UninstallCli();
   m_Logger("Done.");
 }
 

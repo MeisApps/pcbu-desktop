@@ -8,7 +8,7 @@
 
 #include "utils/I18n.h"
 #if defined(LINUX) || defined(APPLE)
-#include "PAMHelper.h"
+#include "installer/helpers/PAMHelper.h"
 #endif
 
 struct ServiceSettingOption {
@@ -55,6 +55,10 @@ public:
 
 private:
   static bool IsProgramInstalled(const std::string &pathName);
+#if defined(LINUX) || defined(APPLE)
+  void InstallCli();
+  void UninstallCli();
+#endif
 
   std::function<void(const std::string &)> m_Logger{};
 #if defined(LINUX) || defined(APPLE)

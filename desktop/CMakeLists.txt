@@ -41,53 +41,14 @@ qt_policy(SET QTP0004 NEW)
 if(WIN32)
     add_compile_definitions(WINDOWS _WIN32_WINNT=0x0A00)
     set(PLATFORM_SRC
-            src/installer/WinFirewallHelper.cpp
-            src/installer/WinFirewallHelper.h
-            src/installer/ServiceInstaller.Win.cpp
             src/winres.rc)
-
-    if(TARGET_ARCH STREQUAL "x64")
-        set(PLATFORM_RES res/resources_win_x64.qrc)
-    elseif(TARGET_ARCH STREQUAL "arm64")
-        set(PLATFORM_RES res/resources_win_arm64.qrc)
-    else()
-        message(FATAL_ERROR "Undefined resources for ${TARGET_ARCH} on WINDOWS.")
-    endif()
 elseif(APPLE)
     add_compile_definitions(APPLE)
-    set(PLATFORM_SRC
-            src/installer/EnvHelper.cpp
-            src/installer/EnvHelper.h
-            src/installer/PAMHelper.cpp
-            src/installer/PAMHelper.h
-            src/installer/ServiceInstaller.Mac.cpp
-    )
-
-    if(TARGET_ARCH STREQUAL "arm64")
-        set(PLATFORM_RES res/resources_mac_arm64.qrc)
-    else()
-        message(FATAL_ERROR "Undefined resources for ${TARGET_ARCH} on APPLE.")
-    endif()
 elseif(UNIX)
     add_compile_definitions(LINUX)
-    set(PLATFORM_SRC
-            src/installer/EnvHelper.cpp
-            src/installer/EnvHelper.h
-            src/installer/PAMHelper.cpp
-            src/installer/PAMHelper.h
-            src/installer/ServiceInstaller.Linux.cpp
-    )
-
-    if(TARGET_ARCH STREQUAL "x64")
-        set(PLATFORM_RES res/resources_linux_x64.qrc)
-    elseif(TARGET_ARCH STREQUAL "arm64")
-        set(PLATFORM_RES res/resources_linux_arm64.qrc)
-    else()
-        message(FATAL_ERROR "Undefined resources for ${TARGET_ARCH} on LINUX.")
-    endif()
 endif()
 
-include_directories(src src/ui src/ui/helpers src/ui/models ../deps)
+include_directories(src src/ui src/ui/helpers src/ui/models)
 set(QML_FILES
         qml/MainWindow.qml
         qml/AboutWindow.qml
@@ -136,17 +97,10 @@ set(UI_SRC_FILES
         src/ui/helpers/I18nWrapper.h
 )
 qt_add_executable(pcbu_desktop
-        ../deps/qrcodegen.cpp
         qml/resources.qrc
         res/resources.qrc
-        ${PLATFORM_RES}
 
         src/main.cpp
-        src/installer/ServiceInstaller.h
-        src/utils/QRUtils.cpp
-        src/utils/QRUtils.h
-        src/utils/ResourceHelper.cpp
-        src/utils/ResourceHelper.h
         ${PLATFORM_SRC}
 )
 qt_add_qml_module(pcbu_desktop
@@ -163,7 +117,7 @@ target_link_libraries(pcbu_desktop PRIVATE
         Qt::Gui
         Qt::Quick
         Qt::QuickControls2
-        pcbu_common
+        pcbu_common_desktop
 )
 
 add_custom_command(TARGET pcbu_desktop POST_BUILD
@@ -173,6 +127,16 @@ add_custom_command(TARGET pcbu_desktop POST_BUILD
     COMMENT "Copying elevator..."
 )
 set_property(TARGET pcbu_desktop APPEND PROPERTY LINK_DEPENDS $<TARGET_FILE:pcbu_elevator>)
+
+if(PCBU_BUILD_CLI AND NOT WIN32)
+    add_custom_command(TARGET pcbu_desktop POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy
+                $<TARGET_FILE:pcbu_cli>
+                $<TARGET_FILE_DIR:pcbu_desktop>
+        COMMENT "Copying CLI..."
+    )
+    set_property(TARGET pcbu_desktop APPEND PROPERTY LINK_DEPENDS $<TARGET_FILE:pcbu_cli>)
+endif()
 
 if(APPLE)
     include(MacAppIcon)

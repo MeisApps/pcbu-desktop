@@ -1,8 +1,8 @@
 #include "ServiceInstaller.h"
 
-#include <QCoreApplication>
+#include <boost/dll/runtime_symbol_info.hpp>
 
-#include "EnvHelper.h"
+#include "installer/helpers/EnvHelper.h"
 #include "shell/Shell.h"
 #include "storage/AppSettings.h"
 #include "utils/ResourceHelper.h"
@@ -113,7 +113,7 @@ void ServiceInstaller::Install() {
 
   // Agent
   m_Logger("Installing lock screen agent...");
-  auto agentSrc = std::filesystem::path(QCoreApplication::applicationDirPath().toStdString()) / ".." / "Library" / AGENT_BUNDLE_NAME;
+  auto agentSrc = std::filesystem::path(boost::dll::program_location().parent_path().string()) / ".." / "Library" / AGENT_BUNDLE_NAME;
   if(!std::filesystem::exists(agentSrc))
     throw std::runtime_error(I18n::Get("error_mac_agent_missing"));
 
@@ -141,6 +141,8 @@ void ServiceInstaller::Install() {
                                             AGENT_LABEL, plistPath.string()));
   if(cmdResult.exitCode != 0)
     m_Logger(fmt::format("Failed starting lock screen agent: {}", cmdResult.output));
+
+  InstallCli();
 
   // Migration
   m_PAMHelper.MigrateConfigEntry(PAM_AUTHORIZATION_CONFIG, PAM_CONFIG_ENTRY_OLD, PAM_CONFIG_ENTRY);
@@ -215,6 +217,7 @@ void ServiceInstaller::Uninstall(bool fullUninstall) {
   if(fullUninstall) {
     Shell::Remove(AGENT_INSTALL_DIR);
     Shell::RunCommand(fmt::format("tccutil reset Accessibility {}", AGENT_BUNDLE_ID));
+    UninstallCli();
   }
 
   m_Logger("Done.");

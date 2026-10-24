@@ -2,13 +2,10 @@
 #define PCBU_DESKTOP_PAIRINGFORM_H
 
 #include <QtQmlIntegration>
-#include <chrono>
 #include <stack>
+#include <thread>
 
-#include "connection/pairing/CloudPairingServer.h"
-#include "connection/pairing/TCPPairingServer.h"
-#include "connection/pairing/UDPPairingBroadcaster.h"
-#include "connection/web/HttpClient.h"
+#include "pairing/PairingSession.h"
 
 enum class PairingStep { USER_PASSWORD_SELECT, METHOD_TYPE_SELECT, METHOD_SELECT, BLUETOOTH_DEVICE_SELECT, BLUETOOTH_PAIRING, QR_SCAN, NONE };
 
@@ -68,24 +65,12 @@ private:
   PairingStep GetNextStep();
   void UpdateStepForm(QObject *viewLoader, QObject *window);
 
-  std::string BuildPairingPayload();
-
   void ReportPairingSuccess(QObject *viewLoader, QObject *window);
   void ReportPairingError(QObject *viewLoader, QObject *window, const std::string &error);
-
-  void BeginCloudPairing(QObject *viewLoader, QObject *window);
-  void StopCloudPairing();
-  void CloudPollThread(QObject *viewLoader, QObject *window);
-
-  static constexpr int CloudPairingTimeoutSecs = 300;
-  static constexpr auto CloudPollInterval = std::chrono::seconds(1);
 
   PairingStep m_CurrentStep{};
   std::stack<PairingStep> m_StepStack{};
 
-  std::string m_EncKey{};
-  std::string m_ServerId{};
-  std::string m_PollSecret{};
   PairingAssistantModel m_PairingData{};
   bool m_SkipPasswordCheck{};
 
@@ -93,13 +78,7 @@ private:
   std::thread m_BluetoothScanThread{};
   std::thread m_BluetoothPairThread{};
 
-  std::atomic<bool> m_IsCloudPollRunning{};
-  std::thread m_CloudPollThread{};
-  std::unique_ptr<HttpClient> m_CloudPollClient{};
-
-  std::unique_ptr<TCPPairingServer> m_PairingServer = nullptr;
-  std::unique_ptr<CloudPairingServer> m_CloudPairingServer = nullptr;
-  std::unique_ptr<UDPPairingBroadcaster> m_DiscoveryBeacon = nullptr;
+  PairingSession m_Session{};
 };
 
 #endif // PCBU_DESKTOP_PAIRINGFORM_H

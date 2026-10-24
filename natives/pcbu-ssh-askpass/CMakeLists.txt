@@ -21,5 +21,6 @@ target_include_directories(pcbu_ssh_askpass PRIVATE src)
 target_link_libraries(pcbu_ssh_askpass PRIVATE pcbu_common)
 add_custom_command(TARGET pcbu_ssh_askpass
         POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_SOURCE_DIR}/desktop/res/natives/${TARGET_OS}/${TARGET_ARCH}
-        COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:pcbu_ssh_askpass> ${CMAKE_SOURCE_DIR}/desktop/res/natives/${TARGET_OS}/${TARGET_ARCH})
+        COMMAND ${CMAKE_COMMAND} -E make_directory ${PCBU_NATIVES_DIR}
+        COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:pcbu_ssh_askpass> ${PCBU_NATIVES_DIR}
+        BYPRODUCTS ${PCBU_NATIVES_DIR}/pcbu_ssh_askpass${CMAKE_EXECUTABLE_SUFFIX})

@@ -14,6 +14,8 @@
 #elif LINUX
 #include <bluetooth/bluetooth.h>
 #include <bluetooth/rfcomm.h>
+
+#include "platform/LibBluetooth.h"
 #endif
 
 BTUnlockClient::BTUnlockClient(const std::string &deviceAddress, const PairedDevice &device) : BaseUnlockConnection(device) {
@@ -77,7 +79,7 @@ void BTUnlockClient::ConnectThread() {
   struct sockaddr_rc address = {0};
   address.rc_family = AF_BLUETOOTH;
   address.rc_channel = m_Channel;
-  str2ba(m_DeviceAddress.c_str(), &address.rc_bdaddr);
+  LibBluetooth::str2ba(m_DeviceAddress.c_str(), &address.rc_bdaddr);
 #endif
 
 socketStart:

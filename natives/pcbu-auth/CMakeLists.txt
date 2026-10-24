@@ -18,5 +18,6 @@ target_include_directories(pcbu_auth PRIVATE common-cpp/src)
 target_link_libraries(pcbu_auth PRIVATE pcbu_common)
 add_custom_command(TARGET pcbu_auth
         POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_SOURCE_DIR}/desktop/res/natives/${TARGET_OS}/${TARGET_ARCH}
-        COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:pcbu_auth> ${CMAKE_SOURCE_DIR}/desktop/res/natives/${TARGET_OS}/${TARGET_ARCH})
+        COMMAND ${CMAKE_COMMAND} -E make_directory ${PCBU_NATIVES_DIR}
+        COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:pcbu_auth> ${PCBU_NATIVES_DIR}
+        BYPRODUCTS ${PCBU_NATIVES_DIR}/pcbu_auth${CMAKE_EXECUTABLE_SUFFIX})

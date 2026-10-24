@@ -1,13 +1,11 @@
 #include "MainWindow.h"
 
-#include "installer/ServiceInstaller.h"
-#include "platform/PlatformHelper.h"
-#include "shell/LocalShell.h"
+#include "installer/AppInstaller.h"
+#include "installer/StartupChecks.h"
+#include "installer/service/ServiceInstaller.h"
 #include "shell/Shell.h"
 #include "storage/AppSettings.h"
-#include "storage/LoggingSystem.h"
 #include "storage/PairedDevicesStorage.h"
-#include "utils/AppInfo.h"
 #include "utils/ResourceHelper.h"
 
 #ifdef APPLE
@@ -66,68 +64,18 @@ void MainWindow::PerformStartupChecks(QObject *window) {
       QMetaObject::invokeMethod(window, "onStartupChecksFinished", Q_ARG(QVariant, success), Q_ARG(QVariant, needsReinstall));
     };
 
-    Shell::Init();
-    auto testCmdResult = Shell::RunCommand("echo");
-    if(!Shell::HasAdmin() || testCmdResult.exitCode != 0) {
-#ifdef WINDOWS
-      auto errorKey = "error_not_admin";
-#elif LINUX
-      auto errorKey = "error_not_root";
-#elif APPLE
-      auto errorKey = "error_mac_admin_required";
-#endif
-      QMetaObject::invokeMethod(window, "showFatalErrorMessage", Q_ARG(QVariant, QString::fromUtf8(I18n::Get(errorKey, I18n::Get("product_name")))));
+    auto error = StartupChecks::Run();
+    if(error.has_value()) {
+      QMetaObject::invokeMethod(window, "showFatalErrorMessage", Q_ARG(QVariant, QString::fromUtf8(error.value())));
       finish(false, false);
       return;
     }
-
-#if defined(LINUX) || defined(APPLE)
-    if(LocalShell::RunUserCommand("which bash").exitCode != 0) {
-      QMetaObject::invokeMethod(window, "showFatalErrorMessage", Q_ARG(QVariant, QString::fromUtf8(I18n::Get("error_unix_missing_dep", "bash"))));
-      finish(false, false);
-      return;
-    }
-#ifdef LINUX
-    if(LocalShell::RunUserCommand("test -f /etc/shadow").exitCode != 0) {
-      QMetaObject::invokeMethod(window, "showFatalErrorMessage",
-                                Q_ARG(QVariant, QString::fromUtf8(I18n::Get("error_unix_missing_dep", "Shadow file"))));
-      finish(false, false);
-      return;
-    }
-    if(!PlatformHelper::HasNativeLibrary("libcrypt.so.1")) {
-      QMetaObject::invokeMethod(window, "showFatalErrorMessage",
-                                Q_ARG(QVariant, QString::fromUtf8(I18n::Get("error_unix_missing_dep", "libcrypt.so.1 (libxcrypt-compat)"))));
-      finish(false, false);
-      return;
-    }
-    if(!PlatformHelper::HasNativeLibrary("libcrypto.so.3") || !PlatformHelper::HasNativeLibrary("libssl.so.3")) {
-      QMetaObject::invokeMethod(window, "showFatalErrorMessage",
-                                Q_ARG(QVariant, QString::fromUtf8(I18n::Get("error_unix_missing_dep", "OpenSSL 3"))));
-      finish(false, false);
-      return;
-    }
-    if(!PlatformHelper::HasNativeLibrary("libbluetooth.so") && !PlatformHelper::HasNativeLibrary("libbluetooth.so.3")) {
-      QMetaObject::invokeMethod(window, "showFatalErrorMessage",
-                                Q_ARG(QVariant, QString::fromUtf8(I18n::Get("error_unix_missing_dep", "libbluetooth"))));
-      finish(false, false);
-      return;
-    }
-#endif
-#endif
 
     Shell::SetElevatorLostHandler([window]() {
       QMetaObject::invokeMethod(window, "showFatalErrorMessage",
                                 Q_ARG(QVariant, QString::fromUtf8(I18n::Get("error_elevator_lost", I18n::Get("product_name")))));
     });
-    AppSettings::InvalidateCache();
-    PairedDevicesStorage::InvalidateCache();
-    PairedDevicesStorage::GetDevices();
-    auto settings = AppSettings::Get();
-
-    const auto installedVersion = settings.installedVersion;
-    auto needsReinstall =
-        ServiceInstaller::IsInstalled() && (AppInfo::CompareVersion(installedVersion, AppInfo::GetVersion()) == 1 || installedVersion.empty());
-    finish(true, needsReinstall);
+    finish(true, StartupChecks::NeedsReinstall());
   });
 }
 
@@ -144,34 +92,12 @@ void MainWindow::OnInstallClicked(QObject *window) {
       spdlog::info(str);
       QMetaObject::invokeMethod(window, "appendLoadingOutput", Q_ARG(QVariant, QString::fromUtf8(str)));
     };
-
-    // Migration
-    if(AppSettings::NeedsMigration()) {
-      logCallback("Migrating data directory...");
-      LoggingSystem::Destroy();
-      LoggingSystem::Init("desktop", true, false);
-      try {
-        AppSettings::MigrateBaseDir();
-      } catch(const std::exception &ex) {
-        LoggingSystem::Destroy();
-        LoggingSystem::Init("desktop");
-        AppSettings::SetInstalledVersion(false);
-        logCallback(fmt::format("Migration failed: {}", ex.what()));
-      }
-      LoggingSystem::Destroy();
-      LoggingSystem::Init("desktop");
-      logCallback("Done.");
-    }
-
-    auto installer = ServiceInstaller(logCallback);
+    auto installer = AppInstaller(logCallback);
     try {
-      if(ServiceInstaller::IsInstalled()) {
-        installer.Uninstall(true);
-      } else {
+      if(ServiceInstaller::IsInstalled())
+        installer.Uninstall();
+      else
         installer.Install();
-        installer.ApplySettings(installer.GetSettings(), true);
-      }
-      AppSettings::SetInstalledVersion(ServiceInstaller::IsInstalled());
       QMetaObject::invokeMethod(window, "finishLoadingScreen", Q_ARG(QVariant, QString::fromUtf8(I18n::Get("success"))));
     } catch(const std::exception &ex) {
       logCallback(ex.what());
@@ -189,32 +115,8 @@ void MainWindow::OnReinstallClicked(QObject *window) {
       spdlog::info(str);
       QMetaObject::invokeMethod(window, "appendLoadingOutput", Q_ARG(QVariant, QString::fromUtf8(str)));
     };
-    auto installer = ServiceInstaller(logCallback);
     try {
-      if(ServiceInstaller::IsInstalled())
-        installer.Uninstall(false);
-      installer.Install();
-      installer.ApplySettings(installer.GetSettings(), false);
-
-      // Migration
-      if(AppSettings::NeedsMigration()) {
-        logCallback("Migrating data directory...");
-        LoggingSystem::Destroy();
-        LoggingSystem::Init("desktop", true, false);
-        try {
-          AppSettings::MigrateBaseDir();
-        } catch(const std::exception &ex) {
-          LoggingSystem::Destroy();
-          LoggingSystem::Init("desktop");
-          AppSettings::SetInstalledVersion(false);
-          logCallback(fmt::format("Migration failed: {}", ex.what()));
-        }
-        LoggingSystem::Destroy();
-        LoggingSystem::Init("desktop");
-        logCallback("Done.");
-      }
-
-      AppSettings::SetInstalledVersion(true);
+      AppInstaller(logCallback).Reinstall();
       QMetaObject::invokeMethod(window, "finishLoadingScreen", Q_ARG(QVariant, QString::fromUtf8(I18n::Get("success"))));
     } catch(const std::exception &ex) {
       logCallback(ex.what());

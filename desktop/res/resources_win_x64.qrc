@@ -1,6 +1,0 @@
-<!DOCTYPE RCC>
-<RCC version="1.0">
-    <qresource prefix="/res/natives/">
-        <file alias="win_pulseunlock.dll">natives/win/x64/win_pulseunlock.dll</file>
-    </qresource>
-</RCC>

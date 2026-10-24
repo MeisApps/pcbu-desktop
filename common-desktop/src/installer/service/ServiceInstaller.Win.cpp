@@ -4,7 +4,7 @@
 
 #include <ShlObj.h>
 
-#include "WinFirewallHelper.h"
+#include "installer/helpers/WinFirewallHelper.h"
 #include "platform/PlatformHelper.h"
 #include "shell/Shell.h"
 #include "storage/AppSettings.h"

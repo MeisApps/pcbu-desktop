@@ -59,13 +59,14 @@ elseif(UNIX)
     add_compile_definitions(LINUX HAVE_CRYPT_H)
     set(PLATFORM_LIBS
             PkgConfig::libxcrypt
-            bluetooth
     )
     set(PLATFORM_SRC
             src/connection/unlock/clients/BTUnlockClient.cpp
             src/connection/unlock/servers/BTUnlockServer.cpp
             src/platform/PlatformHelper.Linux.cpp
             src/platform/BluetoothHelper.Linux.cpp
+            src/platform/LibBluetooth.cpp
+            src/platform/LibBluetooth.h
     )
 endif()
 

@@ -2,8 +2,13 @@
 set -e
 
 # Detect parameters
-if [ -z "$PLATFORM" ] || [ -z "$ARCH" ] || [ -z "$QT_BASE_DIR" ]; then
-    cmake_build_helper_output=$(cmake -P ../cmake/BuildHelper.cmake)
+TARGET="${TARGET:-desktop}"
+if [[ "$TARGET" != "desktop" && "$TARGET" != "cli" ]]; then
+  echo 'Invalid target.'
+  exit 1
+fi
+if [ -z "$PLATFORM" ] || [ -z "$ARCH" ] || { [ -z "$QT_BASE_DIR" ] && [[ "$TARGET" != "cli" ]]; }; then
+    cmake_build_helper_output=$(cmake -P ../cmake/BuildHelper.cmake) || [[ "$TARGET" == "cli" ]]
 fi
 if [ -z "$PLATFORM" ]; then
     PLATFORM=$(echo "$cmake_build_helper_output" | sed -n '1p' | tr -d '\r' | xargs)
@@ -15,6 +20,7 @@ if [ -z "$QT_BASE_DIR" ]; then
     QT_BASE_DIR=$(echo "$cmake_build_helper_output" | sed -n '3p' | tr -d '\r' | xargs)
 fi
 
+echo "Target: $TARGET"
 echo "OS: $PLATFORM"
 echo "Arch: $ARCH"
 echo "Qt: $QT_BASE_DIR"
@@ -33,6 +39,30 @@ else
   echo 'Invalid architecture.'
   exit 1
 fi
+
+# CLI
+BUILD_CORES=4
+if [[ "$TARGET" == "cli" ]]; then
+  if [[ "$PLATFORM" != "linux" ]]; then
+    echo 'CLI packages are only built for Linux.'
+    exit 1
+  fi
+  mkdir build || true
+  cd build
+  cmake ../../ -DCMAKE_BUILD_TYPE=Release -DTARGET_ARCH="$ARCH" -DPCBU_BUILD_GUI=OFF -DPCBU_BUILD_CLI=ON
+  cmake --build . --target "pcbu_cli" --config Release -- -j"$BUILD_CORES"
+
+  CLI_DIR_NAME="PulseUnlock-CLI-$(cat version.txt)-$ARCH"
+  rm -Rf cli_dir/ || true
+  mkdir -p cli_dir/"$CLI_DIR_NAME"
+  cp desktop/cli/pulseunlock cli_dir/"$CLI_DIR_NAME"/
+  cp ../linux/install-cli.sh cli_dir/"$CLI_DIR_NAME"/install.sh
+  cp ../../LICENSE cli_dir/"$CLI_DIR_NAME"/
+  chmod +x cli_dir/"$CLI_DIR_NAME"/pulseunlock cli_dir/"$CLI_DIR_NAME"/install.sh
+  tar -czf PulseUnlock-CLI-"$ARCH".tar.gz -C cli_dir "$CLI_DIR_NAME"
+  exit 0
+fi
+
 if [ ! -d "$QT_BASE_DIR" ]; then
   echo 'Invalid QT directory.'
   exit 1
@@ -78,7 +108,6 @@ if [[ "$PLATFORM" == "win" ]]; then
 fi
 
 # Build
-BUILD_CORES=4
 mkdir build || true
 cd build
 if [[ "$PLATFORM" == "win" ]]; then
@@ -95,7 +124,7 @@ else
   cmake --build . --target "pcbu_ssh_askpass" --config Release -- -j"$BUILD_CORES"
   if [[ "$PLATFORM" == "mac" ]]; then
     for native in pcbu_auth pcbu_ssh_askpass pam_pulseunlock.dylib; do
-      mac_sign ../../desktop/res/natives/mac/"$ARCH"/"$native"
+      mac_sign ../../common-desktop/res/natives/mac/"$ARCH"/"$native"
     done
   fi
   cmake --build . --target "pcbu_desktop" --config Release -- -j"$BUILD_CORES"
@@ -134,6 +163,7 @@ elif [[ "$PLATFORM" == "linux" ]]; then
   mkdir -p appimage_dir/usr/share/icons/hicolor/256x256/apps || true
   cp desktop/pcbu_desktop appimage_dir/usr/bin/
   cp desktop/pcbu_elevator appimage_dir/usr/bin/
+  cp desktop/cli/pulseunlock appimage_dir/usr/bin/
   cp ../linux/run-app.sh appimage_dir/usr/bin/
   cp ../../desktop/res/icons/icon.png appimage_dir/usr/share/icons/hicolor/256x256/apps/PulseUnlock.png
   chmod +x appimage_dir/usr/bin/run-app.sh
@@ -173,6 +203,7 @@ elif [[ "$PLATFORM" == "mac" ]]; then
     mac_sign "$framework"
   done
   mac_sign desktop/pcbu_desktop.app/Contents/MacOS/pcbu_elevator
+  mac_sign desktop/pcbu_desktop.app/Contents/MacOS/pulseunlock
   mac_sign desktop/pcbu_desktop.app/Contents/Library/PulseUnlockAgent.app
   mac_sign --entitlements ../mac/entitlements.plist desktop/pcbu_desktop.app
 
