@@ -5,4 +5,4 @@ cmake-build-release
 cmake-nvim-debug
 cmake-nvim-release
 pkg/build
-common-desktop/res/natives
+common_desktop/res/natives

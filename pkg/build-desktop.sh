@@ -55,7 +55,7 @@ if [[ "$TARGET" == "cli" ]]; then
   CLI_DIR_NAME="PulseUnlock-CLI-$(cat version.txt)-$ARCH"
   rm -Rf cli_dir/ || true
   mkdir -p cli_dir/"$CLI_DIR_NAME"
-  cp desktop/cli/pulseunlock cli_dir/"$CLI_DIR_NAME"/
+  cp cli/pulseunlock cli_dir/"$CLI_DIR_NAME"/
   cp ../linux/install-cli.sh cli_dir/"$CLI_DIR_NAME"/install.sh
   cp ../../LICENSE cli_dir/"$CLI_DIR_NAME"/
   chmod +x cli_dir/"$CLI_DIR_NAME"/pulseunlock cli_dir/"$CLI_DIR_NAME"/install.sh
@@ -124,7 +124,7 @@ else
   cmake --build . --target "pcbu_ssh_askpass" --config Release -- -j"$BUILD_CORES"
   if [[ "$PLATFORM" == "mac" ]]; then
     for native in pcbu_auth pcbu_ssh_askpass pam_pulseunlock.dylib; do
-      mac_sign ../../common-desktop/res/natives/mac/"$ARCH"/"$native"
+      mac_sign ../../common_desktop/res/natives/mac/"$ARCH"/"$native"
     done
   fi
   cmake --build . --target "pcbu_desktop" --config Release -- -j"$BUILD_CORES"
@@ -163,7 +163,7 @@ elif [[ "$PLATFORM" == "linux" ]]; then
   mkdir -p appimage_dir/usr/share/icons/hicolor/256x256/apps || true
   cp desktop/pcbu_desktop appimage_dir/usr/bin/
   cp desktop/pcbu_elevator appimage_dir/usr/bin/
-  cp desktop/cli/pulseunlock appimage_dir/usr/bin/
+  cp cli/pulseunlock appimage_dir/usr/bin/
   cp ../linux/run-app.sh appimage_dir/usr/bin/
   cp ../../desktop/res/icons/icon.png appimage_dir/usr/share/icons/hicolor/256x256/apps/PulseUnlock.png
   chmod +x appimage_dir/usr/bin/run-app.sh

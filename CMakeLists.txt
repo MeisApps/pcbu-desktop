@@ -71,7 +71,7 @@ if(WIN32)
 endif()
 
 message("-- Building for arch '${TARGET_ARCH}' on '${TARGET_OS}'")
-set(PCBU_NATIVES_DIR "${CMAKE_SOURCE_DIR}/common-desktop/res/natives/${TARGET_OS}/${TARGET_ARCH}")
+set(PCBU_NATIVES_DIR "${CMAKE_SOURCE_DIR}/common_desktop/res/natives/${TARGET_OS}/${TARGET_ARCH}")
 
 FetchContent_Declare(
         json
@@ -103,9 +103,9 @@ set(SPDLOG_BUILD_PIC ON CACHE BOOL "")
 FetchContent_MakeAvailable(spdlog)
 
 add_subdirectory(common)
-add_subdirectory(common-desktop)
+add_subdirectory(common_desktop)
 if(PCBU_BUILD_CLI)
-    add_subdirectory(desktop/cli)
+    add_subdirectory(cli)
 endif()
 if(PCBU_BUILD_GUI)
     add_subdirectory(desktop)

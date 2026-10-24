@@ -9,6 +9,6 @@ cmake-nvim-release
 cmake-nvim-relwithdebinfo
 pkg/build
 common/src/generated
-common-desktop/res/natives
+common_desktop/res/natives
 desktop/.qmlls.ini
 compile_commands.json
