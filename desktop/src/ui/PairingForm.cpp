@@ -64,6 +64,9 @@ PairingStep PairingForm::GetNextStep() {
   auto nextStep = PairingStep::USER_PASSWORD_SELECT;
   switch(m_CurrentStep) {
     case PairingStep::USER_PASSWORD_SELECT:
+      nextStep = PairingStep::DEVICE_TYPE_SELECT;
+      break;
+    case PairingStep::DEVICE_TYPE_SELECT:
       nextStep = PairingStep::METHOD_TYPE_SELECT;
       break;
     case PairingStep::METHOD_TYPE_SELECT:
@@ -94,6 +97,8 @@ PairingStep PairingForm::GetNextStep() {
 
 void PairingForm::UpdateStepForm(QObject *viewLoader, QObject *window) {
   // Set pairing method
+  if(m_PairingData.deviceType == "IOS" && m_PairingData.pairingMethodType == "AUTO")
+    m_PairingData.pairingMethodType = "CLOUD";
   auto selectedMethod = PairingMethodUtils::FromString(m_PairingData.pairingMethod.toStdString());
   if(m_PairingData.pairingMethodType == "CLOUD") {
     if(selectedMethod != PairingMethod::CLOUD)
@@ -162,6 +167,9 @@ void PairingForm::UpdateStepForm(QObject *viewLoader, QObject *window) {
     case PairingStep::USER_PASSWORD_SELECT:
       viewLoader->setProperty("source", QUrl("qrc:/ui/pairing/PairingPasswordForm.qml"));
       break;
+    case PairingStep::DEVICE_TYPE_SELECT:
+      viewLoader->setProperty("source", QUrl("qrc:/ui/pairing/PairingDeviceTypeForm.qml"));
+      break;
     case PairingStep::METHOD_TYPE_SELECT:
       viewLoader->setProperty("source", QUrl("qrc:/ui/pairing/PairingMethodTypeForm.qml"));
       break;
@@ -189,6 +197,7 @@ void PairingForm::Show(QObject *viewLoader, QObject *window) {
     return;
   }
 
+  m_PairingData.deviceType = "ANDROID";
   m_PairingData.pairingMethodType = "CLOUD";
   m_PairingData.pairingMethod = QString::fromUtf8(PairingMethodUtils::ToString(PairingMethod::CLOUD));
   m_PairingData.useLegacyPairing = false;

@@ -166,6 +166,7 @@
   "skip_password_check": "Ignorar verificação da palavra-passe (não recomendado)",
 
   "pairing_form_password_desc": "Selecione um utilizador e insira a respetiva palavra-passe. Os seus dados de início de sessão são guardados encriptados no seu PC e não são partilhados com ninguém.",
+  "pairing_form_device_type_desc": "Selecione o tipo do seu telemóvel.",
   "pairing_form_method_type_desc": "Selecione um tipo de comunicação.",
   "pairing_form_method_desc": "Selecione um método de comunicação.",
   "pairing_form_bt_scanning": "A procurar...",
@@ -178,6 +179,10 @@
   "pairing_method_type_cloud_desc": "<b>Recomendado para a maioria dos casos.</b> Desbloqueie a partir de qualquer lugar através da Internet, independentemente da rede em que esteja. Muito eficiente em termos de bateria. Requer uma subscrição Cloud.",
   "pairing_method_type_automatic_desc": "Abre automaticamente um pedido de desbloqueio no seu telefone quando o PC o solicita.<br>Para a melhor experiência, poderá ser necessário <a href=\"https://dontkillmyapp.com/\">desativar as otimizações de bateria</a>.",
   "pairing_method_type_manual_desc": "Requer iniciar a app manualmente e pedir o desbloqueio a partir dela.",
+  "pairing_device_type_android_select": "Android",
+  "pairing_device_type_ios_select": "iPhone",
+  "pairing_device_type_android_desc": "Suporta todos os tipos de comunicação.",
+  "pairing_device_type_ios_desc": "Suporta comunicação pela Cloud e manual.",
   "pairing_use_legacy_select": "Usar emparelhamento antigo",
   "pairing_use_legacy_desc": "Usa a interface de rede selecionada nas configurações para o emparelhamento. Ative esta opção ao ligar através de uma VPN, onde a deteção automática pode não funcionar.",
   "pairing_method_tcp_select": "Usar TCP",

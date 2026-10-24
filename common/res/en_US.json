@@ -166,6 +166,7 @@
   "skip_password_check": "Skip password check (not recommended)",
 
   "pairing_form_password_desc": "Select a user and enter their password. Your login details get saved encrypted on your PC and won't be shared with anyone.",
+  "pairing_form_device_type_desc": "Select the type of your phone.",
   "pairing_form_method_type_desc": "Select a communication type.",
   "pairing_form_method_desc": "Select a communication method.",
   "pairing_form_bt_scanning": "Scanning...",
@@ -178,6 +179,10 @@
   "pairing_method_type_cloud_desc": "<b>Recommended for most use cases.</b> Unlock from anywhere over the internet, no matter which network you are on. Very battery life friendly. Requires a Cloud subscription.",
   "pairing_method_type_automatic_desc": "Automatically opens an unlock prompt on your phone when your PC requests it.<br>For the best experience, you may need to <a href=\"https://dontkillmyapp.com/\">disable battery optimizations</a>.",
   "pairing_method_type_manual_desc": "Requires launching the app manually and requesting unlocking from within it.",
+  "pairing_device_type_android_select": "Android",
+  "pairing_device_type_ios_select": "iPhone",
+  "pairing_device_type_android_desc": "Supports all communication types.",
+  "pairing_device_type_ios_desc": "Supports Cloud and manual communication.",
   "pairing_use_legacy_select": "Use legacy pairing",
   "pairing_use_legacy_desc": "Uses the selected network interface from settings for pairing. Enable this when connecting over a VPN, where automatic discovery may not work.",
   "pairing_method_tcp_select": "Use TCP",

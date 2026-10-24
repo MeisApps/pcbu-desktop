@@ -166,6 +166,7 @@
   "skip_password_check": "Passwortprüfung überspringen (nicht empfohlen)",
 
   "pairing_form_password_desc": "Wähle einen Benutzer aus und gib dessen Passwort ein. Deine Anmeldedaten werden verschlüsselt auf deinem PC gespeichert und mit niemanden geteilt.",
+  "pairing_form_device_type_desc": "Wähle den Typ deines Telefons aus.",
   "pairing_form_method_type_desc": "Wähle eine Kommunikationsart aus.",
   "pairing_form_method_desc": "Wähle eine Kommunikationsmethode aus.",
   "pairing_form_bt_scanning": "Suche...",
@@ -178,6 +179,10 @@
   "pairing_method_type_cloud_desc": "<b>Für die meisten Anwendungsfälle empfohlen.</b> Entsperren von überall über das Internet, egal in welchem Netzwerk du dich befindest. Besonders akkuschonend. Erfordert ein Cloud-Abonnement.",
   "pairing_method_type_automatic_desc": "Öffnet automatisch eine Entsperrungsaufforderung auf deinem Smartphone, wenn dein PC dies anfordert.<br>Für ein optimales Erlebnis musst du möglicherweise die <a href=\"https://dontkillmyapp.com/\">Batterieoptimierungen deaktivieren</a>.",
   "pairing_method_type_manual_desc": "Erfordert das manuelle Starten der App und das Anfordern der Entsperrung innerhalb der App.",
+  "pairing_device_type_android_select": "Android",
+  "pairing_device_type_ios_select": "iPhone",
+  "pairing_device_type_android_desc": "Unterstützt alle Kommunikationsarten.",
+  "pairing_device_type_ios_desc": "Unterstützt Cloud und manuelle Kommunikation.",
   "pairing_use_legacy_select": "Alte Kopplung verwenden",
   "pairing_use_legacy_desc": "Verwendet die in den Einstellungen ausgewählte Netzwerkschnittstelle für die Kopplung. Aktiviere dies bei einer Verbindung über ein VPN, falls die automatische Erkennung nicht funktioniert.",
   "pairing_method_tcp_select": "TCP verwenden",

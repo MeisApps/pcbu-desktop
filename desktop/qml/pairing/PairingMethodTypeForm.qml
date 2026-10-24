@@ -37,6 +37,7 @@ StepForm {
                 }
             }
             ColumnLayout {
+                visible: PairingForm.GetData().deviceType === 'ANDROID'
                 RadioButton {
                     ButtonGroup.group: methodRadioGroup
                     property string methodStr: 'AUTO'

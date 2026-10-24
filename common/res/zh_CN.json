@@ -166,6 +166,7 @@
   "skip_password_check": "跳过密码检查（不推荐）",
 
   "pairing_form_password_desc": "选择一个用户并输入其密码。您的登录信息会加密保存在本机，不会与任何人共享。",
+  "pairing_form_device_type_desc": "选择您的手机类型。",
   "pairing_form_method_type_desc": "选择通信类型。",
   "pairing_form_method_desc": "选择通信方式。",
   "pairing_form_bt_scanning": "正在扫描...",
@@ -178,6 +179,10 @@
   "pairing_method_type_cloud_desc": "<b>推荐大多数情况使用。</b>无论身处哪个网络，都可通过互联网随时随地解锁。非常省电。需要云订阅。",
   "pairing_method_type_automatic_desc": "当电脑发出请求时，自动在手机上弹出解锁提示。<br>为获得最佳体验，您可能需要<a href=\"https://dontkillmyapp.com/\">关闭电池优化</a>。",
   "pairing_method_type_manual_desc": "需要手动启动应用并在应用内发起解锁。",
+  "pairing_device_type_android_select": "Android",
+  "pairing_device_type_ios_select": "iPhone",
+  "pairing_device_type_android_desc": "支持所有通信类型。",
+  "pairing_device_type_ios_desc": "支持云端和手动通信。",
   "pairing_use_legacy_select": "使用旧版配对",
   "pairing_use_legacy_desc": "配对时使用设置中选择的网络接口。通过 VPN 连接且自动发现无法工作时，请启用此选项。",
   "pairing_method_tcp_select": "使用 TCP",
