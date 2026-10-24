@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.22)
-project(pcbu_desktop_all VERSION 4.1.0)
+project(pcbu_desktop_all VERSION 4.2.0)
 
 option(PCBU_BUILD_GUI "Build the Qt desktop app" ON)
 option(PCBU_BUILD_CLI "Build the pulseunlock CLI" ON)
