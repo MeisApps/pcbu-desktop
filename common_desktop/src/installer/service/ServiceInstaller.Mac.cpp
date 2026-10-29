@@ -126,8 +126,7 @@ void ServiceInstaller::Install() {
                                     StringUtils::ShellQuote(AGENT_INSTALL_DIR.string())));
   if(cmdResult.exitCode != 0)
     throw std::runtime_error(I18n::Get("error_file_write", agentPath.string()));
-  Shell::RunCommand(
-      fmt::format(R"(codesign -dv "{}" 2>&1 | grep -q "Signature=adhoc" && tccutil reset Accessibility {})", agentPath.string(), AGENT_BUNDLE_ID));
+  Shell::RunCommand(fmt::format("tccutil reset Accessibility {}", AGENT_BUNDLE_ID));
 
   auto plist = ResourceHelper::GetResource(":/res/mac/{}", AGENT_PLIST_FILE);
   auto plistPath = AGENT_PLIST_DIR / AGENT_PLIST_FILE;
